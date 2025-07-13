@@ -1,0 +1,67 @@
+/* Standard-Styling */
+body {
+    background-color: #121212; /* Hintergrundfarbe im Dark Mode */
+    color: #e0e0e0; /* Helle Textfarbe für bessere Lesbarkeit */
+}
+
+/* Navigation */
+.navbar {
+    background-color: #1f1f1f; /* Dunkler Hintergrund für die Navigationsleiste */
+    color: #e0e0e0; /* Helle Schrift */
+}
+
+.navbar-brand, .nav-link {
+    color: #e0e0e0 !important; /* Helle Schriftfarbe für die Navbar-Links */
+}
+
+.navbar-toggler {
+    border-color: #e0e0e0; /* Helle Farbe für den Toggler */
+}
+
+/* Buttons in der Navigation */
+.navbar .btn {
+    font-size: 14px;
+    padding: 5px 15px;
+    border-radius: 5px;
+    color: #ffffff; /* Helle Textfarbe für alle Buttons */
+    background-color: #007bff; /* Blau für die Buttons */
+    border: 1px solid #007bff; /* Rahmen in blauer Farbe */
+}
+
+/* Spezifische Regel für den Abmelden-Button */
+.navbar .btn-outline-light {
+    color: #007bff; /* Blau für die Schrift */
+    border-color: #007bff; /* Blauer Rahmen */
+}
+
+.navbar .btn-outline-light:hover {
+    background-color: rgba(0, 123, 255, 0.1); /* Leicht blauer Hintergrund beim Hover */
+}
+
+/* Button-Farben im Dark Mode */
+.btn-outline-dark {
+    border-color: #e0e0e0;
+    color: #e0e0e0;
+}
+
+.btn-dark {
+    background-color: #3d3d3d;
+    border-color: #3d3d3d;
+    color: #e0e0e0;
+}
+
+/* Standard-Styling für den Abmelden-Button im Standardmodus */
+.btn-outline-light {
+    color: #007bff; /* Blau für den Abmelden-Button */
+    border-color: #007bff; /* Blau für den Rahmen */
+}
+
+/* Hover-Effekte für den Abmelden-Button */
+.btn-outline-light:hover {
+    background-color: rgba(0, 123, 255, 0.1); /* Hellerer Hintergrund beim Hover */
+}
+
+#barcode-input {
+            width: 100%;  /* Setzt die Breite des Eingabefelds auf 100%, damit es wie das 'Artikel suchen' Eingabefeld aussieht */
+            font-size: 14px; /* Schriftgröße bleibt gleich */
+}

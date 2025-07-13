@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de"> <!-- Sprache auf Deutsch umgestellt -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <style>
+        /* Verstecke den Body bis das JS ausgeführt wird */
+        body {
+            display: none;
+        }
+    </style>
+    
+    <link href="https://bootswatch.com/5/minty/bootstrap.min.css" rel="stylesheet">
+    <link href="{% static 'css/dark_mode.css' %}" rel="stylesheet" id="dark-mode-style" disabled>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"> <!-- Bootstrap Icons -->
+
+    <title>Inventarverwaltung</title> <!-- Titel ins Deutsche übersetzt -->
+
+    <script>
+        // Dark Mode umschalten
+        function toggleDarkMode() {
+            const darkModeStyle = document.getElementById('dark-mode-style');
+            const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+            const icon = document.querySelector('.navbar-nav .nav-item .btn-dark i');
+
+            if (isDarkMode) {
+                darkModeStyle.removeAttribute('disabled'); // Dark Mode aktivieren
+                icon.classList.remove('bi-moon'); // Mond-Icon entfernen
+                icon.classList.add('bi-sun'); // Sonnen-Icon hinzufügen
+            } else {
+                darkModeStyle.setAttribute('disabled', true); // Dark Mode deaktivieren
+                icon.classList.remove('bi-sun'); // Sonnen-Icon entfernen
+                icon.classList.add('bi-moon'); // Mond-Icon hinzufügen
+            }
+
+            // Zeige den Body an, nachdem der Dark Mode festgelegt wurde
+            document.body.style.display = 'block';
+        }
+
+        // Aufruf beim Laden der Seite
+        window.onload = function() {
+            const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+            if (isDarkMode) {
+                document.getElementById('dark-mode-style').removeAttribute('disabled');
+            }
+
+            // Zeige den Body an, nachdem der Dark Mode festgelegt wurde
+            document.body.style.display = 'block';
+        };
+
+        // Funktion, um Dark Mode zu speichern
+        function switchMode() {
+            const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+            localStorage.setItem('darkMode', isDarkMode ? 'disabled' : 'enabled');
+            toggleDarkMode();
+        }
+    </script>
+</head>
+<body>
+    {% include 'inventory/navigation.html' %}
+    
+    
+    {% block content %}
+    {% endblock content %}
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
+</body>
+</html>

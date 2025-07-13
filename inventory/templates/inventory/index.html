@@ -1,0 +1,16 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<div>
+	<div class="row">
+		<div class="col-sm-11 col-md-4 mx-auto mt-5 px-3">
+			<h1 class="fw-light">Verfolgen und Verwalten Sie Ihr Inventar</h1> <!-- Track and Manage Your Inventory zu Verfolgen und Verwalten Sie Ihr Inventar übersetzt -->
+			<p class="fw-light">Behalten Sie den Überblick über Ihr Inventar und erhalten Sie Mengenwarnungen bei niedrigem Bestand</p> <!-- Keep track of... zu Behalten Sie den Überblick... übersetzt -->
+
+			<div>
+				<a href="{% url 'dashboard' %}" class="btn btn-primary">Jetzt Loslegen!</a> <!-- Get Started Now! zu Jetzt Loslegen! übersetzt -->
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock content %}

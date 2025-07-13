@@ -1,0 +1,35 @@
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{% url 'index' %}">Inventarverwaltung</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+            <ul class="navbar-nav align-items-center">
+                {% if user.is_authenticated %}
+                    <li class="nav-item me-3">
+                        <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <a href="#" onclick="this.closest('form').submit();" class="text-dark">Abmelden</a>
+                        </form>
+                    </li>
+                    <li class="nav-item me-3">
+                        <a class="btn btn-outline-light" href="{% url 'barcode-list' %}">Barcodes anzeigen</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item me-3">
+                        <a class="btn btn-outline-light" href="{% url 'login' %}">Anmelden</a>
+                    </li>
+                    <li class="nav-item me-3">
+                        <a class="btn btn-outline-light" href="{% url 'signup' %}">Registrieren</a>
+                    </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a class="btn btn-dark" onclick="switchMode()" aria-label="Dark Mode umschalten">
+                        <i class="bi bi-moon"></i> <!-- Mond-Icon für Dark Mode -->
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

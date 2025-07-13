@@ -1,0 +1,18 @@
+{% extends 'inventory/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="row">
+	<div class="col-11 col-md-4 mx-auto mt-5">
+		<h1>Anmelden</h1> <!-- Log In zu Anmelden übersetzt -->
+		<form method="post">
+			{% csrf_token %}
+			{{ form|crispy }}
+			<button class="btn btn-primary">Einloggen</button> <!-- Sign In zu Einloggen übersetzt -->
+		</form>
+		<div class="pt-3">
+			<small class="text-muted">Benötigen Sie ein Konto? <a href="{% url 'signup' %}" class="ml-2">Registrieren</a></small> <!-- Need an account? Sign Up zu Benötigen Sie ein Konto? Registrieren übersetzt -->
+		</div>
+	</div>
+</div>
+{% endblock content %}

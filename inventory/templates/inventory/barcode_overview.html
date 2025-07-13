@@ -1,0 +1,21 @@
+{% extends "inventory/base.html" %}
+
+{% block content %}
+<h2>Barcode-Übersicht</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Item Name</th>
+            <th>Barcode-Text</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.barcode_text }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

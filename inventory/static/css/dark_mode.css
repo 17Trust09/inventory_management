@@ -1,0 +1,170 @@
+/* Standard-Styling */
+body {
+    background-color: #121212; /* Hintergrundfarbe im Dark Mode */
+    color: #e0e0e0; /* Helle Textfarbe für bessere Lesbarkeit */
+}
+
+/* Navigation */
+.navbar {
+    background-color: #1f1f1f; /* Dunkler Hintergrund für die Navigationsleiste */
+    color: #e0e0e0; /* Helle Schrift */
+}
+
+.navbar-brand, .nav-link {
+    color: #e0e0e0 !important; /* Helle Schriftfarbe für die Navbar-Links */
+}
+
+.navbar-toggler {
+    border-color: #e0e0e0; /* Helle Farbe für den Toggler */
+}
+
+/* Buttons in der Navigation */
+.navbar .btn {
+    font-size: 14px;
+    padding: 5px 15px;
+    border-radius: 5px;
+    color: #e0e0e0; /* Helle Textfarbe für Buttons */
+    background-color: #3d3d3d; /* Dunkler Hintergrund */
+    border: 1px solid #3d3d3d; /* Rahmen in dunkler Farbe */
+}
+
+/* Button-Farben im Dark Mode */
+.btn-outline-dark {
+    border-color: #e0e0e0;
+    color: #e0e0e0;
+}
+
+.btn-dark {
+    background-color: #3d3d3d;
+    border-color: #3d3d3d;
+    color: #e0e0e0;
+}
+
+/* Dropdown-Menü im Navigationsmenü */
+.dropdown-menu {
+    background-color: #1f1f1f;
+    color: #e0e0e0;
+    border: 1px solid #333;
+}
+
+.dropdown-item {
+    color: #e0e0e0;
+}
+
+.dropdown-item:hover {
+    background-color: #333;
+}
+
+/* Buttons */
+.btn {
+    background-color: #3d3d3d;
+    border-color: #3d3d3d;
+    color: #e0e0e0;
+}
+
+.btn:hover {
+    background-color: #555555;
+    border-color: #555555;
+}
+
+.btn-outline-primary {
+    border-color: #e0e0e0;
+    color: #e0e0e0;
+}
+
+.btn-outline-primary:hover {
+    background-color: #e0e0e0;
+    color: #121212;
+}
+
+/* Tabellen */
+.table {
+    background-color: #1f1f1f;
+    color: #e0e0e0;
+    border: 1px solid #333;
+}
+
+.table thead th {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border-bottom: 1px solid #444;
+}
+
+.table tbody tr {
+    background-color: #1f1f1f; /* Grundfarbe für Tabellenzeilen */
+    color: #e0e0e0; /* Helle Textfarbe */
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: #1a1a1a; /* Dunkleres Grau für ungerade Zeilen */
+}
+
+.table-striped > tbody > tr:nth-of-type(even) {
+    background-color: #232323; /* Helleres Grau für gerade Zeilen */
+}
+
+.table-hover tbody tr:hover {
+    background-color: #333333; /* Hover-Effekt für Tabellenzeilen */
+}
+
+/* Tabellenzellen */
+.table td {
+    background-color: #1f1f1f; /* Hintergrundfarbe der Tabellenzellen */
+    color: #e0e0e0; /* Helle Textfarbe */
+    border-top: 1px solid #444;
+}
+
+/* Spezifische Regel für die Tabellennamen */
+.table td:nth-child(2) span {
+    color: #e0e0e0 !important; /* Erzwingt helle Textfarbe für Namen */
+}
+
+.table th {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+}
+
+/* Alerts */
+.alert {
+    background-color: #2a2a2a;
+    color: #ff6f61;
+    border-color: #444;
+}
+
+.alert a {
+    color: #f4f4f4 !important; /* Helle Farbe für Links in Alerts */
+    text-decoration: underline;
+}
+
+/* Formulare */
+.form-control {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border: 1px solid #444;
+}
+
+.form-select {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border: 1px solid #444;
+}
+
+/* Links */
+a {
+    color: #00bcd4;
+}
+
+a:hover {
+    color: #e0e0e0;
+}
+
+/* Karten und Schatten */
+.card {
+    background-color: #1f1f1f;
+    border: 1px solid #333;
+    color: #e0e0e0;
+}
+
+.shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(255, 255, 255, 0.1);
+}
