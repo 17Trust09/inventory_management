@@ -63,3 +63,9 @@ class InventoryItemForm(forms.ModelForm):
                 self.fields['application_tags'].queryset = ApplicationTag.objects.none()
         else:
             self.fields['application_tags'].queryset = ApplicationTag.objects.all()
+
+    def clean_application_tags(self):
+        tags = self.cleaned_data.get('application_tags')
+        if not tags:
+            raise forms.ValidationError("Du musst mindestens einen Tag auswählen.")
+        return tags
