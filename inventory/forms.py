@@ -62,7 +62,7 @@ class InventoryItemForm(forms.ModelForm):
             else:
                 self.fields['application_tags'].queryset = ApplicationTag.objects.none()
         else:
-            self.fields['application_tags'].queryset = ApplicationTag.objects.all()
+            self.fields['application_tags'].queryset = ApplicationTag.objects.exclude(name="-")
 
     def clean_application_tags(self):
         tags = self.cleaned_data.get('application_tags')
