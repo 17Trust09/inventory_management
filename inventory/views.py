@@ -35,10 +35,16 @@ class Dashboard(LoginRequiredMixin, View):
         if not user_tags.exists():
             items = InventoryItem.objects.none()
         else:
+            # Standardmäßig alle Items mit einem Tag des Nutzers
             items = InventoryItem.objects.filter(application_tags__in=user_tags)
 
+            # Wenn ein spezieller Tagfilter gesetzt ist
             if tag_filter and tag_filter != "all":
                 items = items.filter(application_tags__name=tag_filter)
+
+            # Wenn "all" gewählt wurde, nochmal alle user_tags
+            elif tag_filter == "all":
+                items = InventoryItem.objects.filter(application_tags__in=user_tags)
 
         if query:
             items = items.filter(
