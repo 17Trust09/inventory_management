@@ -4,32 +4,41 @@ from django.views.generic import TemplateView, View, CreateView, UpdateView, Del
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .forms import UserRegisterForm, InventoryItemForm
-from .models import InventoryItem, Category
+from .models import InventoryItem, Category, UserProfile
 from django.contrib import messages
 from django.db import models
 from django.db.models import Q
-import requests  # Für die Kommunikation mit Home Assistant
-from django.conf import settings  # Für das Laden von API-Token und URL aus den Django-Einstellungen
+import requests
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import InventoryItem
 from django.http import JsonResponse
-
 
 # Index View (Landing Page)
 class Index(TemplateView):
     template_name = 'inventory/index.html'
 
-# Dashboard View (Anzeigen von Artikeln und Filterfunktionen)
+
+# Dashboard View (Artikel + Filter)
 class Dashboard(LoginRequiredMixin, View):
     def get(self, request):
         query = request.GET.get('search')
         category_filter = request.GET.get('category')
-        location_letter = request.GET.get('location_letter')  # Schubladenbezeichner aus der URL
-        location_number = request.GET.get('location_number')  # Schubladenbezeichner aus der URL
+        tag_filter = request.GET.get('tag')
+        location_letter = request.GET.get('location_letter')
+        location_number = request.GET.get('location_number')
 
-        items = InventoryItem.objects.filter(user=request.user).order_by('id')
+        user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        user_tags = user_profile.tags.exclude(name="-")
+
+        if not user_tags.exists():
+            items = InventoryItem.objects.none()
+        else:
+            items = InventoryItem.objects.filter(application_tags__in=user_tags)
+
+            if tag_filter and tag_filter != "all":
+                items = items.filter(application_tags__name=tag_filter)
 
         if query:
             items = items.filter(
@@ -41,16 +50,18 @@ class Dashboard(LoginRequiredMixin, View):
         if category_filter and category_filter != "all":
             items = items.filter(category__id=category_filter)
 
-        # Wenn Schublade angegeben, zeige nur Artikel aus dieser Schublade
         if location_letter and location_number:
             items = items.filter(location_letter=location_letter, location_number=location_number)
 
+        items = items.distinct().order_by('id')
         low_inventory = items.filter(quantity__lte=models.F('low_quantity'))
 
         if low_inventory.exists():
-            message = ', '.join([f'<a href="{reverse_lazy("edit-item", args=[item.id])}" style="color: black;">{item.name}</a> '
-                                 f'(Mindestbestand: {item.low_quantity}, Aktueller Bestand: {item.quantity})'
-                                 for item in low_inventory])
+            message = ', '.join([
+                f'<a href="{reverse_lazy("edit-item", args=[item.id])}" style="color: black;">{item.name}</a> '
+                f'(Mindestbestand: {item.low_quantity}, Aktueller Bestand: {item.quantity})'
+                for item in low_inventory
+            ])
             messages.error(request, f'Artikel mit geringem Bestand: {message}', extra_tags='safe')
 
         categories = Category.objects.all()
@@ -61,8 +72,11 @@ class Dashboard(LoginRequiredMixin, View):
             'selected_category': category_filter,
             'low_inventory_ids': low_inventory.values_list('id', flat=True),
             'location_letter': location_letter,
-            'location_number': location_number
+            'location_number': location_number,
+            'user_tags': user_tags,
+            'selected_tag': tag_filter,
         })
+
 
 # Registrierung View
 class SignUpView(View):
@@ -82,6 +96,7 @@ class SignUpView(View):
             return redirect('index')
         return render(request, 'inventory/signup.html', {'form': form})
 
+
 # Artikel hinzufügen View
 class AddItem(CreateView):
     model = InventoryItem
@@ -94,26 +109,27 @@ class AddItem(CreateView):
         context['categories'] = Category.objects.all()
         return context
 
-    def form_valid(self, form):
-        # Hole den Namen des Artikels
-        item_name = form.cleaned_data['name'].lower()
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user  # Übergibt Benutzer für Tag-Filterung
+        return kwargs
 
-        # Suche nach ähnlichen Artikeln anhand des Namens oder der Beschreibung
+    def form_valid(self, form):
+        item_name = form.cleaned_data['name'].lower()
         similar_items = InventoryItem.get_similar_items(item_name)
 
         if similar_items.exists():
-            # Wenn ähnliche Artikel existieren, zeige eine Warnung
             messages.warning(self.request, "Meinst du eines dieser Items?")
             context = {
                 'form': form,
                 'categories': Category.objects.all(),
-                'similar_items': similar_items  # Übergabe der ähnlichen Artikel
+                'similar_items': similar_items
             }
             return render(self.request, 'inventory/item_form.html', context)
 
-        # Wenn keine ähnlichen Artikel gefunden werden, Artikel speichern
         form.instance.user = self.request.user
         return super().form_valid(form)
+
 
 # Artikel bearbeiten View
 class EditItem(LoginRequiredMixin, UpdateView):
@@ -122,12 +138,19 @@ class EditItem(LoginRequiredMixin, UpdateView):
     template_name = 'inventory/item_form.html'
     success_url = reverse_lazy('dashboard')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user  # Übergibt Benutzer für Tag-Filterung
+        return kwargs
+
+
 # Artikel löschen View
 class DeleteItem(LoginRequiredMixin, DeleteView):
     model = InventoryItem
     template_name = 'inventory/delete_item.html'
     success_url = reverse_lazy('dashboard')
     context_object_name = 'item'
+
 
 # Barcode scannen View
 class ScanBarcodeView(LoginRequiredMixin, View):
@@ -140,26 +163,26 @@ class ScanBarcodeView(LoginRequiredMixin, View):
             messages.error(request, "Kein Barcode übergeben.")
             return redirect('dashboard')
 
+
 # Barcode Liste View
 class BarcodeListView(LoginRequiredMixin, View):
     def get(self, request):
         items = InventoryItem.objects.filter(user=request.user)
         return render(request, 'inventory/barcode_list.html', {'items': items})
 
-# Markieren View (Steuert die LED über Home Assistant)
+
+# Markieren View (für Home Assistant LED)
 class MarkItemAPI(View):
     def post(self, request, item_id):
-        # Hole den Artikel aus der Datenbank
         item = get_object_or_404(InventoryItem, id=item_id)
 
-        # An Home Assistant eine Anfrage senden, um die LED zu steuern
-        ha_url = settings.HA_URL  # Lese die URL aus den Einstellungen
+        ha_url = settings.HA_URL
         headers = {
-            'Authorization': f'Bearer {settings.HA_API_TOKEN}',  # API-Token aus den Django-Einstellungen
+            'Authorization': f'Bearer {settings.HA_API_TOKEN}',
             'Content-Type': 'application/json'
         }
         payload = {
-            "entity_id": "light.dummy_led"  # Ersetze mit deiner tatsächlichen LED-Entität
+            "entity_id": "light.dummy_led"
         }
         response = requests.post(ha_url, json=payload, headers=headers)
 
@@ -170,15 +193,13 @@ class MarkItemAPI(View):
         return redirect('dashboard')
 
 
+# API für Items in einer Schublade
 class DrawerItemsAPI(View):
     def get(self, request, location_letter, location_number):
-        # Filtere die Artikel nach Standort und Aktivstatus
         items = InventoryItem.objects.filter(
             location_letter=location_letter,
             location_number=location_number,
-            is_active = models.BooleanField(default=True)
+            is_active=True
         )
-
         items_list = [{"id": item.id, "name": item.name, "quantity": item.quantity} for item in items]
-
         return JsonResponse(items_list, safe=False)

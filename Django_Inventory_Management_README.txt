@@ -1,11 +1,6 @@
 
 # Django Inventory Management Setup
 
-This guide will walk you through the setup process for the Django Inventory Management system on a Raspberry Pi or similar device. 
-
-## Prerequisites
-Ensure you have a working Python 3 environment and the necessary libraries installed. You will also need PostgreSQL installed.
-
 ### 1. Install Python3 and Dependencies
 ```bash
 sudo apt update
