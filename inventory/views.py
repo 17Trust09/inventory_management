@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import TemplateView, View, CreateView, UpdateView, DeleteView
+from django.views import View
+from django.http import HttpResponse
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .forms import UserRegisterForm, InventoryItemForm
@@ -14,13 +16,21 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import JsonResponse
+import os
 
-# Index View (Landing Page)
+# Index View
 class Index(TemplateView):
     template_name = 'inventory/index.html'
 
+class TestFormView(View):
+    def get(self, request):
+        return render(request, 'inventory/test_form.html')
 
-# Dashboard View (Artikel + Filter)
+    def post(self, request):
+        print("✅ TESTFORMULAR WURDE ABGESCHICKT:", request.POST)
+        return HttpResponse("Danke! POST erhalten.")
+
+# Dashboard View
 class Dashboard(LoginRequiredMixin, View):
     def get(self, request):
         query = request.GET.get('search')
@@ -36,9 +46,10 @@ class Dashboard(LoginRequiredMixin, View):
             items = InventoryItem.objects.none()
         else:
             items = InventoryItem.objects.filter(application_tags__in=user_tags)
-
             if tag_filter and tag_filter != "all":
                 items = items.filter(application_tags__name=tag_filter)
+            elif tag_filter == "all":
+                items = InventoryItem.objects.filter(application_tags__in=user_tags)
 
         if query:
             items = items.filter(
@@ -77,7 +88,6 @@ class Dashboard(LoginRequiredMixin, View):
             'selected_tag': tag_filter,
         })
 
-
 # Registrierung View
 class SignUpView(View):
     def get(self, request):
@@ -96,40 +106,48 @@ class SignUpView(View):
             return redirect('index')
         return render(request, 'inventory/signup.html', {'form': form})
 
-
 # Artikel hinzufügen View
-class AddItem(CreateView):
-    model = InventoryItem
-    form_class = InventoryItemForm
-    template_name = 'inventory/item_form.html'
-    success_url = reverse_lazy('dashboard')
+class AddItem(LoginRequiredMixin, View):
+    def get(self, request):
+        form = InventoryItemForm(user=request.user)
+        return render(request, 'inventory/item_form.html', {
+            'form': form,
+            'categories': Category.objects.all(),
+            'similar_items': [],
+            'show_similar': False
+        })
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['categories'] = Category.objects.all()
-        return context
+    def post(self, request):
+        form = InventoryItemForm(request.POST, request.FILES, user=request.user)
+        if form.is_valid():
+            item_name = form.cleaned_data['name'].lower()
+            location_letter = form.cleaned_data.get('location_letter')
+            location_number = form.cleaned_data.get('location_number')
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user  # Übergibt Benutzer für Tag-Filterung
-        return kwargs
+            similar_items = InventoryItem.get_similar_items(item_name)
 
-    def form_valid(self, form):
-        item_name = form.cleaned_data['name'].lower()
-        similar_items = InventoryItem.get_similar_items(item_name)
+            if similar_items.exists() and not request.POST.get('force_save'):
+                messages.warning(request, "Meinst du eines dieser Items?")
+                return render(request, 'inventory/item_form.html', {
+                    'form': form,
+                    'categories': Category.objects.all(),
+                    'similar_items': similar_items,
+                    'show_similar': True
+                })
 
-        if similar_items.exists():
-            messages.warning(self.request, "Meinst du eines dieser Items?")
-            context = {
-                'form': form,
-                'categories': Category.objects.all(),
-                'similar_items': similar_items
-            }
-            return render(self.request, 'inventory/item_form.html', context)
-
-        form.instance.user = self.request.user
-        return super().form_valid(form)
-
+            item = form.save(commit=False)
+            item.user = request.user
+            item.save()
+            form.save_m2m()
+            return redirect('dashboard')
+        else:
+            print(form.errors)
+        return render(request, 'inventory/item_form.html', {
+            'form': form,
+            'categories': Category.objects.all(),
+            'similar_items': [],
+            'show_similar': False
+        })
 
 # Artikel bearbeiten View
 class EditItem(LoginRequiredMixin, UpdateView):
@@ -140,9 +158,41 @@ class EditItem(LoginRequiredMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user  # Übergibt Benutzer für Tag-Filterung
+        kwargs['user'] = self.request.user
         return kwargs
 
+    def form_invalid(self, form):
+        print("❌ [DEBUG] FORMULAR NICHT VALIDE")
+        print(form.errors)
+        return super().form_invalid(form)
+
+    def form_valid(self, form):
+        print("✅ [DEBUG] FORMULAR WURDE GESPEICHERT")
+        return super().form_valid(form)
+
+
+
+# 🔄 QR-Code neu generieren
+class RegenerateQRView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        item = get_object_or_404(InventoryItem, pk=pk)
+        item.generate_qr_code()
+        messages.success(request, "QR-Code wurde neu generiert.")
+        return redirect('edit-item', pk=pk)
+
+# 🗑️ Bild löschen
+class DeleteImageView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        item = get_object_or_404(InventoryItem, pk=pk)
+        if item.image:
+            image_path = item.image.path
+            item.image.delete()
+            if os.path.exists(image_path):
+                os.remove(image_path)
+            messages.success(request, "Bild wurde gelöscht.")
+        else:
+            messages.info(request, "Kein Bild vorhanden.")
+        return redirect('edit-item', pk=pk)
 
 # Artikel löschen View
 class DeleteItem(LoginRequiredMixin, DeleteView):
@@ -150,7 +200,6 @@ class DeleteItem(LoginRequiredMixin, DeleteView):
     template_name = 'inventory/delete_item.html'
     success_url = reverse_lazy('dashboard')
     context_object_name = 'item'
-
 
 # Barcode scannen View
 class ScanBarcodeView(LoginRequiredMixin, View):
@@ -163,13 +212,11 @@ class ScanBarcodeView(LoginRequiredMixin, View):
             messages.error(request, "Kein Barcode übergeben.")
             return redirect('dashboard')
 
-
 # Barcode Liste View
 class BarcodeListView(LoginRequiredMixin, View):
     def get(self, request):
         items = InventoryItem.objects.filter(user=request.user)
         return render(request, 'inventory/barcode_list.html', {'items': items})
-
 
 # Markieren View (für Home Assistant LED)
 class MarkItemAPI(View):
@@ -192,7 +239,6 @@ class MarkItemAPI(View):
             messages.error(request, "Fehler bei der Steuerung der LED.")
         return redirect('dashboard')
 
-
 # API für Items in einer Schublade
 class DrawerItemsAPI(View):
     def get(self, request, location_letter, location_number):
@@ -203,3 +249,13 @@ class DrawerItemsAPI(View):
         )
         items_list = [{"id": item.id, "name": item.name, "quantity": item.quantity} for item in items]
         return JsonResponse(items_list, safe=False)
+
+# Übersicht aller QR-Codes für Admin
+class QRCodeListAdminView(LoginRequiredMixin, View):
+    def get(self, request):
+        if not request.user.is_superuser:
+            messages.error(request, "Nur Admins dürfen diese Seite aufrufen.")
+            return redirect('dashboard')
+
+        items = InventoryItem.objects.all().order_by('id')
+        return render(request, 'inventory/admin_qr_code_list.html', {'items': items})

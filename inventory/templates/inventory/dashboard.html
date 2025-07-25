@@ -59,8 +59,12 @@
 
                     <select name="tag" class="form-select me-2">
                         {% if user_tags %}
-                            {% if user_tags|length > 1 and request.user.is_superuser %}
-                                <option value="all">Alle Tags</option>
+                            {% if user_tags|length > 1 %}
+                                {% if request.user.is_superuser %}
+                                    <option value="all">Alle Tags</option>
+                                {% else %}
+                                    <option value="all">Alle meine Tags</option>
+                                {% endif %}
                             {% endif %}
                             {% for tag in user_tags %}
                                 {% if tag.name != "-" %}

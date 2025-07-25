@@ -28,7 +28,7 @@ class InventoryItemForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control form-control-lg'})
     )
     application_tags = forms.ModelMultipleChoiceField(
-        queryset=ApplicationTag.objects.all(),  # wird im __init__ angepasst
+        queryset=ApplicationTag.objects.all(),
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label="Tags"
@@ -39,7 +39,8 @@ class InventoryItemForm(forms.ModelForm):
         fields = [
             'name', 'quantity', 'category',
             'location_letter', 'location_number', 'location_shelf',
-            'low_quantity', 'order_link', 'application_tags'
+            'low_quantity', 'order_link', 'application_tags',
+            'image', 'maintenance_date'
         ]
 
     def __init__(self, *args, **kwargs):
@@ -62,4 +63,13 @@ class InventoryItemForm(forms.ModelForm):
             else:
                 self.fields['application_tags'].queryset = ApplicationTag.objects.none()
         else:
-            self.fields['application_tags'].queryset = ApplicationTag.objects.all()
+            self.fields['application_tags'].queryset = ApplicationTag.objects.exclude(name="-")
+
+    def clean_application_tags(self):
+        tags = self.cleaned_data.get('application_tags')
+
+        # Nur beim Erstellen erforderlich
+        if not tags and self.instance.pk is None:
+            raise forms.ValidationError("Du musst mindestens einen Tag auswählen.")
+
+        return tags

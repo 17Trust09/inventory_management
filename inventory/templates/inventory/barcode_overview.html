@@ -1,21 +1,13 @@
-{% extends "inventory/base.html" %}
-
+{% extends 'admin/base_site.html' %}
 {% block content %}
-<h2>Barcode-Übersicht</h2>
-<table>
-    <thead>
-        <tr>
-            <th>Item Name</th>
-            <th>Barcode-Text</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in items %}
-        <tr>
-            <td>{{ item.name }}</td>
-            <td>{{ item.barcode_text }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<h1>Alle QR-Codes</h1>
+<div style="display: flex; flex-wrap: wrap; gap: 20px;">
+  {% for item in items %}
+    <div style="border: 1px solid #ccc; padding: 10px;">
+      <strong>{{ item.name }}</strong><br>
+      <img src="/media/qrcodes/qr_{{ item.id }}.jpg" style="max-width:150px;"><br>
+      <a href="/edit-item/{{ item.id }}/">Bearbeiten</a>
+    </div>
+  {% endfor %}
+</div>
 {% endblock %}
