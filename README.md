@@ -126,3 +126,113 @@ Vollständige Liste: [TODO.md folgt]
 
 **17Trust09**  
 GitHub: [@17Trust09](https://github.com/17Trust09)
+
+
+---
+
+## 🌿 Weitere Branch-Typen pushen
+
+Neben `feature/*` kannst du natürlich auch andere Branches nutzen:
+
+### 🔧 Bugfix-Branch:
+```bash
+git checkout -b bugfix/<beschreibung>
+# Beispiel:
+git checkout -b bugfix/image-upload
+git add .
+git commit -m "Bugfix: Bild-Upload korrigiert"
+git push origin bugfix/image-upload
+```
+
+### 🧪 Test-Branch:
+```bash
+git checkout -b test/<zweck>
+# Beispiel:
+git checkout -b test/qr-experiment
+git push origin test/qr-experiment
+```
+
+### 🧬 Dev-Branch direkt anlegen (wenn nicht vorhanden):
+```bash
+git checkout -b dev
+git push origin dev
+```
+
+Anschließend kannst du beliebige Feature- oder Fix-Branches auf `dev` mergen.
+
+---
+
+
+
+---
+
+## 🛡️ Backup & Datenbanksicherung (empfohlen vor jedem Pull)
+
+Wenn du dein Projekt bereits auf einem Host geklont und benutzt hast (z. B. auf dem Raspberry Pi), solltest du vor einem Update/Pull **ein Backup machen**.
+
+### 🔁 Git-Projekt sichern (inkl. Datenbank)
+
+```bash
+# 1. Projektordner sichern
+cp -r inventory_management inventory_management_backup_$(date +%Y%m%d)
+
+# 2. Datenbank separat sichern (Standard: db.sqlite3)
+cp inventory_management/db.sqlite3 db_backup_$(date +%Y%m%d).sqlite3
+```
+
+### 📂 Alternative mit Versionsverwaltung (empfohlen):
+```bash
+# Repository sichern (inkl. .git-Verlauf)
+cd ..
+cp -r inventory_management inventory_management_backup
+```
+
+---
+
+## 🔄 Nach einem Pull – bestehende Datenbank übernehmen
+
+Wenn du z. B. auf `dev` oder `main` einen neuen Stand holst:
+
+```bash
+git checkout dev
+git pull origin dev
+```
+
+Stelle sicher, dass die **alte Datenbank** (`db.sqlite3`) erhalten bleibt:
+
+### ✅ So behältst du deine Daten:
+
+1. Vorher sichern:
+```bash
+cp db.sqlite3 db_backup_before_pull.sqlite3
+```
+
+2. Nach dem `pull`, aber vor dem Start:
+```bash
+# Migrationen prüfen/anwenden
+python manage.py makemigrations
+python manage.py migrate
+```
+
+3. Wenn sich das Datenmodell geändert hat, bleiben **alle bestehenden Daten erhalten**, **sofern keine Felder gelöscht wurden**.
+
+---
+
+## 🧠 Empfehlung: Daten aus alter DB übernehmen (z. B. bei Strukturänderung)
+
+Wenn du auf ein neues Repo oder Branch wechselst, aber deine alten Einträge behalten willst:
+
+1. Alte Datenbank umbenennen:
+```bash
+mv db.sqlite3 db_OLD.sqlite3
+```
+
+2. Neue Struktur anlegen:
+```bash
+python manage.py migrate
+```
+
+3. Dann kannst du Tools wie `sqlitebrowser` oder `python manage.py dbshell` nutzen, um Daten zu übertragen (z. B. per SQL oder Export/Import)
+
+---
+
