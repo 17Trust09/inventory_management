@@ -68,11 +68,11 @@ class Dashboard(LoginRequiredMixin, View):
         low_inventory = items.filter(quantity__lte=models.F('low_quantity'))
 
         if low_inventory.exists():
-            message = ', '.join([
-                f'<a href="{reverse_lazy("edit-item", args=[item.id])}" style="color: black;">{item.name}</a> '
-                f'(Mindestbestand: {item.low_quantity}, Aktueller Bestand: {item.quantity})'
+            message = '<ul>' + ''.join([
+                f'<li><a href="{reverse_lazy("edit-item", args=[item.id])}" style="color: black;">{item.name}</a> '
+                f'(Mindestbestand: {item.low_quantity}, Aktueller Bestand: {item.quantity})</li>'
                 for item in low_inventory
-            ])
+            ]) + '</ul>'
             messages.error(request, f'Artikel mit geringem Bestand: {message}', extra_tags='safe')
 
         categories = Category.objects.all()
