@@ -1,0 +1,31 @@
+{% extends 'inventory/admin_base.html' %}
+
+{% block admin_title %}{% if object %}Tag bearbeiten{% else %}Neuer Tag{% endif %}{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-center" style="color:var(--text);">
+  <div class="col-lg-7">
+    <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="card-body">
+          {{ form.non_field_errors }}
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            {{ form.name }}
+            <div class="text-danger small">{{ form.name.errors }}</div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2" style="background:var(--surface-2); border-top:1px solid var(--border);">
+          <a href="{% url 'admin_tags_overview' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Zurück
+          </a>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-check2-circle me-1"></i> Speichern
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

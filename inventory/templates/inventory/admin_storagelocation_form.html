@@ -1,0 +1,33 @@
+{% extends "inventory/admin_base.html" %}
+{% block admin_title %}Lagerort bearbeiten{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-center" style="color:var(--text);">
+  <div class="col-lg-7">
+    <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+      <div class="card-body">
+        <h4 class="mb-4"><i class="bi bi-pencil-square me-2"></i>Lagerort bearbeiten</h4>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="id_name" class="form-label">Name</label>
+            {{ form.name }}
+          </div>
+          <div class="mb-3">
+            <label for="id_parent" class="form-label">Übergeordneter Lagerort (optional)</label>
+            {{ form.parent }}
+          </div>
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-check2-circle me-1"></i> Speichern
+            </button>
+            <a href="{% url 'admin_storagelocations' %}" class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-left me-1"></i> Zurück
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

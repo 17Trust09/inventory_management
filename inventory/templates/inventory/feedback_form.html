@@ -1,0 +1,36 @@
+{% extends "inventory/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <a href="{% url 'feedback-list' %}" class="btn btn-outline-secondary mb-3">← Zurück</a>
+
+  <div class="card shadow" style="background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:1rem; max-width:720px; margin:auto;">
+    <div class="card-body">
+      <h3 class="card-title mb-4">Neues Feedback erstellen</h3>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+          {{ form.title }}
+          {% for error in form.title.errors %}
+            <div class="text-danger small mt-1">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+          {{ form.description }}
+          {% for error in form.description.errors %}
+            <div class="text-danger small mt-1">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-save me-2"></i> Speichern
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

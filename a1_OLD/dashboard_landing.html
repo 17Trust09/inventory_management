@@ -1,0 +1,16 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<div class="container mt-5 text-center" style="color:#e4e6eb;">
+    <h1 class="mb-4">Inventarverwaltung</h1>
+    <p class="mb-4">Bitte wähle eine Übersicht:</p>
+    <a href="{% url 'dashboard-equipment' %}"
+       class="btn btn-lg btn-success me-3">
+       🔧 Equipment
+    </a>
+    <a href="{% url 'dashboard-consumables' %}"
+       class="btn btn-lg btn-warning" style="color:#1a1a1a;">
+       🧴 Verbrauchsmaterial
+    </a>
+</div>
+{% endblock content %}

@@ -14,56 +14,53 @@ function progress_bar {
 
 echo "🔄 Starte Update-Prozess vom main-Branch..."
 
-# 🗂️ Backup-Verzeichnis vorbereiten
-mkdir -p backup
+# 🔁 Gehe in den Ordner, wo dieses Skript liegt
+cd "$(dirname "$0")"
 
+# 🗂️ Schritt 1: Backup vorbereiten
+backup_dir="backup/$(date +%Y-%m-%d_%H-%M-%S)"
+sudo mkdir -p "$backup_dir"
+echo -n "📦 [1/7] Erstelle Backup-Verzeichnis... "
 progress_bar 1
-echo "📦 Erstelle Backup unter: backup/2025-07-26_09-28-54"
-mkdir -p backup/2025-07-26_09-28-54
+echo -e "\n➡️ Backup-Ordner: $backup_dir"
 
-# 📂 DB-Backup
-progress_bar 2
-cp ./inventory_management/db.sqlite3 backup/2025-07-26_09-28-54/db.sqlite3 && echo "✅ DB-Backup gespeichert."
+# 🧠 Schritt 2: DB sichern
+echo -n "🗃️ [2/7] Backup der Datenbank... "
+sudo cp ./db.sqlite3 "$backup_dir/db.sqlite3"
+progress_bar 2 && echo " ✅"
 
-# 📂 Medien-Backup
-progress_bar 3
-cp -r ./inventory_management/media backup/2025-07-26_09-28-54/media && echo "✅ Medienordner gesichert."
+# 🖼️ Schritt 3: Medien sichern
+echo -n "🖼️ [3/7] Backup vom media-Ordner... "
+sudo cp -r ./media "$backup_dir/media"
+progress_bar 3 && echo " ✅"
 
-# 🔁 In Projektordner wechseln
-cd inventory_management || {
-    echo "❌ Ordner 'inventory_management' nicht gefunden!"
-    exit 1
-}
+# 📁 Schritt 4: Wechsle in Projektordner
+echo -n "📂 [4/7] Wechsle in Projektordner... "
+progress_bar 4 && echo " ✅"
 
-# 🔄 Main-Branch aktivieren & aktualisieren
-progress_bar 5
-echo "📥 Wechsel auf main-Branch und ziehe Änderungen..."
-git checkout main && git pull origin main
-# 🔐 Stelle sicher, dass beide Update-Skripte ausführbar bleiben
+# 🌱 Schritt 5: Git Pull vom main-Branch
+echo -n "⬇️ [5/7] Git Pull vom main-Branch... "
+git checkout main && git pull origin main &> /dev/null
 sudo chmod +x update_from_dev.sh
 sudo chmod +x update_from_main.sh
+progress_bar 5 && echo " ✅"
 
-
-# ♻️ venv aktivieren
+# 🐍 Schritt 6: venv aktivieren & Pakete installieren
+echo -n "🐍 [6/7] Aktiviere venv und installiere requirements... "
 if [ -f "venv/bin/activate" ]; then
     source venv/bin/activate
-    echo "✅ venv aktiviert."
+    pip install -r requirements.txt &> /dev/null
+    progress_bar 6 && echo " ✅"
 else
-    echo "⚠️ venv nicht gefunden! Bitte manuell prüfen."
+    echo -e "\n⚠️ venv nicht gefunden! Bitte manuell aktivieren."
 fi
 
-# 📦 Pakete aktualisieren
-progress_bar 6
-echo "📦 Installiere/aktualisiere Pakete aus requirements.txt..."
-pip install -r requirements.txt
-
-# 🔄 Migration
-progress_bar 7
-echo "⚙️ Führe Migrationscheck durch..."
-python manage.py migrate
+# ⚙️ Schritt 7: Migration durchführen
+echo -n "⚙️ [7/7] Migration prüfen... "
+python manage.py migrate &> /dev/null
+progress_bar 7 && echo " ✅"
 
 # ✅ Abschluss
-progress_bar 8
-echo -e "\n✅ Update vom main-Branch abgeschlossen. Starte nun den Pi neu..."
-sleep 3
+echo -e "\n✅ Update abgeschlossen. Raspberry Pi wird jetzt neu gestartet..."
+sleep 2
 sudo reboot

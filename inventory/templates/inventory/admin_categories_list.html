@@ -1,0 +1,47 @@
+{# inventory/templates/inventory/admin_categories_list.html #}
+{% extends 'inventory/admin_base.html' %}
+
+{% block admin_title %}
+  {{ pool_name }}
+{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 class="mb-0"><i class="bi bi-folder2-open me-2"></i>{{ pool_name }}</h3>
+  <a href="{{ add_url }}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Neue {{ pool_name }}
+  </a>
+</div>
+
+<div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+  <div class="table-responsive">
+    <table class="table table-striped align-middle mb-0" style="background:var(--surface); color:var(--text); border:1px solid var(--border);">
+      <thead style="background:var(--surface-2); color:var(--text);">
+        <tr>
+          <th>Name</th>
+          <th class="text-end">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cat in categories %}
+        <tr>
+          <td>{{ cat.name }}</td>
+          <td class="text-end">
+            <a href="{% url edit_url_name cat.pk %}" class="btn btn-sm btn-outline-light me-1" title="Bearbeiten">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url delete_url_name cat.pk %}" class="btn btn-sm btn-outline-danger" title="Löschen">
+              <i class="bi bi-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="2" class="text-center text-muted py-4">Keine Kategorien vorhanden.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

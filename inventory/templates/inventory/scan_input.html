@@ -2,19 +2,65 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>Scanner-Handler</title>
+  <meta charset="UTF-8">
+  <title>Scanner-Handler</title>
+  <style>
+    :root{
+      --bg:#0f1316;
+      --text:#e4e6eb;
+      --muted:#adb5bd;
+    }
+    body {
+      margin:0;
+      height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Roboto, sans-serif;
+    }
+    #barcode-input {
+      opacity:0;
+      position:absolute;
+      pointer-events:none;
+    }
+    .scan-box{
+      text-align:center;
+      background:#14181b;
+      padding:2rem 3rem;
+      border-radius:1rem;
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:0 4px 12px rgba(0,0,0,.5);
+    }
+    .scan-box h1{
+      font-size:1.5rem;
+      margin-bottom:1rem;
+    }
+    .scan-box p{
+      color:var(--muted);
+      margin:0;
+    }
+  </style>
 </head>
 <body>
-    <input type="text" id="barcode-input" style="opacity: 0; position: absolute;" autofocus>
+  <input type="text" id="barcode-input" autofocus>
+  <div class="scan-box">
+    <h1>Scanner aktiv</h1>
+    <p>Bitte Barcode scannen …</p>
+  </div>
 
-    <script>
-        document.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                const barcode = document.getElementById('barcode-input').value;
-                window.location.href = `/handle-scan/?barcode=${barcode}`;
-            }
-        });
-    </script>
+  <script>
+    const input = document.getElementById('barcode-input');
+    document.addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        const barcode = input.value.trim();
+        if(barcode){
+          window.location.href = `/handle-scan/?barcode=${encodeURIComponent(barcode)}`;
+        }
+        input.value = "";
+      }
+    });
+  </script>
 </body>
 </html>

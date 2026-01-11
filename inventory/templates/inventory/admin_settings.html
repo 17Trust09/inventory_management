@@ -1,0 +1,90 @@
+{% extends 'inventory/admin_base.html' %}
+
+{% block admin_title %}Globale Einstellungen{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid" style="color:#e4e6eb;">
+
+  <!-- Intro-Card -->
+  <div class="card mb-4 shadow-sm" style="background:#1c1c1c; border:1px solid #444; border-radius:.75rem;">
+    <div class="card-body">
+      <h5 class="card-title mb-2"><i class="bi bi-gear-fill me-2"></i>Globale Einstellungen</h5>
+      <p class="card-text text-muted mb-0">
+        Hier kannst du systemweite Optionen konfigurieren (z. B. QR-Code-Basis-URL, Anzeigeoptionen, Standardwerte).
+      </p>
+    </div>
+  </div>
+
+  <!-- Formular -->
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {% for err in form.non_field_errors %}
+          <div>{{ err }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="row g-4">
+      <!-- Formularfelder -->
+      <div class="col-lg-8">
+        <div class="card shadow-sm" style="background:#1c1c1c; border:1px solid #444; border-radius:.75rem;">
+          <div class="card-body">
+            {% for field in form %}
+              <div class="mb-3">
+                <label class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                  <div class="form-text text-muted">{{ field.help_text }}</div>
+                {% endif %}
+                {% for err in field.errors %}
+                  <div class="text-danger small">⚠ {{ err }}</div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+          <div class="card-footer d-flex flex-wrap gap-2" style="background:#202225; border-top:1px solid #444;">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check2-circle me-1"></i> Speichern
+            </button>
+            {% if request.GET.reset %}
+              <button type="submit" name="reset_defaults" value="1" class="btn btn-outline-warning">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Auf Standard zurücksetzen
+              </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-lg-4">
+        <!-- Vorschau -->
+        <div class="card shadow-sm mb-4" style="background:#1c1c1c; border:1px solid #444; border-radius:.75rem;">
+          <div class="card-body">
+            <h6 class="card-title"><i class="bi bi-eye me-2"></i>Vorschau / Info</h6>
+            <p class="text-muted small mb-2">Kurze Übersicht der wichtigsten Werte (nur Beispielanzeige).</p>
+            <pre class="p-3 rounded small mb-0" style="max-height:300px; overflow:auto; background:#000; color:#e4e6eb; border:1px solid #444; border-radius:.5rem;">
+{{ form.initial|default:form.data|safe }}
+            </pre>
+          </div>
+        </div>
+
+        <!-- Hinweise -->
+        <div class="card shadow-sm" style="background:#1c1c1c; border:1px solid #444; border-radius:.75rem;">
+          <div class="card-body">
+            <h6 class="card-title"><i class="bi bi-info-circle me-2"></i>Hinweise</h6>
+            <ul class="small text-muted mb-0">
+              <li>Änderungen wirken je nach Bereich sofort oder nach Neustart des Dienstes.</li>
+              <li>Die Felder werden automatisch aus dem Modell geladen.</li>
+              <li>Für spezielle UI-Gruppierungen können später Sections ergänzt werden.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

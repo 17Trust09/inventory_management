@@ -1,0 +1,99 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <style>
+    .btn:focus, .btn:active, .btn:focus-visible {
+      outline: none !important;
+      box-shadow: 0 0 0 .2rem rgba(255,255,255,.12) !important;
+    }
+    .card:focus, .card:focus-within {
+      outline: none !important;
+      box-shadow: 0 0 0 .2rem rgba(255,255,255,.08) !important;
+    }
+    .list-group-item:focus {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+  </style>
+
+  <div class="text-center">
+    <h1 class="mb-4">Inventarverwaltung</h1>
+    <p class="mb-4 text-muted">Bitte wähle eine Übersicht:</p>
+
+    {% if overviews %}
+      <div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
+        {% for ov in overviews %}
+          <a href="{% url 'overview-dashboard' ov.slug %}"
+             class="btn btn-lg btn-outline-light">
+             {{ ov.icon_emoji|default:"📊" }} {{ ov.name }}
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-warning text-start mx-auto" style="max-width: 680px;">
+        <div class="d-flex">
+          <div class="me-3">🔒</div>
+          <div>
+            <strong>Keine Dashboards freigeschaltet.</strong><br>
+            Deinem Benutzer sind aktuell keine Übersichten zugewiesen.
+            Bitte wende dich an eine*n Administrator*in, damit dir die passenden
+            Dashboards unter <em>User Profiles → Bearbeiten</em> freigegeben werden.
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card border-secondary shadow-sm mt-4" style="background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:1rem;">
+    <div class="card-header d-flex justify-content-between align-items-center" style="background:var(--surface-2); border-bottom:1px solid var(--border);">
+      <span>
+        <i class="bi bi-chat-left-text me-2"></i>Letzte 3 Feedbacks
+      </span>
+      <a href="{% url 'feedback-list' %}" class="btn btn-sm btn-outline-light">Alle anzeigen</a>
+    </div>
+
+    <div class="card-body p-0">
+      {% if latest_feedback %}
+        <ul class="list-group list-group-flush">
+          {% for fb in latest_feedback %}
+            <li class="list-group-item" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="me-3">
+                  <a class="fw-semibold text-decoration-none" href="{% url 'feedback-detail' fb.id %}" style="color:#8bb8ff;">
+                    {{ fb.title }}
+                  </a>
+                  {% if fb.description %}
+                    <div class="text-muted small mt-1">{{ fb.description|truncatewords:18 }}</div>
+                  {% endif %}
+                  <div class="text-muted small mt-1">
+                    von {{ fb.created_by.username }} • {{ fb.created_at|date:"d.m.Y H:i" }}
+                  </div>
+                </div>
+                <div class="text-end">
+                  <span class="badge rounded-pill
+                    {% if fb.status == 'open' %} bg-danger
+                    {% elif fb.status == 'in_progress' %} bg-warning text-dark
+                    {% else %} bg-success {% endif %}">
+                    {{ fb.get_status_display }}
+                  </span>
+                  <div class="small mt-2 text-muted">
+                    👍 {{ fb.upvotes_count }} · 👎 {{ fb.downvotes_count }}
+                  </div>
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="p-3 text-muted">Noch kein Feedback vorhanden.</div>
+      {% endif %}
+    </div>
+
+    <div class="card-footer" style="background:var(--surface-2); border-top:1px solid var(--border);">
+      <a href="{% url 'feedback-add' %}" class="btn btn-sm btn-outline-success me-2">+ Neues Feedback</a>
+      <a href="{% url 'feedback-list' %}" class="btn btn-sm btn-outline-light">Zur Feedback-Übersicht</a>
+    </div>
+  </div>
+</div>
+{% endblock content %}

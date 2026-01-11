@@ -1,0 +1,15 @@
+{% extends 'inventory/admin_base.html' %}
+{% block admin_title %}Equipment-Tag löschen{% endblock %}
+
+{% block admin_content %}
+<div class="row">
+  <div class="col-md-6 mx-auto">
+    <h4>Willst du den Equipment-Tag „{{ tag.name }}“ wirklich löschen?</h4>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">Ja, löschen</button>
+      <a href="{% url 'admin_tags_overview' %}" class="btn btn-secondary ms-2">Abbrechen</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

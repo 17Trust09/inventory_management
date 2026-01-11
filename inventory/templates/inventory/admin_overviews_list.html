@@ -1,0 +1,58 @@
+{% extends 'inventory/admin_base.html' %}
+{% block admin_title %}Dashboards (Overviews){% endblock %}
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 style="color:var(--text);">Dashboards (Overviews)</h3>
+  <a href="{% url 'admin_overview_add' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg"></i> Neue Übersicht
+  </a>
+</div>
+
+<div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+  <div class="card-body p-0">
+    <table class="table table-hover align-middle mb-0" style="background:var(--surface); color:var(--text);">
+      <thead style="background:var(--surface-2); color:var(--text);">
+        <tr>
+          <th style="width:5%">#</th>
+          <th style="width:10%">Reihenfolge</th>
+          <th style="width:10%">Icon</th>
+          <th style="width:20%">Name</th>
+          <th style="width:20%">Slug</th>
+          <th style="width:10%">Aktiv</th>
+          <th style="width:25%" class="text-end">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in overviews %}
+        <tr>
+          <td>{{ o.id }}</td>
+          <td>{{ o.order }}</td>
+          <td>{% if o.icon_emoji %}{{ o.icon_emoji }}{% else %}<span class="text-muted">–</span>{% endif %}</td>
+          <td>{{ o.name }}</td>
+          <td><code>{{ o.slug }}</code></td>
+          <td>
+            {% if o.is_active %}
+              <span class="badge bg-success">aktiv</span>
+            {% else %}
+              <span class="badge bg-secondary">inaktiv</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'admin_overview_edit' o.pk %}" class="btn btn-sm btn-outline-light me-1" title="Bearbeiten">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'admin_overview_delete' o.pk %}" class="btn btn-sm btn-outline-danger" title="Löschen">
+              <i class="bi bi-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">Noch keine Overviews vorhanden.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

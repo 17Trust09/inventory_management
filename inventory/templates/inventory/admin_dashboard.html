@@ -1,0 +1,174 @@
+{% extends 'inventory/admin_base.html' %}
+
+{% block content %}
+<div class="container py-4">
+
+  <h2 class="mb-4">⚙️ Admin Dashboard</h2>
+
+  <div class="row g-4">
+
+    <!-- Benutzer & Konfiguration -->
+    <div class="col-12 col-lg-4">
+      <div class="card h-100 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+        <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+          👥 Benutzer &amp; Konfiguration
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
+            <a class="text-decoration-none" href="{% url 'admin_user_profiles' %}">
+              <i class="bi bi-people me-2"></i> User Profiles
+            </a>
+          </li>
+          <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
+            <a class="text-decoration-none" href="{% url 'admin_global_settings' %}">
+              <i class="bi bi-gear me-2"></i> Globale Einstellungen
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Lagerorte, Kategorien & Tags -->
+    <div class="col-12 col-lg-4">
+      <div class="card h-100 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+        <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+          🗂️ Lagerorte, Kategorien &amp; Tags
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
+            <a class="text-decoration-none" href="{% url 'admin_storagelocations' %}">
+              <i class="bi bi-diagram-3 me-2"></i> Lagerorte
+            </a>
+          </li>  
+          <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
+            <a class="text-decoration-none" href="{% url 'admin_categories' %}">
+              <i class="bi bi-folder2-open me-2"></i> Kategorien (Übersicht)
+            </a>
+          </li>
+          <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
+            <a class="text-decoration-none" href="{% url 'admin_tags_overview' %}">
+              <i class="bi bi-tags me-2"></i> Tags (Übersicht)
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Items & Vorgänge -->
+    <div class="col-12 col-lg-4">
+      <div class="card h-100 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+        <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+          📦 Items &amp; Vorgänge
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
+            <a class="text-decoration-none" href="{% url 'admin_items' %}">
+              <i class="bi bi-box-seam me-2"></i> Items
+            </a>
+          </li>
+          <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
+            <a class="text-decoration-none" href="{% url 'admin_borrowed_items' %}">
+              <i class="bi bi-arrow-left-right me-2"></i> Entleih-Vorgänge
+            </a>
+          </li>
+          <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
+            <a class="text-decoration-none" href="{% url 'admin_qr_codes' %}">
+              <i class="bi bi-upc-scan me-2"></i> QR-Code Übersicht
+            </a>
+          </li>
+          <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
+            <a class="text-decoration-none" href="{% url 'admin_overviews' %}">
+              <i class="bi bi-columns-gap me-2"></i> Dashboards (Overviews)
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Feedback-Box -->
+  <div class="row g-4 mt-1">
+    <div class="col-12">
+      <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+        <div class="card-header d-flex justify-content-between align-items-center fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+          💬 Letzte Feedbacks
+          <a href="{% url 'feedback-list' %}" class="btn btn-sm btn-primary">Zur Feedback-Übersicht</a>
+        </div>
+        <div class="card-body p-0">
+          {% if latest_feedback %}
+            <div class="table-responsive">
+              <table class="table table-hover mb-0 align-middle" style="background:var(--surface); color:var(--text);">
+                <thead style="background:var(--surface-2); color:var(--text);">
+                  <tr>
+                    <th>Titel</th>
+                    <th class="d-none d-md-table-cell">Erstellt von</th>
+                    <th class="d-none d-md-table-cell">Erstellt am</th>
+                    <th>Status</th>
+                    <th class="text-end">Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for fb in latest_feedback %}
+                    <tr>
+                      <td>
+                        <a class="fw-semibold text-decoration-none" href="{% url 'feedback-detail' fb.id %}" style="color:#8bb8ff;">
+                          {{ fb.title }}
+                        </a>
+                        {% if fb.description %}
+                          <div class="small text-muted d-none d-lg-block">{{ fb.description|truncatewords:18 }}</div>
+                        {% endif %}
+                      </td>
+                      <td class="d-none d-md-table-cell">{{ fb.created_by.username }}</td>
+                      <td class="d-none d-md-table-cell">{{ fb.created_at|date:"d.m.Y H:i" }}</td>
+                      <td>
+                        <span class="badge
+                          {% if fb.status == 'open' %} bg-danger
+                          {% elif fb.status == 'in_progress' %} bg-warning text-dark
+                          {% else %} bg-success {% endif %}">
+                          {{ fb.get_status_display }}
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Status ändern">
+                          <!-- Offen -->
+                          <form method="post" action="{% url 'admin_feedback_set_status' fb.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="open">
+                            <button type="submit" class="btn {% if fb.status == 'open' %}btn-outline-light{% else %}btn-outline-secondary{% endif %}">
+                              Offen
+                            </button>
+                          </form>
+                          <!-- In Arbeit -->
+                          <form method="post" action="{% url 'admin_feedback_set_status' fb.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="in_progress">
+                            <button type="submit" class="btn {% if fb.status == 'in_progress' %}btn-outline-warning{% else %}btn-outline-secondary{% endif %}">
+                              In&nbsp;Arbeit
+                            </button>
+                          </form>
+                          <!-- Erledigt -->
+                          <form method="post" action="{% url 'admin_feedback_set_status' fb.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="done">
+                            <button type="submit" class="btn {% if fb.status == 'done' %}btn-outline-success{% else %}btn-outline-secondary{% endif %}">
+                              Erledigt
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="p-3 text-muted">Noch kein Feedback vorhanden.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

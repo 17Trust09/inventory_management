@@ -1,0 +1,66 @@
+{% extends "inventory/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <a href="{% url 'feedback-list' %}" class="btn btn-outline-secondary mb-3">← Zurück</a>
+
+  <div class="card shadow" style="background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:1rem;">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h3 class="card-title">{{ feedback.title }}</h3>
+        <span class="badge 
+          {% if feedback.status == 'open' %} bg-danger
+          {% elif feedback.status == 'in_progress' %} bg-warning text-dark
+          {% else %} bg-success {% endif %}">
+          {{ feedback.get_status_display }}
+        </span>
+      </div>
+      <p class="card-text">{{ feedback.description|linebreaks }}</p>
+      <small class="text-muted">
+        von {{ feedback.created_by.username }} • {{ feedback.created_at|date:"d.m.Y H:i" }}
+      </small>
+    </div>
+    <div class="card-footer d-flex justify-content-between" style="background:var(--surface-2); border-top:1px solid var(--border);">
+      <form method="post" action="{% url 'feedback-vote' feedback.id %}?v=up">
+        {% csrf_token %}
+        <button class="btn btn-sm {% if user_vote == 1 %}btn-success{% else %}btn-outline-success{% endif %}">
+          👍 {{ feedback.upvotes_count }}
+        </button>
+      </form>
+      <form method="post" action="{% url 'feedback-vote' feedback.id %}?v=down">
+        {% csrf_token %}
+        <button class="btn btn-sm {% if user_vote == -1 %}btn-danger{% else %}btn-outline-danger{% endif %}">
+          👎 {{ feedback.downvotes_count }}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Kommentare -->
+  <div class="mt-4">
+    <h5>Kommentare</h5>
+    {% if comments %}
+      <ul class="list-group">
+        {% for c in comments %}
+          <li class="list-group-item" style="background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:.5rem; margin-bottom:.5rem;">
+            <p class="mb-1">{{ c.text|linebreaks }}</p>
+            <small class="text-muted">von {{ c.author.username }} • {{ c.created_at|date:"d.m.Y H:i" }}</small>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted">Noch keine Kommentare.</p>
+    {% endif %}
+  </div>
+
+  <!-- Kommentar hinzufügen -->
+  <div class="mt-3">
+    <form method="post" action="{% url 'feedback-comment' feedback.id %}" class="card card-body" style="background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:1rem;">
+      {% csrf_token %}
+      {{ comment_form.text }}
+      <button type="submit" class="btn btn-primary mt-3">Kommentar hinzufügen</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

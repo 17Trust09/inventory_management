@@ -1,0 +1,68 @@
+{# inventory/templates/inventory/admin_manage_roles.html #}
+{% extends "inventory/admin_base.html" %}
+{% load static %}
+
+{% block admin_title %}Rollen & Rechte verwalten{% endblock %}
+
+{% block admin_content %}
+<div class="container">
+  <h4 class="text-light mb-4">Benutzer und ihre Rollen</h4>
+  <table class="table table-dark table-striped align-middle">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Rolle</th>
+        <th class="text-end">Aktionen</th>
+        <th class="text-end">Löschen</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td>{{ user.username }}</td>
+
+        {# Anzeige: Superuser sticht, sonst Gruppenliste (oder –) #}
+        <td>
+          {% if user.is_superuser %}
+            Superuser
+          {% else %}
+            {% if user.groups.all %}
+              {{ user.groups.all|join:", " }}
+            {% else %}
+              <span class="text-muted">–</span>
+            {% endif %}
+          {% endif %}
+        </td>
+
+        <td class="text-end">
+          {# Superuser nie editierbar #}
+          {% if perms.auth.assign_roles and not user.is_superuser %}
+            <a href="{% url 'admin_user_roles_edit' user.pk %}"
+               class="btn btn-sm btn-outline-light"><i class="bi bi-people"></i></a>
+          {% else %}
+            <button class="btn btn-sm btn-outline-secondary" disabled>
+              <i class="bi bi-people"></i>
+            </button>
+          {% endif %}
+        </td>
+
+        <td class="text-end">
+          {# Löschen nur, wenn man darf und Ziel kein Superuser ist #}
+          {% if perms.auth.delete_user and not user.is_superuser %}
+            <form action="{% url 'admin_user_delete' user.pk %}" method="get" style="display:inline">
+              <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-trash-fill"></i>
+              </button>
+            </form>
+          {% else %}
+            <button class="btn btn-sm btn-outline-secondary" disabled>
+              <i class="bi bi-trash-fill"></i>
+            </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

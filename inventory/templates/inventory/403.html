@@ -1,0 +1,17 @@
+{# inventory/templates/inventory/403.html #}
+{% extends 'inventory/admin_base.html' %}
+
+{% block content %}
+<div class="d-flex flex-column justify-content-center align-items-center text-center" style="min-height: 70vh; color:var(--text);">
+  <div class="card p-5 shadow" style="background:var(--surface); border:1px solid var(--border); border-radius:1rem; max-width:600px;">
+    <h1 class="display-5 mb-3 text-danger"><i class="bi bi-shield-lock-fill me-2"></i>Keine Berechtigung</h1>
+    <p class="lead mb-4 text-muted">
+      Du hast keine Berechtigung, diese Seite aufzurufen.<br>
+      Bitte wende dich bei Fragen an deinen Administrator.
+    </p>
+    <a href="{% url 'dashboards' %}" class="btn btn-lg btn-primary">
+      <i class="bi bi-arrow-left me-2"></i> Zurück zur Übersicht
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,170 +1,198 @@
-/* Standard-Styling */
-body {
-    background-color: #121212; /* Hintergrundfarbe im Dark Mode */
-    color: #e0e0e0; /* Helle Textfarbe für bessere Lesbarkeit */
+/* inventory/static/css/dark_mode.css
+   Dark Theme – konsistente Palette + harte Overrides gg. Bootswatch (Minty)
+   ------------------------------------------------------------------------ */
+
+/* ===== Grund-Palette (dezente Dark-UI) ===== */
+:root, html, body {
+  /* Flächen / Text */
+  --ldb-body-bg: #121212;
+  --ldb-surface: #1c1c1c;
+  --ldb-surface-2: #202225;
+  --ldb-text: #e4e6eb;
+  --ldb-muted: #9aa3ab;
+
+  /* Neutrale Ränder & Schatten */
+  --ldb-border-rgb: 68, 68, 68;       /* #444 */
+  --ldb-border: #444;
+  --ldb-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.45);
+
+  /* Akzentfarben (harmoniert, nicht knallig) */
+  --ldb-primary: #f1ecec;             /* Teal */
+  --ldb-primary-rgb: 87,183,196;
+  --ldb-success: #6bbf8a;             /* sanftes Grün */
+  --ldb-info:    #7fadd6;             /* blaugrau */
+  --ldb-warning: #f0c674;             /* amber */
+  --ldb-danger:  #e28f8f;             /* entsättigt */
+
+  /* Fokus-Ring */
+  --ldb-focus: rgba(255,255,255,0.15);
+
+  /* Bootstrap-Variablen überschreiben (damit Utilities/Komponenten passen) */
+  --bs-body-bg: var(--ldb-body-bg);
+  --bs-body-color: var(--ldb-text);
+
+  --bs-border-color: var(--ldb-border);
+  --bs-secondary-rgb: var(--ldb-border-rgb);            /* verhindert grüne Ränder */
+  --bs-border-opacity: 1;
+
+  --bs-primary: var(--ldb-primary);
+  --bs-primary-rgb: var(--ldb-primary-rgb);
+  --bs-success: var(--ldb-success);
+  --bs-info: var(--ldb-info);
+  --bs-warning: var(--ldb-warning);
+  --bs-danger: var(--ldb-danger);
+
+  --bs-link-color: var(--ldb-primary);
+  --bs-link-hover-color: #bfe5eb;
+
+  /* Bootstraps Schatten-Variablen neutralisieren (keine pinken Shadows) */
+  --bs-box-shadow-sm: 0 0 0 0 rgba(0,0,0,0.0);
+  --bs-box-shadow:    0 0 0 0 rgba(0,0,0,0.0);
 }
 
-/* Navigation */
-.navbar {
-    background-color: #1f1f1f; /* Dunkler Hintergrund für die Navigationsleiste */
-    color: #e0e0e0; /* Helle Schrift */
+/* ===== Basis ===== */
+html, body {
+  background-color: var(--ldb-body-bg) !important;
+  color: var(--ldb-text) !important;
 }
 
-.navbar-brand, .nav-link {
-    color: #e0e0e0 !important; /* Helle Schriftfarbe für die Navbar-Links */
+/* ===== Karten/Container/Listen ===== */
+.card, .modal-content {
+  background-color: var(--ldb-surface) !important;
+  color: var(--ldb-text) !important;
+  border: 1px solid var(--ldb-border) !important;
+}
+.card-header, .card-footer {
+  background-color: var(--ldb-surface-2) !important;
+  border-color: var(--ldb-border) !important;
+}
+.list-group-item {
+  background-color: var(--ldb-surface) !important;
+  color: var(--ldb-text) !important;
+  border-color: var(--ldb-border) !important;
 }
 
-.navbar-toggler {
-    border-color: #e0e0e0; /* Helle Farbe für den Toggler */
-}
+/* ===== Ränder/Schattierungen (Utilities) – keine Minty-Farben ===== */
+.border-secondary { border-color: var(--ldb-border) !important; }
+.shadow, .shadow-sm, .shadow-lg { box-shadow: none !important; } /* bewusst flach */
 
-/* Buttons in der Navigation */
-.navbar .btn {
-    font-size: 14px;
-    padding: 5px 15px;
-    border-radius: 5px;
-    color: #e0e0e0; /* Helle Textfarbe für Buttons */
-    background-color: #3d3d3d; /* Dunkler Hintergrund */
-    border: 1px solid #3d3d3d; /* Rahmen in dunkler Farbe */
-}
+/* ===== Navbar ===== */
+.navbar { background-color: #1f1f1f !important; color: var(--ldb-text) !important; }
+.navbar-brand, .nav-link { color: var(--ldb-text) !important; }
+.navbar-toggler { border-color: var(--ldb-text) !important; }
 
-/* Button-Farben im Dark Mode */
-.btn-outline-dark {
-    border-color: #e0e0e0;
-    color: #e0e0e0;
-}
-
-.btn-dark {
-    background-color: #3d3d3d;
-    border-color: #3d3d3d;
-    color: #e0e0e0;
-}
-
-/* Dropdown-Menü im Navigationsmenü */
-.dropdown-menu {
-    background-color: #1f1f1f;
-    color: #e0e0e0;
-    border: 1px solid #333;
-}
-
-.dropdown-item {
-    color: #e0e0e0;
-}
-
-.dropdown-item:hover {
-    background-color: #333;
-}
-
-/* Buttons */
-.btn {
-    background-color: #3d3d3d;
-    border-color: #3d3d3d;
-    color: #e0e0e0;
-}
-
-.btn:hover {
-    background-color: #555555;
-    border-color: #555555;
-}
-
-.btn-outline-primary {
-    border-color: #e0e0e0;
-    color: #e0e0e0;
-}
-
-.btn-outline-primary:hover {
-    background-color: #e0e0e0;
-    color: #121212;
-}
-
-/* Tabellen */
+/* ===== Tabellen ===== */
 .table {
-    background-color: #1f1f1f;
-    color: #e0e0e0;
-    border: 1px solid #333;
+  background-color: var(--ldb-surface) !important;
+  color: var(--ldb-text) !important;
+  border: 1px solid var(--ldb-border) !important;
 }
-
 .table thead th {
-    background-color: #2a2a2a;
-    color: #e0e0e0;
-    border-bottom: 1px solid #444;
+  background-color: var(--ldb-surface-2) !important;
+  color: var(--ldb-text) !important;
+  border-bottom: 1px solid var(--ldb-border) !important;
+}
+.table td, .table th {
+  border-top: 1px solid var(--ldb-border) !important;
+}
+.table-hover tbody tr:hover { background-color: #2a2a2a !important; }
+
+/* ===== Formulare & Fokus ===== */
+.form-control, .form-select {
+  background-color: #2a2a2a !important;
+  color: var(--ldb-text) !important;
+  border: 1px solid var(--ldb-border) !important;
+}
+.btn:focus, .btn:active, .btn:focus-visible,
+.form-control:focus, .form-select:focus,
+.page-link:focus, .card:focus, .card:focus-within,
+.list-group-item:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 .2rem var(--ldb-focus) !important;
+  border-color: var(--ldb-border) !important;
 }
 
-.table tbody tr {
-    background-color: #1f1f1f; /* Grundfarbe für Tabellenzeilen */
-    color: #e0e0e0; /* Helle Textfarbe */
+/* ===== Links ===== */
+a { color: var(--ldb-primary) !important; }
+a:hover { color: var(--bs-link-hover-color) !important; }
+
+/* ===== Buttons (vereinheitlicht) ===== */
+.btn {
+  border-width: 1px !important;
+}
+.btn-primary {
+  background-color: var(--ldb-primary) !important;
+  border-color: var(--ldb-primary) !important;
+  color: #0d1b1e !important;
+}
+.btn-outline-light {
+  color: var(--ldb-text) !important;
+  border-color: #bdbdbd !important;
+}
+.btn-outline-light:hover {
+  background-color: rgba(255,255,255,0.08) !important;
+  color: #fff !important;
+}
+.btn-outline-secondary {
+  color: #cfd3d7 !important;
+  border-color: var(--ldb-border) !important;
+}
+.btn-outline-secondary:hover {
+  background-color: #3a3d40 !important;
+  color: #fff !important;
+}
+.btn-success {
+  background-color: var(--ldb-success) !important;
+  border-color: var(--ldb-success) !important;
+  color: #102215 !important;
+}
+.btn-info {
+  background-color: var(--ldb-info) !important;
+  border-color: var(--ldb-info) !important;
+  color: #0f1a25 !important;
+}
+.btn-warning {
+  background-color: var(--ldb-warning) !important;
+  border-color: var(--ldb-warning) !important;
+  color: #1a1500 !important;
+}
+.btn-danger {
+  background-color: var(--ldb-danger) !important;
+  border-color: var(--ldb-danger) !important;
+  color: #220c0c !important;
 }
 
-.table-striped > tbody > tr:nth-of-type(odd) {
-    background-color: #1a1a1a; /* Dunkleres Grau für ungerade Zeilen */
-}
+/* ===== Badges ===== */
+.badge.bg-warning { background-color: var(--ldb-warning) !important; color: #1a1a1a !important; }
+.badge.bg-success { background-color: var(--ldb-success) !important; color: #0e1a12 !important; }
+.badge.bg-danger  { background-color: var(--ldb-danger)  !important; color: #1f0b0b !important; }
+.badge.bg-info    { background-color: var(--ldb-info)    !important; color: #0f1a25 !important; }
+.badge.bg-secondary { background-color: #3a3d40 !important; color: var(--ldb-text) !important; }
 
-.table-striped > tbody > tr:nth-of-type(even) {
-    background-color: #232323; /* Helleres Grau für gerade Zeilen */
-}
-
-.table-hover tbody tr:hover {
-    background-color: #333333; /* Hover-Effekt für Tabellenzeilen */
-}
-
-/* Tabellenzellen */
-.table td {
-    background-color: #1f1f1f; /* Hintergrundfarbe der Tabellenzellen */
-    color: #e0e0e0; /* Helle Textfarbe */
-    border-top: 1px solid #444;
-}
-
-/* Spezifische Regel für die Tabellennamen */
-.table td:nth-child(2) span {
-    color: #e0e0e0 !important; /* Erzwingt helle Textfarbe für Namen */
-}
-
-.table th {
-    background-color: #2a2a2a;
-    color: #e0e0e0;
-}
-
-/* Alerts */
+/* ===== Alerts ===== */
 .alert {
-    background-color: #2a2a2a;
-    color: #ff6f61;
-    border-color: #444;
+  background-color: var(--ldb-surface-2) !important;
+  color: var(--ldb-text) !important;
+  border-color: var(--ldb-border) !important;
 }
 
-.alert a {
-    color: #f4f4f4 !important; /* Helle Farbe für Links in Alerts */
-    text-decoration: underline;
+/* ===== Pagination ===== */
+.page-link {
+  background-color: var(--ldb-surface) !important;
+  border-color: var(--ldb-border) !important;
+  color: var(--ldb-text) !important;
+}
+.page-item.active .page-link {
+  background-color: #2d2f31 !important;
+  border-color: #5a5f66 !important;
 }
 
-/* Formulare */
-.form-control {
-    background-color: #2a2a2a;
-    color: #e0e0e0;
-    border: 1px solid #444;
-}
+/* ===== Sonstiges ===== */
+/* Minty setzt manche Texte/Icons in "success" etc. – etwas neutralisieren */
+.text-success { color: var(--ldb-success) !important; }
+.text-info    { color: var(--ldb-info) !important; }
+.text-danger  { color: var(--ldb-danger) !important; }
+.text-warning { color: var(--ldb-warning) !important; }
 
-.form-select {
-    background-color: #2a2a2a;
-    color: #e0e0e0;
-    border: 1px solid #444;
-}
-
-/* Links */
-a {
-    color: #00bcd4;
-}
-
-a:hover {
-    color: #e0e0e0;
-}
-
-/* Karten und Schatten */
-.card {
-    background-color: #1f1f1f;
-    border: 1px solid #333;
-    color: #e0e0e0;
-}
-
-.shadow-sm {
-    box-shadow: 0 0.125rem 0.25rem rgba(255, 255, 255, 0.1);
-}
+/* Debug/Dev-Outlines (falls aktiv) ausschalten */
+* { outline-color: transparent !important; }

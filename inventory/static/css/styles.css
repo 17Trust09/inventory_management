@@ -1,67 +1,131 @@
-/* Standard-Styling */
+/* inventory/static/css/styles.css
+   Harmonisiert mit dark_mode.css – keine knalligen Overrides mehr
+   ---------------------------------------------------------------- */
+
+/* ========= Basis ========= */
+/* Hinweis: Hintergrund- und Textfarben kommen aus dark_mode.css.
+   Hier vermeiden wir Doppel-Overrides, um Konflikte zu verhindern. */
+
 body {
-    background-color: #121212; /* Hintergrundfarbe im Dark Mode */
-    color: #e0e0e0; /* Helle Textfarbe für bessere Lesbarkeit */
+  /* Belasse die Farben dem Dark-Theme; kein erneutes Überschreiben hier */
+  background-color: transparent;
+  color: inherit;
 }
 
-/* Navigation */
+/* ========= Navbar ========= */
 .navbar {
-    background-color: #1f1f1f; /* Dunkler Hintergrund für die Navigationsleiste */
-    color: #e0e0e0; /* Helle Schrift */
+  /* Farbe kommt aus dark_mode.css; hier keine harte Farbe setzen */
+  background-color: transparent;
+  color: inherit;
 }
 
-.navbar-brand, .nav-link {
-    color: #e0e0e0 !important; /* Helle Schriftfarbe für die Navbar-Links */
+.navbar-brand,
+.nav-link {
+  color: inherit !important;           /* dunkel-hell je nach Theme */
 }
 
+/* Toggler-Rand dezent */
 .navbar-toggler {
-    border-color: #e0e0e0; /* Helle Farbe für den Toggler */
+  border-color: currentColor;          /* nutzt Textfarbe der Navbar */
 }
 
-/* Buttons in der Navigation */
+/* Buttons in der Navbar:
+   - keine harte Primärfarbe
+   - dezente Outline-Looks, passend zu dark_mode.css
+*/
 .navbar .btn {
-    font-size: 14px;
-    padding: 5px 15px;
-    border-radius: 5px;
-    color: #ffffff; /* Helle Textfarbe für alle Buttons */
-    background-color: #007bff; /* Blau für die Buttons */
-    border: 1px solid #007bff; /* Rahmen in blauer Farbe */
+  font-size: 14px;
+  padding: 5px 15px;
+  border-radius: 6px;
 }
 
-/* Spezifische Regel für den Abmelden-Button */
+/* Primärer Navbar-Button (z. B. „Admin‑Bereich“) */
 .navbar .btn-outline-light {
-    color: #007bff; /* Blau für die Schrift */
-    border-color: #007bff; /* Blauer Rahmen */
+  color: inherit;                      /* hell im Dark-Theme */
+  border-color: #bdbdbd;               /* dezentes Grau */
+  background-color: transparent;
+}
+.navbar .btn-outline-light:hover,
+.navbar .btn-outline-light:focus {
+  background-color: rgba(255,255,255,0.08);
+  color: #ffffff;
+  border-color: #d6d6d6;
 }
 
-.navbar .btn-outline-light:hover {
-    background-color: rgba(0, 123, 255, 0.1); /* Leicht blauer Hintergrund beim Hover */
+/* Dunkler Icon‑Button (z. B. Dark‑Mode Toggle) */
+.navbar .btn-dark {
+  background-color: #3d3d3d;
+  border-color: #3d3d3d;
+  color: #e0e0e0;
+}
+.navbar .btn-dark:hover,
+.navbar .btn-dark:focus {
+  background-color: #4a4a4a;
+  border-color: #4a4a4a;
+  color: #ffffff;
 }
 
-/* Button-Farben im Dark Mode */
+/* Optionaler „neutraler“ Outline‑Button */
+.navbar .btn-outline-secondary {
+  color: #cfd3d7;
+  border-color: #6c757d;
+  background: transparent;
+}
+.navbar .btn-outline-secondary:hover,
+.navbar .btn-outline-secondary:focus {
+  background-color: #6c757d;
+  color: #121212;
+}
+
+/* ========= Buttons (global leicht justiert) ========= */
+/* Wir definieren nur minimale Anpassungen; die Farblogik steckt in dark_mode.css */
 .btn-outline-dark {
-    border-color: #e0e0e0;
-    color: #e0e0e0;
+  border-color: #e0e0e0;
+  color: #e0e0e0;
+}
+.btn-outline-dark:hover,
+.btn-outline-dark:focus {
+  background-color: #4a4a4a;
+  color: #ffffff;
 }
 
-.btn-dark {
-    background-color: #3d3d3d;
-    border-color: #3d3d3d;
-    color: #e0e0e0;
-}
-
-/* Standard-Styling für den Abmelden-Button im Standardmodus */
-.btn-outline-light {
-    color: #007bff; /* Blau für den Abmelden-Button */
-    border-color: #007bff; /* Blau für den Rahmen */
-}
-
-/* Hover-Effekte für den Abmelden-Button */
-.btn-outline-light:hover {
-    background-color: rgba(0, 123, 255, 0.1); /* Hellerer Hintergrund beim Hover */
-}
-
+/* ========= Formulare ========= */
 #barcode-input {
-            width: 100%;  /* Setzt die Breite des Eingabefelds auf 100%, damit es wie das 'Artikel suchen' Eingabefeld aussieht */
-            font-size: 14px; /* Schriftgröße bleibt gleich */
+  width: 100%;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+/* ========= Fokus-Ringe dezent (kompatibel zu dark_mode.css) ========= */
+.btn:focus,
+.btn:active,
+.btn:focus-visible,
+.form-control:focus,
+.form-select:focus,
+.page-link:focus {
+  outline: none;
+  box-shadow: 0 0 0 .2rem rgba(255,255,255,0.12);
+}
+
+/* ========= Links (nicht knallig) ========= */
+a {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;          /* dezente Rückmeldung */
+}
+
+/* ========= Hilfreiche Abstände ========= */
+.mt-6 { margin-top: 3.5rem; }
+.mb-6 { margin-bottom: 3.5rem; }
+
+/* ========= Tabellen / Listen – keine harten Farben hier ========= */
+.table td, .table th {
+  vertical-align: middle;
+}
+.list-group-item {
+  transition: background-color .15s ease;
+}
+.list-group-item:hover {
+  background-color: rgba(255,255,255,0.04);
 }

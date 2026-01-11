@@ -1,0 +1,16 @@
+{# Verleih-Aktionen (sichtbar, wenn Nutzer die passenden Rechte hat) #}
+{% if perms.inventory.add_borroweditem %}
+  <a class="btn btn-sm btn-outline-success" href="{% url 'borrow-item' item.id %}">Verleihen</a>
+{% endif %}
+
+{# Offene Ausleihen anzeigen + Rückgabe-Buttons (POST) #}
+{% if item.prefetched_open_borrowings %}
+  {% for br in item.prefetched_open_borrowings %}
+    <form method="post" action="{% url 'return-item' br.id %}" class="d-inline">
+      {% csrf_token %}
+      <button class="btn btn-sm btn-outline-warning" title="{{ br.borrower }} – {{ br.quantity_borrowed }}">
+        Rückgabe ({{ br.quantity_borrowed }})
+      </button>
+    </form>
+  {% endfor %}
+{% endif %}

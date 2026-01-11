@@ -12,19 +12,10 @@ function progress_bar {
   sleep 0.3
 }
 
-# 📊 Funktion: Fortschrittsanzeige
-function progress_bar {
-  local step=$1
-  local total=10
-  local done=$((step * 10 / total))
-  local remain=$((total - done))
-  local bar=$(printf "%0.s█" $(seq 1 $done))
-  local space=$(printf "%0.s░" $(seq 1 $remain))
-  echo -ne "\r[$bar$space] $((step * 100 / total))%"
-  sleep 0.3
-}
-
 echo "🔄 Starte Update-Prozess vom dev-Branch..."
+
+# 🔁 Gehe in den Ordner, wo dieses Skript liegt
+cd "$(dirname "$0")"
 
 # 🗂️ Schritt 1: Backup vorbereiten
 backup_dir="backup/$(date +%Y-%m-%d_%H-%M-%S)"
@@ -35,17 +26,16 @@ echo -e "\n➡️ Backup-Ordner: $backup_dir"
 
 # 🧠 Schritt 2: DB sichern
 echo -n "🗃️ [2/7] Backup der Datenbank... "
-sudo cp ./inventory_management/db.sqlite3 "$backup_dir/db.sqlite3"
+sudo cp ./db.sqlite3 "$backup_dir/db.sqlite3"
 progress_bar 2 && echo " ✅"
 
 # 🖼️ Schritt 3: Medien sichern
 echo -n "🖼️ [3/7] Backup vom media-Ordner... "
-sudo cp -r ./inventory_management/media "$backup_dir/media"
+sudo cp -r ./media "$backup_dir/media"
 progress_bar 3 && echo " ✅"
 
 # 📁 Schritt 4: In Projektordner wechseln
 echo -n "📂 [4/7] Wechsle in Projektordner... "
-cd inventory_management || { echo "❌ Ordner 'inventory_management' nicht gefunden!"; exit 1; }
 progress_bar 4 && echo " ✅"
 
 # 🌱 Schritt 5: Git Pull vom dev-Branch

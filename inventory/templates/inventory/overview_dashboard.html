@@ -1,0 +1,404 @@
+{% extends 'inventory/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <style>
+    :root{
+      --surface:#14181b;
+      --surface-2:#1a1f24;
+      --border:rgba(255,255,255,.08);
+      --text:#e4e6eb;
+      --muted:#adb5bd;
+
+      --borrow-r:255; --borrow-g:193; --borrow-b:7;
+    }
+
+    .badge-borrow{
+      background: rgba(var(--borrow-r),var(--borrow-g),var(--borrow-b),.12) !important;
+      color: rgba(var(--borrow-r),var(--borrow-g),var(--borrow-b),.95) !important;
+      border: 1px solid rgba(var(--borrow-r),var(--borrow-g),var(--borrow-b),.35) !important;
+      font-weight: 600;
+    }
+    .borrow-wrap{
+      background: rgba(var(--borrow-r),var(--borrow-g),var(--borrow-b),.06);
+      border-left: 3px solid rgba(var(--borrow-r),var(--borrow-g),var(--borrow-b),.35);
+      border-radius: .75rem;
+    }
+    .borrow-card{
+      background: var(--surface);
+      border: 1px solid rgba(var(--borrow-r),var(--borrow-g),var(--borrow-b),.28);
+      color: var(--text);
+      border-radius: 1rem;
+    }
+    .borrow-card .card-title{
+      color: rgba(var(--borrow-r),var(--borrow-g),var(--borrow-b),.9);
+      font-weight: 600;
+    }
+
+    .table-darkish{
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+    .table-darkish thead tr{
+      background: var(--surface-2);
+      color: var(--text);
+    }
+    .table-darkish a{ color: inherit; }
+
+    .pagination .page-link{
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: #cdd3d8;
+    }
+    .pagination .page-link:hover{
+      background: rgba(255,255,255,.08);
+      color: #e7ebee;
+    }
+    .pagination .page-item.disabled .page-link{
+      background: transparent;
+      border: none;
+      color: #9aa3aa;
+      cursor: default;
+    }
+    .page-status{
+      display: inline-block;
+      padding: .45rem 1rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      line-height: 1;
+    }
+
+    .btn-group a:not(.btn),
+    .btn-group .btn-link {
+      display: inline-block;
+      padding: .25rem .5rem;
+      border: 1px solid rgba(208,208,208,.9);
+      border-radius: .5rem;
+      color: #eaeaea;
+      text-decoration: none;
+      background: transparent;
+      line-height: 1.25;
+    }
+    .btn-group a:not(.btn):hover,
+    .btn-group .btn-link:hover {
+      background-color: rgba(255,255,255,.08);
+      color: #ffffff;
+      text-decoration: none;
+    }
+    .btn-group .btn + a:not(.btn),
+    .btn-group a:not(.btn) + .btn,
+    .btn-group a:not(.btn) + a:not(.btn),
+    .btn-group .btn-link + .btn,
+    .btn-group .btn + .btn-link,
+    .btn-group .btn-link + .btn-link {
+      margin-left: .25rem;
+    }
+  </style>
+
+  {% if not overview.is_active %}
+    <div class="alert alert-warning">Dieses Dashboard ist inaktiv.</div>
+  {% endif %}
+
+  <!-- Kopfzeile -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center">
+      <a class="btn btn-outline-primary me-3" href="{% url 'dashboards' %}">← Zurück</a>
+      <h2 class="m-0">{{ overview.icon_emoji }} {{ overview.name }}</h2>
+    </div>
+
+    <a class="btn btn-outline-light"
+       href="{{ add_url }}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">
+      + Artikel hinzufügen
+    </a>
+  </div>
+
+  {% if overview.description %}
+    <p class="text-muted">{{ overview.description }}</p>
+  {% endif %}
+
+  <!-- Feature-Badges -->
+  <div class="row g-3 mb-3">
+    {% if features.has_min_stock %}<div class="col-auto"><span class="badge bg-warning text-dark">Mindestbestand</span></div>{% endif %}
+    {% if features.has_locations %}<div class="col-auto"><span class="badge bg-info text-dark">Lagerorte</span></div>{% endif %}
+    {% if features.enable_borrow %}<div class="col-auto"><span class="badge bg-success">Verleih</span></div>{% endif %}
+    {% if features.is_consumable_mode %}<div class="col-auto"><span class="badge bg-secondary">Verbrauch</span></div>{% endif %}
+    {% if features.require_qr %}<div class="col-auto"><span class="badge bg-primary">QR</span></div>{% endif %}
+  </div>
+
+  <!-- Filterpanel -->
+  <button class="btn btn-outline-light mb-3" type="button"
+          data-bs-toggle="collapse" data-bs-target="#filterPanel"
+          aria-expanded="{% if q or selected_category or selected_tag or only_low %}true{% else %}false{% endif %}"
+          aria-controls="filterPanel">
+    🔎 Filter anzeigen
+  </button>
+
+  <div class="collapse{% if q or selected_category or selected_tag or only_low %} show{% endif %}" id="filterPanel">
+    <div class="card">
+      <div class="card-body">
+        <form method="get">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label">Suche</label>
+              <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Name, Barcode, Ort...">
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Kategorie</label>
+              <select name="category" class="form-select">
+                <option value="">–</option>
+                <option value="all" {% if selected_category == 'all' %}selected{% endif %}>Alle</option>
+                {% for c in categories %}
+                  <option value="{{ c.id }}" {% if selected_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Tag</label>
+              <select name="tag" class="form-select">
+                <option value="">–</option>
+                <option value="all" {% if selected_tag == 'all' %}selected{% endif %}>Alle</option>
+                {% for t in tags %}
+                  <option value="{{ t.name }}" {% if selected_tag == t.name %}selected{% endif %}>{{ t.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            {% if features.has_min_stock %}
+              <div class="col-md-3">
+                <div class="form-check mt-4">
+                  <input class="form-check-input" type="checkbox" name="only_low" value="1" id="only_low" {% if only_low %}checked{% endif %}>
+                  <label class="form-check-label" for="only_low">Nur unter Mindestbestand</label>
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="col-md-2">
+              <label class="form-label">Pro Seite</label>
+              <input type="number" class="form-control" name="page_size" min="5" max="200" value="{{ per_page }}">
+            </div>
+
+            <div class="col-md-2">
+              <button class="btn btn-primary w-100">Filtern</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-muted small mt-2">
+    <strong>Aktionen:</strong>
+    „Bearbeiten“ – Artikel öffnen; „Verleihen“ – Ausleihe erfassen; „QR“ – QR anzeigen; „DL“ – QR herunterladen; „QR neu“ – QR-Code neu generieren.
+  </p>
+
+  <!-- Tabelle -->
+  <div class="table-responsive">
+    <table class="table table-striped align-middle table-darkish">
+      <thead>
+        <tr>
+          <th><a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=name&order={{ next_order.name }}">Name</a></th>
+
+          {% if features.has_locations %}
+            <th><a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=location&order={{ next_order.location }}">Ort</a></th>
+          {% endif %}
+
+          <th><a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=category&order={{ next_order.category }}">Kategorie</a></th>
+
+          {% if features.show_quantity %}
+            <th class="text-end"><a class="text-decoration-none" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=quantity&order={{ next_order.quantity }}">Ist</a></th>
+          {% endif %}
+
+          {% if features.has_min_stock %}
+            <th class="text-end"><a class="text-decoration-none" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=min&order={{ next_order.min }}">Min.</a></th>
+          {% endif %}
+
+          {% if features.enable_borrow %}
+            <th class="text-end"><a class="text-decoration-none" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=borrowed&order={{ next_order.borrowed }}">Verliehen</a></th>
+          {% endif %}
+
+          <th class="text-end">Aktion</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                {% if it.image %}
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#imgModal{{ it.id }}">
+                      <img src="{{ it.image.url }}" alt="" class="rounded"
+                           style="width:48px;height:48px;object-fit:cover;cursor:pointer;">
+                    </a>
+
+                    <!-- Modal für Großansicht -->
+                    <div class="modal fade" id="imgModal{{ it.id }}" tabindex="-1" aria-labelledby="imgModalLabel{{ it.id }}" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content bg-dark text-light">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="imgModalLabel{{ it.id }}">{{ it.name }}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body text-center">
+                            <img src="{{ it.image.url }}" alt="{{ it.name }}" class="img-fluid rounded">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {% endif %}
+
+                <div class="d-flex flex-column">
+                  <span>{{ it.name }}</span>
+                  {% with tags=it.application_tags.all %}
+                    {% if tags|length %}
+                      <small class="text-muted">
+                        {% for t in tags %}
+                          {% if t.name != '-' and t.name|slice:":6" != "__ov::" %}
+                            <span class="badge bg-secondary me-1">{{ t.name }}</span>
+                          {% endif %}
+                        {% endfor %}
+                      </small>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+              </div>
+            </td>
+
+            {% if features.has_locations %}
+              <td>
+                {% if it.storage_location %}
+                  {{ it.storage_location.get_full_path }}
+                {% else %}
+                  <span class="text-muted">–</span>
+                {% endif %}
+              </td>
+            {% endif %}
+
+            <td>
+              {% if it.category %}
+                {{ it.category.name }}
+              {% else %}
+                <span class="text-muted">–</span>
+              {% endif %}
+            </td>
+
+            {% if features.show_quantity %}
+              <td class="text-end">{{ it.quantity|default:"–" }}</td>
+            {% endif %}
+
+            {% if features.has_min_stock %}
+              <td class="text-end">{{ it.low_quantity|default:"–" }}</td>
+            {% endif %}
+
+            {% if features.enable_borrow %}
+              <td class="text-end">
+                {% if it.prefetched_open_borrowings %}
+                  <a class="badge rounded-pill badge-borrow text-decoration-none"
+                     data-bs-toggle="collapse"
+                     href="#borrowRow{{ it.id }}"
+                     role="button"
+                     aria-expanded="false"
+                     aria-controls="borrowRow{{ it.id }}">
+                    {{ it.borrowed_open|default:"0" }}
+                  </a>
+                {% else %}
+                  0
+                {% endif %}
+              </td>
+            {% endif %}
+
+            <td class="text-end">
+              <div class="btn-group" role="group">
+                <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' it.id %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Bearbeiten</a>
+
+                {% if features.require_qr %}
+                  {% include 'inventory/modules/qr_actions.html' with item=it %}
+                {% endif %}
+
+                {% if features.enable_borrow %}
+                  <a class="btn btn-sm btn-outline-light" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+
+          {% if features.enable_borrow %}
+            <tr>
+              <td colspan="99" class="p-0">
+                <div class="collapse borrow-wrap" id="borrowRow{{ it.id }}">
+                  <div class="p-3">
+                    {% if it.prefetched_open_borrowings %}
+                      <div class="row row-cols-1 row-cols-md-2 g-3">
+                        {% for br in it.prefetched_open_borrowings %}
+                          <div class="col">
+                            <div class="card borrow-card h-100">
+                              <div class="card-body">
+                                <h6 class="card-title mb-2">Offene Ausleihe</h6>
+                                <ul class="list-unstyled small mb-3">
+                                  <li><i class="bi bi-person"></i> {{ br.borrower }}</li>
+                                  <li><i class="bi bi-123"></i> {{ br.quantity_borrowed }} Stück</li>
+                                  <li><i class="bi bi-clock"></i>
+                                    Rückgabe bis:
+                                    {% if br.return_date %}{{ br.return_date|date:"d.m.Y" }}{% else %}–{% endif %}
+                                  </li>
+                                  <li><i class="bi bi-chat-left-text"></i> {{ br.comment|default:"–" }}</li>
+                                </ul>
+                                <form method="post" action="{% url 'return-item' br.id %}">
+                                  {% csrf_token %}
+                                  <button class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-box-arrow-in-left"></i> Zurückgeben
+                                  </button>
+                                </form>
+                              </div>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <span class="text-muted">Keine offenen Ausleihen.</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        {% empty %}
+          <tr><td colspan="99" class="text-center text-muted py-5">Keine Einträge.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <nav aria-label="Paginierung" class="mt-3">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">«</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">«</span></li>
+      {% endif %}
+
+      <li class="page-item"><span class="page-status">Seite {{ page_obj.number }} / {{ paginator.num_pages }}</span></li>
+
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">»</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">»</span></li>
+      {% endif %}
+    </ul>
+  </nav>
+</div>
+{% endblock %}

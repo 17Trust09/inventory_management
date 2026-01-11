@@ -1,0 +1,13 @@
+{# inventory/templates/inventory/partials/ha_status_badge.html #}
+{# Kleiner Status-Badge. Bootstrap + Bootstrap Icons empfohlen. #}
+{% if available %}
+  <div class="alert alert-success py-1 px-2 d-inline-flex align-items-center mb-2" role="alert" style="font-size:0.95rem;">
+    <i class="bi bi-cloud-check me-2"></i>
+    <span>{{ message }}</span>
+  </div>
+{% else %}
+  <div class="alert alert-warning py-1 px-2 d-inline-flex align-items-center mb-2" role="alert" style="font-size:0.95rem;">
+    <i class="bi bi-cloud-slash me-2"></i>
+    <span>{{ message }}</span>
+  </div>
+{% endif %}

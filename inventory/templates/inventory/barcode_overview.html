@@ -1,12 +1,17 @@
 {% extends 'admin/base_site.html' %}
 {% block content %}
-<h1>Alle QR-Codes</h1>
-<div style="display: flex; flex-wrap: wrap; gap: 20px;">
+<h1 class="mb-4">Alle QR-Codes</h1>
+
+<div class="d-flex flex-wrap gap-3">
   {% for item in items %}
-    <div style="border: 1px solid #ccc; padding: 10px;">
-      <strong>{{ item.name }}</strong><br>
-      <img src="/media/qrcodes/qr_{{ item.id }}.jpg" style="max-width:150px;"><br>
-      <a href="/edit-item/{{ item.id }}/">Bearbeiten</a>
+    <div class="card shadow-sm p-3 text-center" style="background:var(--surface); border:1px solid var(--border); color:var(--text); width:200px; border-radius:.75rem;">
+      <strong class="d-block mb-2">{{ item.name }}</strong>
+      <img src="/media/qrcodes/qr_{{ item.id }}.jpg" alt="QR-Code für {{ item.name }}" class="img-fluid rounded mb-2" style="max-width:150px;">
+      <div>
+        <a href="/edit-item/{{ item.id }}/" class="btn btn-sm btn-outline-light w-100">
+          <i class="bi bi-pencil-square me-1"></i> Bearbeiten
+        </a>
+      </div>
     </div>
   {% endfor %}
 </div>

@@ -1,0 +1,25 @@
+{% extends 'inventory/admin_base.html' %}
+
+{% block admin_title %}Tag löschen{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-center" style="color:var(--text);">
+  <div class="col-lg-7">
+    <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+      <div class="card-body">
+        <h4 class="mb-3"><i class="bi bi-tag-fill me-2 text-danger"></i>Tag wirklich löschen?</h4>
+        <p class="text-muted mb-0">„{{ object.name }}“ ({{ object.type.name }})</p>
+      </div>
+      <form method="post" class="card-footer d-flex justify-content-end gap-2" style="background:var(--surface-2); border-top:1px solid var(--border);">
+        {% csrf_token %}
+        <a href="{% url 'admin_tags_overview' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i> Abbrechen
+        </a>
+        <button type="submit" class="btn btn-danger">
+          <i class="bi bi-trash me-1"></i> Löschen
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

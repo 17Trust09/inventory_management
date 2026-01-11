@@ -1,0 +1,47 @@
+{% extends "inventory/admin_base.html" %}
+{% load static %}
+
+{% block title %}Kategorien – Übersicht{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h2 class="m-0"><i class="bi bi-folder2-open me-2"></i>Kategorien – Übersicht</h2>
+  <a href="{% url 'admin_category_add' %}" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Neu
+  </a>
+</div>
+
+<div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem; color:var(--text);">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" style="background:var(--surface); color:var(--text);">
+      <thead style="background:var(--surface-2); color:var(--text);">
+        <tr>
+          <th style="width:60%">Name</th>
+          <th style="width:40%" class="text-end">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if categories %}
+          {% for c in categories %}
+            <tr>
+              <td>{{ c.name }}</td>
+              <td class="text-end">
+                <a href="{% url 'admin_category_edit' c.pk %}" class="btn btn-sm btn-outline-light me-1" title="Bearbeiten">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'admin_category_delete' c.pk %}" class="btn btn-sm btn-outline-danger" title="Löschen">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="2" class="text-center text-muted py-4">Keine Kategorien vorhanden.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

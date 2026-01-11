@@ -1,0 +1,142 @@
+{% extends 'inventory/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-5">
+  <a href="{% url 'dashboard-equipment' %}" class="btn btn-outline-primary my-3">← Zurück zu Equipment</a>
+  <h2 class="mb-4">
+    {% if form.instance.pk %}Equipment bearbeiten{% else %}Neues Equipment hinzufügen{% endif %}
+  </h2>
+
+  {% if form.errors %}
+    <div class="alert alert-danger">
+      <strong>Bitte behebe folgende Fehler:</strong>
+      <ul class="mb-0">
+        {% for field in form %}
+          {% for error in field.errors %}
+            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if similar_items %}
+    <div class="alert alert-warning">
+      <strong>⚠️ Ähnliche Artikel gefunden:</strong>
+      <ul class="mb-0">
+        {% for item in similar_items %}
+          <li>
+            <a href="{% url 'edit-item' item.id %}">{{ item.name }}</a> – Bestand: {{ item.quantity }}
+          </li>
+        {% endfor %}
+      </ul>
+      <p class="mt-2">Wenn du trotzdem speichern willst, klicke unten auf <strong>Hinzufügen</strong>.</p>
+    </div>
+  {% endif %}
+
+  <div class="card p-4 shadow" style="background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:1rem;">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      {% if form.instance.image %}
+        <div class="mb-3">
+          <strong id="image-toggle" style="cursor:pointer;">📷 Bild anzeigen</strong>
+          <div id="image-section" style="display:none; margin-top:10px;">
+            <img src="{{ form.instance.image.url }}" alt="Artikelbild"
+                 style="max-width:200px; border-radius:8px;"><br>
+            <button form="delete-image-form"
+                    class="btn btn-outline-danger btn-sm mt-2">Bild löschen</button>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if form.instance.pk %}
+        <div class="mb-3">
+          <strong id="qr-toggle" style="cursor:pointer;">🔍 QR-Code anzeigen</strong>
+          <div id="qr-section" style="display:none; margin-top:10px;">
+            <img src="/media/qrcodes/qr_{{ form.instance.id }}.jpg" alt="QR-Code"
+                 style="max-width:200px; border-radius:8px;"><br>
+            <a href="/media/qrcodes/qr_{{ form.instance.id }}.jpg" download
+               class="btn btn-outline-primary btn-sm mt-2">Herunterladen</a>
+            <button form="regenerate-qr-form"
+                    class="btn btn-outline-warning btn-sm mt-2">Neu generieren</button>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+          {{ form.name }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.quantity.id_for_label }}">{{ form.quantity.label }}</label>
+          {{ form.quantity }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+          {{ form.category }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.storage_location.id_for_label }}">{{ form.storage_location.label }}</label>
+          {{ form.storage_location }}
+        </div>
+        <div class="col-md-12 mb-3">
+          <label for="{{ form.order_link.id_for_label }}">{{ form.order_link.label }}</label>
+          {{ form.order_link }}
+        </div>
+        <div class="col-md-12 mb-3">
+          <label>{{ form.application_tags.label }}</label>
+          <div class="d-flex flex-wrap border rounded p-2" style="max-height:200px; overflow:auto; background:#2a2a2a; border:1px solid #444;">
+            {{ form.application_tags }}
+          </div>
+        </div>
+        <div class="col-md-12 mb-3">
+          <label for="{{ form.image.id_for_label }}">{{ form.image.label }}</label>
+          {{ form.image }}
+        </div>
+        <div class="col-md-12 mb-3">
+          <label for="{{ form.maintenance_date.id_for_label }}">{{ form.maintenance_date.label }}</label>
+          {{ form.maintenance_date }}
+        </div>
+      </div>
+
+      <button type="submit"
+              class="btn btn-success btn-lg w-100 mt-3"
+              {% if similar_items %}name="force_save" value="1"{% endif %}>
+        {% if form.instance.pk %}Speichern{% else %}Hinzufügen{% endif %}
+      </button>
+    </form>
+  </div>
+
+  {% if form.instance.image %}
+    <form id="delete-image-form" method="post"
+          action="{% url 'delete-image' form.instance.id %}" style="display:none;">
+      {% csrf_token %}
+    </form>
+  {% endif %}
+  {% if form.instance.pk %}
+    <form id="regenerate-qr-form" method="post"
+          action="{% url 'regenerate-qr' form.instance.id %}" style="display:none;">
+      {% csrf_token %}
+    </form>
+  {% endif %}
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded",()=>{
+  document.getElementById("image-toggle")?.addEventListener("click",()=>{
+    const sec=document.getElementById("image-section");
+    sec.style.display=sec.style.display==="none"?"block":"none";
+  });
+  document.getElementById("qr-toggle")?.addEventListener("click",()=>{
+    const sec=document.getElementById("qr-section");
+    sec.style.display=sec.style.display==="none"?"block":"none";
+  });
+});
+</script>
+{% endblock %}

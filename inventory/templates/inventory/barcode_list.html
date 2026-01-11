@@ -2,30 +2,34 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">Barcode-Liste</h2>
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped">
-            <thead class="table-dark">
-                <tr>
-                    <th scope="col">Artikelname</th>
-                    <th scope="col">Barcode</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if items %}
-                    {% for item in items %}
-                        <tr>
-                            <td>{{ item.name }}</td>
-                            <td>{{ item.barcode }}</td>
-                        </tr>
-                    {% endfor %}
-                {% else %}
+    <h2 class="mb-4">📑 Barcode-Liste</h2>
+    <div class="card shadow" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0" style="background:var(--surface); color:var(--text); border:1px solid var(--border);">
+                <thead style="background:var(--surface-2); color:var(--text);">
                     <tr>
-                        <td colspan="2" class="text-center">Keine Barcodes verfügbar</td>
+                        <th scope="col">Artikelname</th>
+                        <th scope="col">Barcode</th>
                     </tr>
-                {% endif %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% if items %}
+                        {% for item in items %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td>
+                                    <code class="text-monospace">{{ item.barcode }}</code>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="2" class="text-center text-muted py-4">Keine Barcodes verfügbar</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

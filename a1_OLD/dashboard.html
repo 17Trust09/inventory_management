@@ -1,0 +1,301 @@
+{% extends 'inventory/base.html' %}
+{% load inventory_extras %}
+{% now "Y-m-d" as today %}
+
+{% block content %}
+<head>
+    <style>
+        #barcode-input {
+            width: 50%;
+            font-size: 14px;
+        }
+        .img-thumb-clickable {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<div class="row mt-3">
+    <div class="col-md-10 col-12 mx-auto">
+        <form method="GET" action="{% url 'scan-barcode' %}">
+            <div class="input-group mb-3">
+                <input type="text" name="barcode" id="barcode-input"
+                       class="form-control" placeholder="Barcode scannen..." autofocus>
+                <button class="btn btn-outline-primary" type="submit">Suchen</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Nav für Equipment vs. Verbrauchsmaterial -->
+<div class="row mt-2">
+  <div class="col-md-10 col-12 mx-auto d-flex mb-3">
+    <a href="{% url 'dashboard-equipment' %}"
+       class="btn btn-outline-primary me-2{% if request.resolver_match.url_name == 'dashboard-equipment' %} active{% endif %}">
+      🔧 Equipment
+    </a>
+    <a href="{% url 'dashboard-consumables' %}"
+       class="btn btn-outline-success{% if request.resolver_match.url_name == 'dashboard-consumables' %} active{% endif %}">
+      🧴 Verbrauchsmaterial
+    </a>
+  </div>
+</div>
+
+{% if messages %}
+<div class="row mt-3">
+    <div class="col-md-10 col-12 mx-auto alert alert-danger">
+        <span id="low-inventory-toggle" style="cursor: pointer; font-weight: bold;">
+            Artikel mit geringem Bestand: {{ low_inventory_ids|length }}
+        </span>
+        <div id="low-inventory-details" style="display: none; margin-top: 10px;">
+            {% for message in messages %}
+                <div>{{ message|safe }}</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+<script>
+    document.getElementById("low-inventory-toggle").addEventListener("click", function() {
+        const details = document.getElementById("low-inventory-details");
+        details.style.display = details.style.display === "none" ? "block" : "none";
+    });
+</script>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-10 col-12 mx-auto mt-3">
+
+        <!-- 🔽 Farb-Legende -->
+        <div class="text-end mb-2">
+            <a href="#" onclick="toggleLegend(); return false;"
+               style="font-size: 0.9rem; color: #0ff;">
+                ℹ️ Was bedeuten die Farben?
+            </a>
+        </div>
+        <div id="color-legend"
+             style="display: none; background-color: #1c1c1c; color: #ccc;
+                    padding: 10px; border-radius: 6px; font-size: 0.85rem;">
+            <strong>Farb-Legende:</strong><br>
+            <div style="margin-top: 5px;">
+                <div style="background-color: #003300; padding: 4px; border-radius: 4px;
+                            color: white; margin-bottom: 3px;">
+                    🟢 <strong>Grün:</strong> Soll-Bestand erreicht oder übertroffen
+                </div>
+                <div style="background-color: #333000; padding: 4px; border-radius: 4px;
+                            color: white; margin-bottom: 3px;">
+                    🟡 <strong>Gelb:</strong> Soll-Bestand unterschritten, aber noch vorhanden
+                </div>
+                <div style="background-color: #330000; padding: 4px; border-radius: 4px;
+                            color: white;">
+                    🔴 <strong>Rot:</strong> Ist-Bestand = 0 → Kritischer Mangel
+                </div>
+            </div>
+        </div>
+        <script>
+            function toggleLegend() {
+                const legend = document.getElementById("color-legend");
+                legend.style.display = legend.style.display === "none" ? "block" : "none";
+            }
+        </script>
+
+        <!-- 🔽 Filter und Hinzufügen -->
+        <div class="d-flex justify-content-between mb-3">
+            {% if item_type == 'equipment' %}
+                <a href="{% url 'add-equipment' %}" class="btn btn-primary">
+                  + Equipment hinzufügen
+                </a>
+            {% elif item_type == 'consumable' %}
+                <a href="{% url 'add-consumables' %}" class="btn btn-primary">
+                  + Verbrauchsmaterial hinzufügen
+                </a>
+            {% else %}
+                <a href="{% url 'add-equipment' %}" class="btn btn-outline-secondary me-2">
+                  + Equipment
+                </a>
+                <a href="{% url 'add-consumables' %}" class="btn btn-outline-secondary">
+                  + Verbrauchsmaterial
+                </a>
+            {% endif %}
+
+            <form method="GET" action="{{ request.path }}" class="d-flex">
+                <input type="hidden" name="item_type" value="{{ item_type }}">
+                <select name="category" class="form-select me-2">
+                    <option value="all">Alle Kategorien</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}"
+                          {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                          {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <select name="tag" class="form-select me-2">
+                    {% if user_tags %}
+                        {% if user_tags|length > 1 %}
+                            <option value="all">Alle Tags</option>
+                        {% endif %}
+                        {% for tag in user_tags %}
+                            {% if tag.name != "-" %}
+                                <option value="{{ tag.name }}"
+                                  {% if selected_tag == tag.name %}selected{% endif %}>
+                                  {{ tag.name }}
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <option value="" selected>Keine Tags zugewiesen</option>
+                    {% endif %}
+                </select>
+
+                <input type="text" name="search" class="form-control me-2"
+                       placeholder="Artikel suchen..." value="{{ request.GET.search }}">
+                <button class="btn btn-outline-primary" type="submit">Suchen</button>
+            </form>
+        </div>
+
+        <!-- 🔽 Tabelle -->
+        <table class="table table-hover table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Menge</th>
+                    <th>Kategorie</th>
+                    <th>Lagerort</th>  {# Hier neu #}
+                    <th>Aktionen</th>
+                    <th>Bestellen</th>
+                    <th>Rückgabe</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if items|length == 0 %}
+                <tr>
+                    <th>-</th>
+                    <td colspan="7" class="text-center">Keine Einträge gefunden.</td>
+                </tr>
+                {% endif %}
+                {% for item in items %}
+                <tr>
+                    <th>{{ item.id }}</th>
+                    <td>
+                        {% if item.image %}
+                          <img src="{{ item.image.url }}" alt="Vorschau"
+                               class="img-thumb-clickable me-1"
+                               data-bs-toggle="modal"
+                               data-bs-target="#imgModal{{ item.id }}">
+                          <div class="modal fade" id="imgModal{{ item.id }}"
+                               tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                              <div class="modal-content p-0 border-0 bg-transparent">
+                                <img src="{{ item.image.url }}"
+                                     class="img-fluid rounded"
+                                     alt="Vollbild">
+                              </div>
+                            </div>
+                          </div>
+                        {% endif %}
+                        <span style="color: black;">{{ item.name }}</span>
+                        {% if item.maintenance_date and item.maintenance_date|stringformat:"Y-m-d" <= today %}
+                          <i class="bi bi-exclamation-triangle-fill text-danger ms-1"
+                             title="Abgelaufen am {{ item.maintenance_date|date:'j. F Y' }}"></i>
+                        {% endif %}
+                        {% if item.application_tags.all %}
+                          <div class="mt-1">
+                              {% for tag in item.application_tags.all %}
+                                <span style="background-color: #343a40; color: #0ff;
+                                             font-size: 0.75rem; padding: 2px 6px;
+                                             border-radius: 4px; margin-right: 2px;">
+                                  {{ tag.name }}
+                                </span>
+                              {% endfor %}
+                          </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="font-size: 0.85rem; line-height: 1.2;
+                                    {% if item.quantity >= item.calculated_target_quantity %}
+                                        background-color: #003300;
+                                    {% elif item.quantity > 0 %}
+                                        background-color: #333000;
+                                    {% else %}
+                                        background-color: #330000;
+                                    {% endif %}
+                                    color: white; padding: 6px; border-radius: 6px;">
+                            <strong>Soll:</strong> {{ item.calculated_target_quantity }}<br>
+                            <strong>Ist:</strong> {{ item.quantity }}<br>
+                            {% if item.item_type == 'equipment' %}
+                                <strong>Verliehen:</strong> {{ item.borrowed_quantity }}<br>
+                            {% elif item.item_type == 'consumable' %}
+                                <strong>Mindestbestand:</strong> {{ item.dynamischer_mindestbestand }}
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ item.category.name }}</td>
+                    <td>
+                      {# Neuer Lagerort-Wert: voller Pfad oder leer #}
+                      {{ item.storage_location.get_full_path }}{% if not item.storage_location %}&ndash;{% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'edit-item' item.id %}"
+                           class="btn btn-outline-secondary">Bearbeiten</a>
+                        <a href="{% url 'delete-item' item.id %}"
+                           class="btn btn-secondary ms-1">Löschen</a>
+                        {% if item.item_type == 'equipment' %}
+                          <a href="{% url 'borrow-item' item.id %}"
+                             class="btn btn-outline-warning ms-1">Verleihen</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.item_type == 'consumable' and item.order_link %}
+                          <a href="{{ item.order_link }}" target="_blank"
+                             class="btn btn-outline-success">Bestellen</a>
+                        {% else %}
+                          <span class="text-muted">–</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.item_type == 'equipment' %}
+                          {% for borrow in item.borrowings.all %}
+                            {% if not borrow.returned %}
+                              <details style="margin-bottom:5px;">
+                                <summary style="font-size:0.9rem; cursor:pointer;">
+                                  👤 {{ borrow.borrower }}
+                                </summary>
+                                <div style="font-size:0.85rem; margin-top:5px;">
+                                  🔢 {{ borrow.quantity_borrowed }} Stück
+                                  {% if borrow.return_date %}
+                                    <br>🕓 Rückgabe bis: {{ borrow.return_date|date:"j. F Y" }}
+                                  {% endif %}
+                                  {% if borrow.comment %}
+                                    <br>📝 {{ borrow.comment }}
+                                  {% endif %}
+                                  <form method="post"
+                                        action="{% url 'return-item' borrow.id %}"
+                                        style="margin-top:5px;">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="btn btn-sm btn-warning">
+                                      🔁 Zurückgeben
+                                    </button>
+                                  </form>
+                                </div>
+                              </details>
+                              <hr style="margin:4px 0;">
+                            {% endif %}
+                          {% empty %}
+                            <span class="text-muted">–</span>
+                          {% endfor %}
+                        {% else %}
+                          <span class="text-muted">–</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock content %}

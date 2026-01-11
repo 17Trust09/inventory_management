@@ -1,0 +1,87 @@
+{# inventory/templates/inventory/admin_userprofiles_edit.html #}
+{% extends 'inventory/admin_base.html' %}
+
+{% block admin_title %}Dashboards für {{ edit_user.username }}{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div class="d-flex align-items-center">
+    <a class="btn btn-outline-secondary me-3" href="{% url 'admin_userprofiles_list' %}">
+      <i class="bi bi-arrow-left"></i> Zurück
+    </a>
+    <h3 class="m-0" style="color:var(--text);">Dashboards für „{{ edit_user.username }}“</h3>
+  </div>
+  <span class="text-muted small">Nur aktive Dashboards werden angezeigt</span>
+</div>
+
+<form method="post" class="card shadow-sm" style="background:var(--surface); color:var(--text); border:1px solid var(--border);">
+  {% csrf_token %}
+
+  <div class="card-body">
+    <div class="d-flex gap-2 mb-3">
+      <button type="button" class="btn btn-sm btn-outline-light" id="selectAllBtn">
+        <i class="bi bi-check2-all"></i> Alle auswählen
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-light" id="selectNoneBtn">
+        <i class="bi bi-x-circle"></i> Keine
+      </button>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+      {% for ov in all_overviews %}
+        <div class="col">
+          <label class="form-check card h-100 p-3 shadow-sm"
+                 style="background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:.75rem;">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <input class="form-check-input me-2 ov-checkbox" type="checkbox"
+                       name="allowed_overviews" value="{{ ov.id }}"
+                       {% if ov.id in current_ids %}checked{% endif %}>
+                <strong>{{ ov.icon_emoji }} {{ ov.name }}</strong>
+              </div>
+              {% if not ov.is_active %}
+                <span class="badge bg-secondary">inaktiv</span>
+              {% endif %}
+            </div>
+            {% if ov.description %}
+              <small class="text-muted mt-2 d-block">{{ ov.description }}</small>
+            {% endif %}
+          </label>
+        </div>
+      {% empty %}
+        <div class="col">
+          <span class="text-muted">Keine aktiven Dashboards vorhanden.</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card-footer d-flex justify-content-end gap-2" style="background:var(--surface-2); border-top:1px solid var(--border);">
+    <a class="btn btn-outline-secondary" href="{% url 'admin_userprofiles_list' %}">
+      <i class="bi bi-x-lg"></i> Abbrechen
+    </a>
+    <button class="btn btn-primary">
+      <i class="bi bi-save"></i> Speichern
+    </button>
+  </div>
+</form>
+
+<script>
+  (function(){
+    const allBtn = document.getElementById('selectAllBtn');
+    const noneBtn = document.getElementById('selectNoneBtn');
+    const boxes = () => document.querySelectorAll('.ov-checkbox');
+
+    if (allBtn) {
+      allBtn.addEventListener('click', function(){
+        boxes().forEach(cb => cb.checked = true);
+      });
+    }
+    if (noneBtn) {
+      noneBtn.addEventListener('click', function(){
+        boxes().forEach(cb => cb.checked = false);
+      });
+    }
+  })();
+</script>
+{% endblock %}

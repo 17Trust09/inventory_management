@@ -24,3 +24,14 @@ def generate_barcode_image(self):
         print(f"Barcode-Bild wurde erfolgreich erstellt für {self.barcode}")  # Debugging-Ausgabe
     except Exception as e:
         print(f"Fehler bei der Barcode-Generierung: {e}")  # Debugging-Ausgabe
+
+
+def generate_cable_qr(cable):
+    qr = qrcode.QRCode(version=1, box_size=10, border=2)
+    qr.add_data(f"http://ha.local/cables/{cable.code}")
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    cable.qr_code.save(f"{cable.code}.png", File(buffer), save=False)

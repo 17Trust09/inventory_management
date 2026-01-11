@@ -1,0 +1,90 @@
+{# inventory/templates/inventory/admin_user_roles_form.html #}
+{% extends 'inventory/admin_base.html' %}
+
+{% block admin_title %}
+  Rolle bearbeiten: {{ user.username }}
+{% endblock %}
+
+{% block admin_content %}
+<div class="row">
+  <div class="col-md-6 mx-auto">
+    <h5 class="text-light mb-4">
+      Benutzer: {{ user.get_full_name }} ({{ user.username }})
+    </h5>
+
+    {# Rollen-Beschreibungen als Tabelle #}
+    <div class="mb-4">
+      <h6 class="text-light">Rollen &amp; ihre Rechte</h6>
+      <div class="table-responsive">
+        <table class="table table-dark table-striped">
+          <tbody>
+            <tr>
+              <td>
+                <strong>Superuser:</strong>
+                Vollzugriff auf alles inklusive Vergabe von Superuser-Rollen.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Administrator:</strong>
+                Kann alle administrativen Bereiche (Kategorien, Tags, Items, User-Profile, Einstellungen) verwalten, aber keine Superuser-Rollen vergeben.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Editor:</strong>
+                Kann Kategorien, Tags und Items anlegen und bearbeiten, jedoch keine User-Profile oder globalen Einstellungen verwalten.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <strong>User:</strong>
+                Kann Items einsehen und entleihen, jedoch nichts anlegen oder bearbeiten.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Viewer:</strong>
+                Nur Lesezugriff auf alle Admin-Seiten, ohne jegliche Bearbeitungsrechte.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      <div class="mb-3">
+        <label for="id_role" class="form-label text-light">{{ form.role.label }}</label>
+        <select
+          name="{{ form.role.name }}"
+          id="id_role"
+          class="form-select form-select-lg bg-dark text-light border-secondary"
+        >
+          <option value="" disabled {% if not form.role.value %}selected{% endif %}>— Rolle wählen —</option>
+          {% for value, label in form.role.field.choices %}
+            <option value="{{ value }}"
+              {% if form.role.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}
+            >{{ label }}</option>
+          {% endfor %}
+        </select>
+        {% if form.role.errors %}
+          <div class="text-danger mt-1">
+            {{ form.role.errors.as_text|striptags }}
+          </div>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-save me-1"></i> Speichern
+      </button>
+      <a href="{% url 'admin_manage_roles' %}" class="btn btn-outline-light ms-2">
+        <i class="bi bi-x me-1"></i> Abbrechen
+      </a>
+    </form>
+  </div>
+</div>
+{% endblock %}

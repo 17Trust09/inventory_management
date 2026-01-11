@@ -1,0 +1,102 @@
+{% extends 'inventory/admin_base.html' %}
+{% block admin_title %}{{ title }}{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-center" style="color:var(--text);">
+  <div class="col-lg-9 col-xl-8">
+    <form method="post" class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+      {% csrf_token %}
+      <div class="card-body">
+        {{ form.non_field_errors }}
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">{{ form.name.label }}</label>
+          {{ form.name }}
+          <div class="text-danger small">{{ form.name.errors }}</div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-7 mb-3">
+            <label class="form-label fw-semibold">{{ form.slug.label }}</label>
+            {{ form.slug }}
+            <div class="form-text">Ergibt später die URL: <code>/dash/{{ form.slug.value|default:"…" }}/</code></div>
+            <div class="text-danger small">{{ form.slug.errors }}</div>
+          </div>
+          <div class="col-md-5 mb-3">
+            <label class="form-label fw-semibold">{{ form.icon_emoji.label }}</label>
+            {{ form.icon_emoji }}
+            <div class="form-text">z.&nbsp;B. 🔧, 🧴, 📦 …</div>
+            <div class="text-danger small">{{ form.icon_emoji.errors }}</div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">{{ form.description.label }}</label>
+          {{ form.description }}
+          <div class="text-danger small">{{ form.description.errors }}</div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-semibold">{{ form.order.label }}</label>
+            {{ form.order }}
+            <div class="text-danger small">{{ form.order.errors }}</div>
+          </div>
+          <div class="col-md-4 mb-3 form-check mt-4">
+            {{ form.is_active }}
+            <label class="form-check-label ms-1">{{ form.is_active.label }}</label>
+            <div class="text-danger small">{{ form.is_active.errors }}</div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">{{ form.categories.label }}</label>
+          {{ form.categories }}
+          <div class="form-text">Optional: nur diese Kategorien anzeigen/filtern</div>
+          <div class="text-danger small">{{ form.categories.errors }}</div>
+        </div>
+
+        <fieldset class="border rounded p-3 mb-3" style="border-color:var(--border);">
+          <legend class="float-none w-auto px-2">Anzeigeoptionen</legend>
+          <div class="row g-3">
+            <div class="col-md-4 form-check">
+              {{ form.show_quantity }} <label class="form-check-label ms-1">{{ form.show_quantity.label }}</label>
+            </div>
+            <div class="col-md-4 form-check">
+              {{ form.has_locations }} <label class="form-check-label ms-1">{{ form.has_locations.label }}</label>
+            </div>
+            <div class="col-md-4 form-check">
+              {{ form.has_min_stock }} <label class="form-check-label ms-1">{{ form.has_min_stock.label }}</label>
+            </div>
+            <div class="col-md-4 form-check">
+              {{ form.enable_borrow }} <label class="form-check-label ms-1">{{ form.enable_borrow.label }}</label>
+            </div>
+            <div class="col-md-4 form-check">
+              {{ form.is_consumable_mode }} <label class="form-check-label ms-1">{{ form.is_consumable_mode.label }}</label>
+            </div>
+            <div class="col-md-4 form-check">
+              {{ form.require_qr }} <label class="form-check-label ms-1">{{ form.require_qr.label }}</label>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">{{ form.config.label }}</label>
+          {{ form.config }}
+          <div class="form-text">Optionales JSON für individuelle Karten/Widgets.</div>
+          <div class="text-danger small">{{ form.config.errors }}</div>
+        </div>
+      </div>
+
+      <div class="card-footer d-flex justify-content-end" style="background:var(--surface-2); border-top:1px solid var(--border);">
+        <a href="{% url 'admin_overviews' %}" class="btn btn-outline-light me-2">
+          <i class="bi bi-x-lg me-1"></i> Abbrechen
+        </a>
+        <button type="submit" class="btn btn-success">
+          <i class="bi bi-save me-1"></i> Speichern
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

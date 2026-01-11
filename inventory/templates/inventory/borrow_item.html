@@ -1,0 +1,59 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <a class="btn btn-outline-secondary" href="{{ next|default:'/' }}">← Zurück</a>
+    <h3 class="m-0">Verleihen: {{ item.name }}</h3>
+    <div></div>
+  </div>
+
+  <div class="card p-4 shadow" style="background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:1rem;">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {{ form.non_field_errors }}
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ form.borrower.label }}</label>
+          {{ form.borrower }}
+          {% if form.borrower.errors %}
+            <div class="text-danger small mt-1">⚠ {{ form.borrower.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">{{ form.quantity_borrowed.label }}</label>
+          {{ form.quantity_borrowed }}
+          {% if form.quantity_borrowed.errors %}
+            <div class="text-danger small mt-1">⚠ {{ form.quantity_borrowed.errors|join:", " }}</div>
+          {% endif %}
+          <small class="text-muted d-block mt-1">Verfügbar: {{ item.quantity }}</small>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">{{ form.comment.label }}</label>
+          {{ form.comment }}
+          {% if form.comment.errors %}
+            <div class="text-danger small mt-1">⚠ {{ form.comment.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">{{ form.return_date.label }}</label>
+          {{ form.return_date }}
+          {% if form.return_date.errors %}
+            <div class="text-danger small mt-1">⚠ {{ form.return_date.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex gap-2">
+        <button class="btn btn-primary" type="submit">Verleihen</button>
+        <a class="btn btn-outline-secondary" href="{{ next|default:'/' }}">Abbrechen</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

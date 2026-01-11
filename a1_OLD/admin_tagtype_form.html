@@ -1,0 +1,27 @@
+{% extends 'inventory/admin_base.html' %}
+{% block admin_content %}
+<div class="container py-4">
+  <h2 class="text-light mb-3">{{ object|default_if_none:"Neuer Tag" }}</h2>
+
+  <form method="post" class="card bg-dark border-secondary">
+    {% csrf_token %}
+    <div class="card-body">
+      {{ form.non_field_errors }}
+      <div class="mb-3">
+        <label class="form-label">Name</label>
+        {{ form.name }}
+        <div class="text-danger">{{ form.name.errors }}</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Typ</label>
+        {{ form.type }}
+        <div class="text-danger">{{ form.type.errors }}</div>
+      </div>
+    </div>
+    <div class="card-footer d-flex justify-content-between">
+      <a href="{% url 'admin_tags_overview' %}" class="btn btn-outline-secondary">Zurück</a>
+      <button class="btn btn-primary">Speichern</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

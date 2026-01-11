@@ -1,0 +1,21 @@
+{% extends 'inventory/admin_base.html' %}
+{% block admin_content %}
+<div class="container py-4">
+  <div class="card bg-dark border-secondary">
+    <div class="card-body">
+      <h4 class="text-light">Tag wirklich löschen?</h4>
+      <p class="text-secondary mb-0">
+        „{{ object.name }}“
+        {% if object.type %}
+          ({{ object.type.name }})
+        {% endif %}
+      </p>
+    </div>
+    <form method="post" class="card-footer d-flex justify-content-between">
+      {% csrf_token %}
+      <a href="{% url 'admin_tags_overview' %}" class="btn btn-outline-secondary">Abbrechen</a>
+      <button class="btn btn-danger">Löschen</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends 'inventory/admin_base.html' %}
+
+{% block admin_title %}
+  {% if form.instance.pk %}Equipment-Tag bearbeiten{% else %}Neues Equipment-Tag{% endif %}
+{% endblock %}
+
+{% block admin_content %}
+<div class="row">
+  <div class="col-md-6 mx-auto">
+    <h4 class="text-light mb-4">
+      {% if form.instance.pk %}Equipment-Tag bearbeiten{% else %}Neues Equipment-Tag{% endif %}
+    </h4>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="mb-3">
+        {{ form.name.label_tag }}
+        {{ form.name }}
+        {% if form.name.errors %}
+          <div class="text-danger mt-1">
+            {{ form.name.errors.as_text|striptags }}
+          </div>
+        {% endif %}
+      </div>
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-save me-1"></i> Speichern
+      </button>
+      <a href="{% url 'admin_tags_overview' %}" class="btn btn-outline-light ms-2">
+        <i class="bi bi-x me-1"></i> Abbrechen
+      </a>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends 'inventory/admin_base.html' %}
+{% block content %}
+
+<style>
+  /* Checkboxen skalieren und Abstand geben */
+  .cell-cb, .select-all {
+    transform: scale(1.5);
+    margin: 0.3rem 0.5rem;
+    accent-color: #0d6efd;
+  }
+</style>
+
+<h1>Rollen × Seiten – Berechtigungen</h1>
+
+<h2 class="mt-4 text-light">Admin-Seiten</h2>
+<table id="admin-perm-matrix" class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Seite \ Rolle</th>
+      {% for role in roles %}
+        {% if role.name != 'Superuser' %}
+          <th class="text-center">
+            {{ role.name }}<br>
+            <input type="checkbox" class="select-all" data-role-id="{{ role.id }}">
+          </th>
+        {% endif %}
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in admin_matrix %}
+      <tr data-page-id="{{ row.page.id }}">
+        <td>
+          {% if row.link %}
+            <a href="{{ row.link }}" target="_blank" class="text-decoration-none text-light">
+              {{ row.page.name }}
+            </a>
+          {% else %}
+            {{ row.page.name }}
+          {% endif %}
+          <br><small class="text-muted">{{ row.page.url_name }}</small>
+        </td>
+        {% for cell in row.cells %}
+          {% if cell.role.name != 'Superuser' %}
+            <td class="text-center">
+              <input
+                type="checkbox"
+                class="cell-cb"
+                data-role-id="{{ cell.role.id }}"
+                {% if cell.rp and cell.rp.can_view %}checked{% endif %}>
+            </td>
+          {% endif %}
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2 class="mt-5 text-light">Normale Seiten</h2>
+<table id="normal-perm-matrix" class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Seite \ Rolle</th>
+      {% for role in roles %}
+        {% if role.name != 'Superuser' %}
+          <th class="text-center">
+            {{ role.name }}<br>
+            <input type="checkbox" class="select-all" data-role-id="{{ role.id }}">
+          </th>
+        {% endif %}
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in normal_matrix %}
+      <tr data-page-id="{{ row.page.id }}">
+        <td>
+          {% if row.link %}
+            <a href="{{ row.link }}" target="_blank" class="text-decoration-none text-light">
+              {{ row.page.name }}
+            </a>
+          {% else %}
+            {{ row.page.name }}
+          {% endif %}
+          <br><small class="text-muted">{{ row.page.url_name }}</small>
+        </td>
+        {% for cell in row.cells %}
+          {% if cell.role.name != 'Superuser' %}
+            <td class="text-center">
+              <input
+                type="checkbox"
+                class="cell-cb"
+                data-role-id="{{ cell.role.id }}"
+                {% if cell.rp and cell.rp.can_view %}checked{% endif %}>
+            </td>
+          {% endif %}
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+  function togglePerm(roleId, pageId, allowed) {
+    const csrftoken = document.querySelector('input[name=csrfmiddlewaretoken]')?.value
+                      || (document.cookie.match(/csrftoken=([^;]+)/)||[])[1];
+
+    return fetch("{% url 'admin_permissions_toggle' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": csrftoken,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        group_id: roleId,
+        page_id: pageId,
+        allowed: allowed ? "true" : "false",
+      }),
+    });
+  }
+
+  // Zelle geklickt
+  document.querySelectorAll(".cell-cb").forEach(cb => {
+    cb.addEventListener("change", (ev) => {
+      const tr = ev.target.closest("tr");
+      const pageId = tr.dataset.pageId;
+      const roleId = ev.target.dataset.roleId;
+      togglePerm(roleId, pageId, ev.target.checked);
+    });
+  });
+
+  // Spalten‑„Alle auswählen“
+  document.querySelectorAll(".select-all").forEach(cb => {
+    cb.addEventListener("change", (ev) => {
+      const roleId = ev.target.dataset.roleId;
+      const table = ev.target.closest("table");
+      const checks = table.querySelectorAll(`.cell-cb[data-role-id="${roleId}"]`);
+      checks.forEach(cell => {
+        cell.checked = ev.target.checked;
+        const tr = cell.closest("tr");
+        const pageId = tr.dataset.pageId;
+        togglePerm(roleId, pageId, cell.checked);
+      });
+    });
+  });
+</script>
+{% endblock %}
