@@ -15,6 +15,7 @@ from django.contrib import messages
 from django.db import connection
 from django.db.models import Q, F, Sum, Prefetch
 from django.conf import settings
+from django.core.cache import cache
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User, Group
@@ -169,6 +170,7 @@ class SystemHealthView(LoginRequiredMixin, TemplateView):
         status = IntegrationStatus.objects.filter(name="homeassistant").first()
         db_status = self._database_status()
         storage_status = self._storage_status()
+        cache_status = self._cache_status()
         ctx.update(
             {
                 "ha_available": available,
@@ -177,6 +179,7 @@ class SystemHealthView(LoginRequiredMixin, TemplateView):
                 "ha_status": status,
                 "db_status": db_status,
                 "storage_status": storage_status,
+                "cache_status": cache_status,
             }
         )
         return ctx
@@ -200,6 +203,17 @@ class SystemHealthView(LoginRequiredMixin, TemplateView):
             }
         except Exception as exc:
             return {"ok": False, "message": f"Speicherfehler: {exc}"}
+
+    def _cache_status(self) -> dict:
+        try:
+            cache_key = "system_health_check"
+            cache.set(cache_key, "ok", timeout=5)
+            value = cache.get(cache_key)
+            if value == "ok":
+                return {"ok": True, "message": "Cache erreichbar"}
+            return {"ok": False, "message": "Cache antwortet nicht"}
+        except Exception as exc:
+            return {"ok": False, "message": f"Cachefehler: {exc}"}
 
 
 # ---------------------------------------------------------------------------

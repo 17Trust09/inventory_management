@@ -22,7 +22,7 @@
     </div>
 
     <div class="row g-4 mb-4">
-      <div class="col-md-6">
+      <div class="col-md-4">
         <div class="card h-100">
           <div class="card-body">
             <h5 class="card-title">Datenbank</h5>
@@ -34,7 +34,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-6">
+      <div class="col-md-4">
         <div class="card h-100">
           <div class="card-body">
             <h5 class="card-title">Speicher</h5>
@@ -44,6 +44,18 @@
             {% else %}
               <span class="badge bg-danger">{{ storage_status.message }}</span>
             {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">Cache</h5>
+            <p class="mb-2">
+              <span class="badge {% if cache_status.ok %}bg-success{% else %}bg-danger{% endif %}">
+                {{ cache_status.message }}
+              </span>
+            </p>
           </div>
         </div>
       </div>
