@@ -1,4 +1,5 @@
 from datetime import date
+import logging
 import os
 import uuid
 from django.conf import settings
@@ -9,6 +10,8 @@ from barcode import Code128
 from barcode.writer import ImageWriter
 import qrcode
 from django.db.models import JSONField
+
+logger = logging.getLogger(__name__)
 
 
 class TagType(models.Model):
@@ -211,8 +214,8 @@ class InventoryItem(models.Model):
         try:
             barcode = Code128(self.barcode, writer=ImageWriter())
             barcode.save(os.path.join(path, f'barcode_{self.barcode}'))
-        except Exception as e:
-            print(f"Fehler Barcode: {e}")
+        except Exception:
+            logger.exception("Fehler Barcode-Erzeugung für Item %s", self.id)
 
     def save_barcode_text_to_file(self):
         path = os.path.join(settings.MEDIA_ROOT, 'barcodes')
@@ -233,8 +236,8 @@ class InventoryItem(models.Model):
             os.makedirs(path, exist_ok=True)
             # ↓ nutzt den standardisierten Dateinamen
             qr.save(self.qr_file_path)
-        except Exception as e:
-            print(f"Fehler bei QR-Code-Generierung: {e}")
+        except Exception:
+            logger.exception("Fehler bei QR-Code-Generierung für Item %s", self.id)
 
     @property
     def verliehen(self):
