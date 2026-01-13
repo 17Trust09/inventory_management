@@ -9,12 +9,15 @@ from __future__ import annotations
 
 import os
 import time
+import logging
 import requests
 from typing import Any, Dict, Optional, List, Tuple
 from django.conf import settings
 from django.urls import reverse
 from django.utils.timezone import now
 from requests.exceptions import SSLError
+
+logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Konfiguration aus .env / settings
@@ -224,7 +227,7 @@ def _api_try_urls(urls: List[str], method: str, json: Dict[str, Any]) -> bool:
         except Exception as e:
             _remember(u, error=e)
     if last_url:
-        print(f"[HA] letzter Versuch fehlgeschlagen: {last_url}")
+        logger.warning("[HA] letzter Versuch fehlgeschlagen: %s", last_url)
     return False
 
 # ── NEU: robuster Webhook-POST mit TLS-Fallback ───────────────────────────────
@@ -245,13 +248,13 @@ def _post_webhook_with_fallback(url: str, payload: Dict[str, Any]) -> bool:
                 return True
         except Exception as e2:
             _remember(url, error=e2)
-            print(f"[HA] webhook fallback (verify=False) fehlgeschlagen: {e2}")
+            logger.warning("[HA] webhook fallback (verify=False) fehlgeschlagen: %s", e2)
         _remember(url, error=e)
-        print(f"[HA] webhook SSL-Fehler: {e}")
+        logger.warning("[HA] webhook SSL-Fehler: %s", e)
         return False
     except Exception as e:
         _remember(url, error=e)
-        print(f"[HA] webhook send fehlgeschlagen: {e}")
+        logger.warning("[HA] webhook send fehlgeschlagen: %s", e)
         return False
 
 def call_service(domain: str, service: str, data: Dict[str, Any]) -> bool:
@@ -260,11 +263,11 @@ def call_service(domain: str, service: str, data: Dict[str, Any]) -> bool:
     WEBHOOK-Modus: kein direkter Service-Call möglich → False + Hinweis.
     """
     if _use_webhook():
-        print("[HA] call_service im Webhook-Modus nicht verfügbar.")
+        logger.info("[HA] call_service im Webhook-Modus nicht verfügbar.")
         _remember(HA_WEBHOOK_URL)
         return False
     if not _has_api_config():
-        print("[HA] call_service: HA_URL/HA_TOKEN fehlen – übersprungen.")
+        logger.info("[HA] call_service: HA_URL/HA_TOKEN fehlen – übersprungen.")
         _remember("N/A (HA_URL/HA_TOKEN fehlen)")
         return False
     base = f"{HA_URL}/api/services/{domain}/{service}"
@@ -281,7 +284,7 @@ def fire_event(event_type: str, data: Dict[str, Any]) -> bool:
         return _post_webhook_with_fallback(HA_WEBHOOK_URL, payload)
 
     if not _has_api_config():
-        print("[HA] fire_event: HA_URL/HA_TOKEN fehlen – übersprungen.")
+        logger.info("[HA] fire_event: HA_URL/HA_TOKEN fehlen – übersprungen.")
         _remember("N/A (HA_URL/HA_TOKEN fehlen)")
         return False
 
