@@ -24,7 +24,9 @@ def _is_local(request) -> bool:
 
 def _require_key(request):
     if not API_KEY:
-        return None
+        if settings.DEBUG or _is_local(request):
+            return None
+        return HttpResponseForbidden("api key not configured")
     if _is_local(request):
         return None
     if request.GET.get("key") == API_KEY:
