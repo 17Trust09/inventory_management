@@ -35,11 +35,12 @@ from .models import (
     TagType,
     ApplicationTag,
     Overview,
+    IntegrationStatus,
     Feedback,
     FeedbackComment,
     FeedbackVote,
 )
-from .integrations.homeassistant import notify_item_marked
+from .integrations.homeassistant import get_diagnostics, get_status_tuple, notify_item_marked
 
 
 # ---------------------------------------------------------------------------
@@ -153,6 +154,25 @@ class SignUpView(View):
             return redirect("index")
 
         return render(request, "inventory/signup.html", {"form": form})
+
+
+class SystemHealthView(LoginRequiredMixin, TemplateView):
+    template_name = "inventory/system_health.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        available, message = get_status_tuple()
+        diagnostics = get_diagnostics()
+        status = IntegrationStatus.objects.filter(name="homeassistant").first()
+        ctx.update(
+            {
+                "ha_available": available,
+                "ha_message": message,
+                "ha_diagnostics": diagnostics,
+                "ha_status": status,
+            }
+        )
+        return ctx
 
 
 # ---------------------------------------------------------------------------

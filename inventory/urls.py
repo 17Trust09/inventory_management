@@ -56,6 +56,9 @@ urlpatterns = [
     path('feedback/<int:pk>/vote/', views.FeedbackVoteView.as_view(), name='feedback-vote'),
     path('feedback/<int:pk>/comment/', views.FeedbackCommentCreateView.as_view(), name='feedback-comment'),
 
+    # System Health
+    path('system-health/', views.SystemHealthView.as_view(), name='system-health'),
+
     # 5) API für Home Assistant Dashboard
     path('api/feedback/summary/', FeedbackSummaryAPI.as_view(), name='feedback-summary'),
 

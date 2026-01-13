@@ -1,0 +1,47 @@
+{% extends "inventory/base.html" %}
+
+{% block content %}
+<main class="page-container">
+  <div class="container container-wide">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0">🩺 System Health</h2>
+      <span class="badge {% if ha_available %}bg-success{% else %}bg-danger{% endif %}">
+        {{ ha_message }}
+      </span>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Home Assistant Status</h5>
+        <p class="text-muted mb-2">Letzte DB-Aktualisierung</p>
+        <ul class="list-unstyled mb-0">
+          <li><strong>Letzter Erfolg:</strong> {{ ha_status.last_success_at|default:"–" }}</li>
+          <li><strong>Letzter Fehler:</strong> {{ ha_status.last_error|default:"–" }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Diagnose</h5>
+        <div class="table-responsive table-darkish">
+          <table class="table table-dark table-striped mb-0">
+            <tbody>
+              {% for key, value in ha_diagnostics.items %}
+              <tr>
+                <th scope="row" class="w-25">{{ key }}</th>
+                <td>{{ value|default:"–" }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="2">Keine Diagnosedaten verfügbar.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}
