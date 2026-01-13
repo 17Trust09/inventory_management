@@ -30,7 +30,7 @@ FEEDBACK_API_KEY = os.getenv('FEEDBACK_API_KEY', '')
 # Django Core
 # ──────────────────────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key')
-DEBUG = os.getenv('DJANGO_DEBUG', 'true').lower() == 'true'
+DEBUG = os.getenv('DJANGO_DEBUG', 'false').lower() == 'true'
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',')
 CSRF_TRUSTED_ORIGINS = [o for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o]
@@ -161,6 +161,9 @@ STATICFILES_DIRS = []
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# QR/Barcode generation (sync) toggle for performance-sensitive deployments
+GENERATE_CODES_SYNC = os.getenv('GENERATE_CODES_SYNC', 'true').lower() == 'true'
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Defaults

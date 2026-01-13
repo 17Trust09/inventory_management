@@ -200,6 +200,10 @@ class InventoryItem(models.Model):
 
         super().save(*args, **kwargs)
 
+        if settings.GENERATE_CODES_SYNC:
+            self.generate_codes_if_needed(is_new=is_new, regenerate_qr=regenerate_qr)
+
+    def generate_codes_if_needed(self, *, is_new: bool = False, regenerate_qr: bool = False):
         qr_path = self.qr_file_path  # ← nutzt die neue Property
         if is_new or regenerate_qr or not os.path.exists(qr_path):
             self.generate_barcode_image()
