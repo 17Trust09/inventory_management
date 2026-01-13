@@ -24,6 +24,7 @@ urlpatterns = [
 
     path('edit-item/<int:pk>/regenerate-qr/', views.RegenerateQRView.as_view(), name='regenerate-qr'),
     path('edit-item/<int:pk>/delete-image/', views.DeleteImageView.as_view(), name='delete-image'),
+    path('item/<int:item_id>/mark/', views.MarkItemAPI.as_view(), name='mark-item'),
 
     # Auth
     path('signup/', views.SignUpView.as_view(), name='signup'),

@@ -13,6 +13,7 @@ import requests
 from typing import Any, Dict, Optional, List, Tuple
 from django.conf import settings
 from django.urls import reverse
+from django.utils.timezone import now
 from requests.exceptions import SSLError
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -32,6 +33,11 @@ BASE_URL = (getattr(settings, "INVENTORY_BASE_URL", None) or os.getenv("INVENTOR
 # Timeouts/SSL
 TIMEOUT = int(os.getenv("HA_TIMEOUT", "6"))
 VERIFY_SSL = os.getenv("HA_VERIFY_SSL", "true").lower() == "true"
+
+# Item-Markierung (optional, für LED/Schubladen)
+HA_MARK_EVENT = os.getenv("HA_MARK_EVENT", "inventory_item_marked").strip()
+HA_MARK_SERVICE = os.getenv("HA_MARK_SERVICE", "").strip()  # z. B. "light.turn_on"
+HA_MARK_ENTITY_ID = os.getenv("HA_MARK_ENTITY_ID", "").strip()
 
 # Cache & Diagnose
 _LAST_CHECK_TS: float = 0.0
@@ -134,6 +140,9 @@ def get_diagnostics() -> Dict[str, Any]:
         "webhook_url_set": bool(HA_WEBHOOK_URL),
         "verify_ssl": VERIFY_SSL,
         "timeout": TIMEOUT,
+        "mark_event": HA_MARK_EVENT,
+        "mark_service": HA_MARK_SERVICE or None,
+        "mark_entity_id": HA_MARK_ENTITY_ID or None,
         "last_url": _LAST_URL,
         "last_error": _LAST_ERROR,
         "tries": _LAST_TRIES,
@@ -169,6 +178,34 @@ def _feedback_payload(feedback) -> Dict[str, Any]:
         "created_by": getattr(getattr(feedback, "created_by", None), "username", None),
         "assignee": getattr(getattr(feedback, "assignee", None), "username", None),
         "created_at": getattr(feedback, "created_at", None).isoformat() if getattr(feedback, "created_at", None) else None,
+        "url": url,
+    }
+
+
+def _item_payload(item, user=None) -> Dict[str, Any]:
+    try:
+        detail_path = reverse("edit-item", args=[item.id])
+    except Exception:
+        detail_path = "/"
+    url = _build_absolute_url(detail_path)
+
+    storage_location = getattr(item, "storage_location", None)
+    return {
+        "id": getattr(item, "id", None),
+        "name": getattr(item, "name", None),
+        "barcode": getattr(item, "barcode", None),
+        "quantity": getattr(item, "quantity", None),
+        "item_type": getattr(item, "item_type", None),
+        "category": getattr(getattr(item, "category", None), "name", None),
+        "overview": getattr(getattr(item, "overview", None), "slug", None),
+        "overview_name": getattr(getattr(item, "overview", None), "name", None),
+        "location_letter": getattr(item, "location_letter", None),
+        "location_number": getattr(item, "location_number", None),
+        "location_shelf": getattr(item, "location_shelf", None),
+        "storage_location": storage_location.get_full_path() if storage_location else None,
+        "ha_entity_id": getattr(storage_location, "ha_entity_id", None) if storage_location else None,
+        "marked_by": getattr(user, "username", None) if user else None,
+        "marked_at": now().isoformat(),
         "url": url,
     }
 
@@ -292,3 +329,24 @@ def notify_feedback_event(kind: str, feedback, extra: Optional[Dict[str, Any]] =
             "message": "\n".join(msg_lines),
             "notification_id": f"feedback_{payload.get('id')}",
         })
+
+
+def notify_item_marked(item, user=None) -> bool:
+    """
+    Sendet ein Event (oder Webhook) an Home Assistant, wenn ein Item markiert wurde.
+    Optionaler Service-Call, falls HA_MARK_SERVICE gesetzt ist.
+    """
+    payload = _item_payload(item, user=user)
+    event_type = HA_MARK_EVENT or "inventory_item_marked"
+    ok = fire_event(event_type, payload)
+
+    if HA_MARK_SERVICE:
+        try:
+            domain, service = HA_MARK_SERVICE.split(".", 1)
+        except ValueError:
+            domain, service = "", ""
+        if domain and service:
+            service_data = {"entity_id": HA_MARK_ENTITY_ID or payload.get("ha_entity_id")}
+            service_data.update(payload)
+            ok = call_service(domain, service, service_data) and ok
+    return ok

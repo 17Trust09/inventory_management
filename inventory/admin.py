@@ -22,6 +22,7 @@ from .models import (
     BorrowedItem,
     TagType,
     Overview,  # NEU: modulares Dashboard
+    StorageLocation,
 )
 
 # ── Auth in Custom-Admin sichtbar machen ──────────────────────────────────────
@@ -199,3 +200,13 @@ class OverviewAdmin(admin.ModelAdmin):
 
 
 superuser_admin_site.register(Overview, OverviewAdmin)
+
+
+# ── StorageLocation ───────────────────────────────────────────────────────────
+class StorageLocationAdmin(admin.ModelAdmin):
+    list_display = ("name", "parent", "ha_entity_id")
+    list_filter = ("parent",)
+    search_fields = ("name", "ha_entity_id")
+
+
+superuser_admin_site.register(StorageLocation, StorageLocationAdmin)
