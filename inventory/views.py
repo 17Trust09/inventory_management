@@ -2,6 +2,8 @@
 import os
 from types import SimpleNamespace
 from django import forms
+import shutil
+
 from django.shortcuts import render, redirect, get_object_or_404
 
 from django.urls import reverse, reverse_lazy, NoReverseMatch
@@ -10,6 +12,7 @@ from django.http import HttpResponse, JsonResponse
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.db import connection
 from django.db.models import Q, F, Sum, Prefetch
 from django.conf import settings
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -164,15 +167,39 @@ class SystemHealthView(LoginRequiredMixin, TemplateView):
         available, message = get_status_tuple()
         diagnostics = get_diagnostics()
         status = IntegrationStatus.objects.filter(name="homeassistant").first()
+        db_status = self._database_status()
+        storage_status = self._storage_status()
         ctx.update(
             {
                 "ha_available": available,
                 "ha_message": message,
                 "ha_diagnostics": diagnostics,
                 "ha_status": status,
+                "db_status": db_status,
+                "storage_status": storage_status,
             }
         )
         return ctx
+
+    def _database_status(self) -> dict:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+            return {"ok": True, "message": "Datenbank erreichbar"}
+        except Exception as exc:
+            return {"ok": False, "message": f"Datenbankfehler: {exc}"}
+
+    def _storage_status(self) -> dict:
+        try:
+            usage = shutil.disk_usage(settings.MEDIA_ROOT)
+            return {
+                "ok": True,
+                "total_gb": round(usage.total / (1024 ** 3), 2),
+                "free_gb": round(usage.free / (1024 ** 3), 2),
+            }
+        except Exception as exc:
+            return {"ok": False, "message": f"Speicherfehler: {exc}"}
 
 
 # ---------------------------------------------------------------------------
