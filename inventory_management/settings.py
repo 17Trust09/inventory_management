@@ -1,14 +1,18 @@
 from pathlib import Path
 import os
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - optional dependency for env loading
+    load_dotenv = None
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Basis
 # ──────────────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# .env laden
-load_dotenv(BASE_DIR / ".env")
+# .env laden (optional, falls python-dotenv installiert ist)
+if load_dotenv:
+    load_dotenv(BASE_DIR / ".env")
 
 # Home Assistant (nur aus ENV; keine Hardcodes)
 HA_API_TOKEN = os.getenv('HA_API_TOKEN', '')  # Long-Lived Token in .env
