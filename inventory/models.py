@@ -417,6 +417,12 @@ class RolePermission(models.Model):
 # --- Lagerorte Verwaltung --- #
 class StorageLocation(models.Model):
     name = models.CharField(max_length=100, db_index=True)
+    ha_entity_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Optional: Home-Assistant Entity-ID für LED/Schublade (z. B. light.drawer_a1)"
+    )
     parent = models.ForeignKey(
         'self', null=True, blank=True,
         related_name='children',

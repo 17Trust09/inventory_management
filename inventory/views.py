@@ -1,6 +1,5 @@
 # inventory/views.py
 import os
-import requests
 from types import SimpleNamespace
 from collections import defaultdict
 from django import forms
@@ -40,6 +39,7 @@ from .models import (
     FeedbackComment,
     FeedbackVote,
 )
+from .integrations.homeassistant import notify_item_marked
 
 
 # ---------------------------------------------------------------------------
@@ -683,18 +683,16 @@ class BarcodeListView(LoginRequiredMixin, View):
 class MarkItemAPI(LoginRequiredMixin, View):
     def post(self, request, item_id):
         item = get_object_or_404(InventoryItem, id=item_id)
-        ha_url = settings.HA_URL
-        headers = {
-            "Authorization": f"Bearer {settings.HA_API_TOKEN}",
-            "Content-Type": "application/json",
-        }
-        payload = {"entity_id": "light.dummy_led"}
-        response = requests.post(ha_url, json=payload, headers=headers)
-        if response.status_code == 200:
-            messages.success(request, f"LED für {item.name} wurde eingeschaltet.")
+        ok = notify_item_marked(item, user=request.user)
+        if ok:
+            messages.success(request, f"{item.name} wurde an Home Assistant gemeldet.")
         else:
-            messages.error(request, "Fehler bei der Steuerung der LED.")
-        return redirect("dashboard")
+            messages.error(request, "Home Assistant konnte nicht erreicht werden.")
+
+        next_url = request.POST.get("next") or request.GET.get("next") or request.META.get("HTTP_REFERER")
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+            return redirect(next_url)
+        return redirect("dashboards")
 
 
 class DrawerItemsAPI(LoginRequiredMixin, View):
