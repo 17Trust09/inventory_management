@@ -1,14 +1,17 @@
 from pathlib import Path
 import os
-from dotenv import load_dotenv
+from importlib.util import find_spec
+from importlib import import_module
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Basis
 # ──────────────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# .env laden
-load_dotenv(BASE_DIR / ".env")
+# .env laden (optional, wenn python-dotenv verfügbar ist)
+if find_spec("dotenv"):
+    load_dotenv = import_module("dotenv").load_dotenv
+    load_dotenv(BASE_DIR / ".env")
 
 # Home Assistant (nur aus ENV; keine Hardcodes)
 HA_API_TOKEN = os.getenv('HA_API_TOKEN', '')  # Long-Lived Token in .env
