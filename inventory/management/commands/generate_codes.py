@@ -23,8 +23,8 @@ class Command(BaseCommand):
 
         for item in InventoryItem.objects.all():
             total += 1
-            needs_qr = not item.qr_exists
-            if force or needs_qr:
+            needs_codes = not item.qr_exists or not item.barcode_exists
+            if force or needs_codes:
                 item.generate_codes_if_needed(is_new=force, regenerate_qr=True)
                 regenerated += 1
 

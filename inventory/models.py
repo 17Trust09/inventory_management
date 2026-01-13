@@ -177,6 +177,37 @@ class InventoryItem(models.Model):
             return bool(self.id and os.path.exists(self.qr_file_path))
         except Exception:
             return False
+
+    @property
+    def barcode_image_path(self) -> str:
+        """Absoluter Dateipfad des Barcode-Bildes."""
+        return (
+            os.path.join(settings.MEDIA_ROOT, 'barcodes', f'barcode_{self.barcode}.png')
+            if self.barcode
+            else ""
+        )
+
+    @property
+    def barcode_text_path(self) -> str:
+        """Absoluter Dateipfad der Barcode-Textdatei."""
+        return (
+            os.path.join(settings.MEDIA_ROOT, 'barcodes', f'barcode_{self.id}.txt')
+            if self.id
+            else ""
+        )
+
+    @property
+    def barcode_exists(self) -> bool:
+        """True, wenn Barcode-Bild und Textdatei existieren."""
+        try:
+            return bool(
+                self.id
+                and self.barcode
+                and os.path.exists(self.barcode_image_path)
+                and os.path.exists(self.barcode_text_path)
+            )
+        except Exception:
+            return False
     # ---------- Ende NEU ----------
 
     def save(self, *args, **kwargs):
@@ -204,8 +235,7 @@ class InventoryItem(models.Model):
             self.generate_codes_if_needed(is_new=is_new, regenerate_qr=regenerate_qr)
 
     def generate_codes_if_needed(self, *, is_new: bool = False, regenerate_qr: bool = False):
-        qr_path = self.qr_file_path  # ← nutzt die neue Property
-        if is_new or regenerate_qr or not os.path.exists(qr_path):
+        if is_new or regenerate_qr or not self.qr_exists or not self.barcode_exists:
             self.generate_barcode_image()
             self.save_barcode_text_to_file()
             self.generate_qr_code()
