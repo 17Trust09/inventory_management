@@ -183,7 +183,9 @@ class Dashboard(LoginRequiredMixin, View):
         location_number = request.GET.get("location_number")
         item_type = request.GET.get("item_type")
 
-        items = InventoryItem.objects.filter(overview__isnull=False)
+        items = InventoryItem.objects.filter(overview__isnull=False).prefetch_related(
+            Prefetch("borrowings", queryset=BorrowedItem.objects.filter(returned=False))
+        )
 
         if tag_filter and tag_filter != "all":
             items = items.filter(application_tags__name=tag_filter)
@@ -208,8 +210,9 @@ class Dashboard(LoginRequiredMixin, View):
         categories = Category.objects.all().order_by("name")
 
         borrowed_items_map = defaultdict(list)
-        for br in BorrowedItem.objects.filter(returned=False):
-            borrowed_items_map[br.item.id].append(br)
+        for item in items:
+            for br in item.borrowings.all():
+                borrowed_items_map[item.id].append(br)
 
         return render(
             request,
