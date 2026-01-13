@@ -27,6 +27,7 @@ HA_VERIFY_SSL = os.getenv('HA_VERIFY_SSL', 'true').lower() == 'true'
 HA_TIMEOUT = int(os.getenv('HA_TIMEOUT', '6'))
 
 # Optionaler Key für kleine API-Routen (/api/feedback/summary, /api/health/ha)
+# Policy: In Produktion (DEBUG=False) muss FEEDBACK_API_KEY gesetzt sein.
 FEEDBACK_API_KEY = os.getenv('FEEDBACK_API_KEY', '')
 
 # ──────────────────────────────────────────────────────────────────────────────
