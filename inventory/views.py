@@ -583,6 +583,8 @@ class RegenerateQRView(LoginRequiredMixin, View):
         messages.success(request, "QR-Code wurde neu generiert.")
         o = request.POST.get("o") or request.GET.get("o") or ""
         nxt = request.POST.get("next") or request.GET.get("next") or ""
+        if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
+            return redirect(nxt)
         url = reverse("edit-item", kwargs={"pk": pk})
         q = []
         if o:
