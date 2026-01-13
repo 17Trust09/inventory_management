@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Basis
@@ -32,7 +33,10 @@ FEEDBACK_API_KEY = os.getenv('FEEDBACK_API_KEY', '')
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key')
 DEBUG = os.getenv('DJANGO_DEBUG', 'false').lower() == 'true'
 
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',')
+if not DEBUG and SECRET_KEY == 'django-insecure-default-key':
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY muss in Produktion gesetzt werden.")
+
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 CSRF_TRUSTED_ORIGINS = [o for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o]
 
 # Optional, wenn hinter Proxy/HTTPS:

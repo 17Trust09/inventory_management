@@ -13,6 +13,7 @@ import logging
 import requests
 from typing import Any, Dict, Optional, List, Tuple
 from django.conf import settings
+from django.core.cache import cache
 from django.urls import reverse
 from django.utils.timezone import now
 from requests.exceptions import SSLError
@@ -50,6 +51,7 @@ _CACHE_SECONDS = 60
 _LAST_URL: Optional[str] = None
 _LAST_ERROR: Optional[str] = None
 _LAST_TRIES: Optional[List[Tuple[str, str]]] = None  # [(url, "OK|401|404|EXC…")]
+_LAST_SUCCESS_CACHE_KEY = "ha_last_success_ts"
 
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -149,7 +151,12 @@ def get_diagnostics() -> Dict[str, Any]:
         "last_url": _LAST_URL,
         "last_error": _LAST_ERROR,
         "tries": _LAST_TRIES,
+        "last_success_ts": cache.get(_LAST_SUCCESS_CACHE_KEY),
     }
+
+
+def _mark_success() -> None:
+    cache.set(_LAST_SUCCESS_CACHE_KEY, now().isoformat(), timeout=None)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Senden
@@ -223,6 +230,7 @@ def _api_try_urls(urls: List[str], method: str, json: Dict[str, Any]) -> bool:
                 r = requests.get(u, headers=_headers(), timeout=TIMEOUT, verify=VERIFY_SSL)
             _remember(u, response=r)
             r.raise_for_status()
+            _mark_success()
             return True
         except Exception as e:
             _remember(u, error=e)
@@ -237,6 +245,7 @@ def _post_webhook_with_fallback(url: str, payload: Dict[str, Any]) -> bool:
         r = requests.post(url, json=payload, timeout=TIMEOUT, verify=VERIFY_SSL, headers={"Connection": "close"})
         _remember(url, response=r)
         r.raise_for_status()
+        _mark_success()
         return True
     except SSLError as e:
         # 2) Einmaliger Fallback mit verify=False (nur, wenn VERIFY_SSL aktiv war)
@@ -245,6 +254,7 @@ def _post_webhook_with_fallback(url: str, payload: Dict[str, Any]) -> bool:
                 r2 = requests.post(url, json=payload, timeout=TIMEOUT, verify=False, headers={"Connection": "close"})
                 _remember(url, response=r2)
                 r2.raise_for_status()
+                _mark_success()
                 return True
         except Exception as e2:
             _remember(url, error=e2)

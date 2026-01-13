@@ -1,12 +1,16 @@
 # inventory/signals.py
 from __future__ import annotations
 
+import logging
+
 from django.db.models.signals import post_save, pre_save
 from django.contrib.auth.models import User, Group
 from django.dispatch import receiver
 
 from .models import UserProfile, Feedback, FeedbackComment
 from .integrations.homeassistant import notify_feedback_event
+
+logger = logging.getLogger(__name__)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -111,7 +115,7 @@ def _feedback_post_save(sender, instance: Feedback, created: bool, **kwargs):
             notify_feedback_event("updated", instance, extra={"changed": sorted(changed)})
     except Exception as e:
         # Wir lassen die App niemals wegen einer Benachrichtigung abstürzen.
-        print(f"[signals] notify_feedback_event Fehler: {e}")
+        logger.warning("notify_feedback_event Fehler: %s", e)
 
 
 @receiver(post_save, sender=FeedbackComment)
@@ -129,4 +133,4 @@ def _feedback_comment_post_save(sender, instance: FeedbackComment, created: bool
         }
         notify_feedback_event("comment_added", instance.feedback, extra=extra)
     except Exception as e:
-        print(f"[signals] notify_feedback_event(comment) Fehler: {e}")
+        logger.warning("notify_feedback_event(comment) Fehler: %s", e)

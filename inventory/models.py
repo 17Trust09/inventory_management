@@ -3,7 +3,7 @@ import logging
 import os
 import uuid
 from django.conf import settings
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 from barcode import Code128
@@ -403,52 +403,6 @@ class BorrowedItem(models.Model):
             models.Index(fields=["item", "returned"]),
             models.Index(fields=["returned", "borrowed_at"]),
         ]
-
-
-class Page(models.Model):
-    """
-    Repräsentiert eine Resource bzw. Seite im Admin-Frontend.
-    """
-    name = models.CharField(
-        max_length=100,
-        unique=True,
-        help_text="Menschlicher Name, z.B. 'Items Übersicht'"
-    )
-    url_name = models.CharField(
-        max_length=100,
-        unique=True,
-        help_text="Der Name der URL in deinen admin_urls.py, z.B. 'admin_items'"
-    )
-    example_kwargs = JSONField(
-        default=dict,
-        blank=True,
-        help_text="Beispiel-Parameter für reverse(), z.B. {'pk': 1}"
-    )
-
-    class Meta:
-        verbose_name = "Seite"
-        verbose_name_plural = "Seiten"
-        permissions = [
-            ("manage_permissions", "Kann Seiten-Berechtigungen verwalten"),
-        ]
-
-    def __str__(self):
-        return self.name
-
-
-class RolePermission(models.Model):
-    """
-    Pivot-Tabelle zwischen Django Group (Rolle) und Page mit erlaubter Ansicht.
-    """
-    group = models.ForeignKey(Group, on_delete=models.CASCADE)
-    page = models.ForeignKey(Page, on_delete=models.CASCADE)
-    can_view = models.BooleanField(default=False)
-
-    class Meta:
-        unique_together = ('group', 'page')
-
-    def __str__(self):
-        return f"{self.group.name} -> {self.page.url_name}"
 
 
 # --- Lagerorte Verwaltung --- #

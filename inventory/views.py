@@ -4,6 +4,8 @@ from types import SimpleNamespace
 from collections import defaultdict
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
+import logging
+
 from django.urls import reverse, reverse_lazy, NoReverseMatch
 from django.views.generic import TemplateView, View, UpdateView, DeleteView, ListView
 from django.http import HttpResponse, JsonResponse
@@ -40,6 +42,8 @@ from .models import (
     FeedbackVote,
 )
 from .integrations.homeassistant import notify_item_marked
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +131,7 @@ class TestFormView(View):
         return render(request, "inventory/../a1_OLD/test_form.html")
 
     def post(self, request):
-        print("✅ TESTFORMULAR WURDE ABGESCHICKT:", request.POST)
+        logger.info("Testformular abgeschickt: %s", request.POST)
         return HttpResponse("Danke! POST erhalten.")
 
 
