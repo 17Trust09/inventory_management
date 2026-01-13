@@ -1,7 +1,6 @@
 # inventory/views.py
 import os
 from types import SimpleNamespace
-from collections import defaultdict
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 
@@ -154,126 +153,6 @@ class SignUpView(View):
             return redirect("index")
 
         return render(request, "inventory/signup.html", {"form": form})
-
-
-# ---------------------------------------------------------------------------
-# Altes kombiniertes Dashboard (zeigt jetzt ALLE Items; Filter optional)
-# ---------------------------------------------------------------------------
-class Dashboard(LoginRequiredMixin, View):
-    def get(self, request):
-        query = request.GET.get("search")
-        category_filter = request.GET.get("category")
-        tag_filter = request.GET.get("tag")
-        location_letter = request.GET.get("location_letter")
-        location_number = request.GET.get("location_number")
-        item_type = request.GET.get("item_type")
-
-        items = InventoryItem.objects.filter(overview__isnull=False)
-
-        if tag_filter and tag_filter != "all":
-            items = items.filter(application_tags__name=tag_filter)
-
-        if query:
-            items = items.filter(
-                Q(name__icontains=query)
-                | Q(location_letter__icontains=query)
-                | Q(location_number__icontains=query)
-            )
-
-        if category_filter and category_filter != "all":
-            items = items.filter(category__id=category_filter)
-
-        if location_letter and location_number:
-            items = items.filter(location_letter=location_letter, location_number=location_number)
-
-        if item_type:
-            items = items.filter(item_type=item_type)
-
-        items = items.distinct().order_by("id")
-        categories = Category.objects.all().order_by("name")
-
-        borrowed_items_map = defaultdict(list)
-        for br in BorrowedItem.objects.filter(returned=False):
-            borrowed_items_map[br.item.id].append(br)
-
-        return render(
-            request,
-            "inventory/../a1_OLD/dashboard.html",
-            {
-                "items": items,
-                "categories": categories,
-                "selected_category": category_filter,
-                "location_letter": location_letter,
-                "location_number": location_number,
-                "selected_tag": tag_filter,
-                "borrowed_items_map": borrowed_items_map,
-                "item_type": item_type,
-            },
-        )
-
-
-class EquipmentDashboardView(LoginRequiredMixin, View):
-    """
-    Zeigt alle Equipment-Items (ohne userbasierte Tag-Whitelists).
-    """
-    def get(self, request, *args, **kwargs):
-        items = InventoryItem.objects.filter(
-            item_type="equipment",
-            overview__isnull=False
-        ).distinct()
-        categories = Category.objects.all().order_by("name")
-
-        selected_category = request.GET.get("category", "")
-        selected_tag = request.GET.get("tag", "")
-
-        if selected_tag and selected_tag != "all":
-            items = items.filter(application_tags__name=selected_tag)
-        if selected_category and selected_category != "all":
-            items = items.filter(category__id=selected_category)
-
-        return render(
-            request,
-            "inventory/../a1_OLD/dashboard.html",
-            {
-                "items": items,
-                "item_type": "equipment",
-                "categories": categories,
-                "selected_category": selected_category,
-                "selected_tag": selected_tag,
-            },
-        )
-
-
-class ConsumableDashboardView(LoginRequiredMixin, View):
-    """
-    Zeigt alle Verbrauchsmaterial-Items (ohne userbasierte Tag-Whitelists).
-    """
-    def get(self, request, *args, **kwargs):
-        items = InventoryItem.objects.filter(
-            item_type="consumable",
-            overview__isnull=False
-        ).distinct()
-        categories = Category.objects.all().order_by("name")
-
-        selected_category = request.GET.get("category", "")
-        selected_tag = request.GET.get("tag", "")
-
-        if selected_tag and selected_tag != "all":
-            items = items.filter(application_tags__name=selected_tag)
-        if selected_category and selected_category != "all":
-            items = items.filter(category__id=selected_category)
-
-        return render(
-            request,
-            "inventory/../a1_OLD/dashboard.html",
-            {
-                "items": items,
-                "item_type": "consumable",
-                "categories": categories,
-                "selected_category": selected_category,
-                "selected_tag": selected_tag,
-            },
-        )
 
 
 # ---------------------------------------------------------------------------

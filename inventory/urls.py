@@ -11,9 +11,6 @@ from .api import FeedbackSummaryAPI, HAStatusAPI
 urlpatterns = [
     # 1) Frontend-Views
     path('', views.Index.as_view(), name='index'),
-    path('dashboard/equipment/', views.EquipmentDashboardView.as_view(), name='dashboard-equipment'),
-    path('dashboard/verbrauch/', views.ConsumableDashboardView.as_view(), name='dashboard-consumables'),
-
     path('add-equipment/', views.AddEquipmentItem.as_view(), name='add-equipment'),
     path('add-verbrauch/', views.AddConsumableItem.as_view(), name='add-consumables'),
     path('add-consumable/', views.AddConsumableItem.as_view(), name='add-consumable'),

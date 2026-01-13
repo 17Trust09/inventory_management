@@ -23,6 +23,7 @@ from .models import (
     TagType,
     Overview,  # NEU: modulares Dashboard
     StorageLocation,
+    IntegrationStatus,
 )
 
 # ── Auth in Custom-Admin sichtbar machen ──────────────────────────────────────
@@ -200,6 +201,15 @@ class OverviewAdmin(admin.ModelAdmin):
 
 
 superuser_admin_site.register(Overview, OverviewAdmin)
+
+
+# ── IntegrationStatus ─────────────────────────────────────────────────────────
+class IntegrationStatusAdmin(admin.ModelAdmin):
+    list_display = ("name", "last_success_at", "last_error")
+    search_fields = ("name",)
+
+
+superuser_admin_site.register(IntegrationStatus, IntegrationStatusAdmin)
 
 
 # ── StorageLocation ───────────────────────────────────────────────────────────
