@@ -577,8 +577,15 @@ class RegenerateQRView(LoginRequiredMixin, View):
     def post(self, request, pk):
         item = get_object_or_404(InventoryItem, pk=pk)
         if not request.user.is_superuser and item.user != request.user:
-            messages.error(request, "Du darfst dieses Item nicht verschieben.")
-            return redirect("edit-item", pk=pk)
+            profile = UserProfile.objects.filter(user=request.user).first()
+            allowed = (
+                item.overview
+                and profile
+                and profile.allowed_overviews.filter(pk=item.overview.pk).exists()
+            )
+            if not allowed:
+                messages.error(request, "Du darfst diesen QR-Code nicht erzeugen.")
+                return redirect("edit-item", pk=pk)
         item.generate_qr_code()
         messages.success(request, "QR-Code wurde neu generiert.")
         o = request.POST.get("o") or request.GET.get("o") or ""
