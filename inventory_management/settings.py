@@ -1,9 +1,7 @@
 from pathlib import Path
 import os
-try:
-    from dotenv import load_dotenv
-except ImportError:  # pragma: no cover - optional dependency for env loading
-    load_dotenv = None
+import importlib
+import importlib.util
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Basis
@@ -11,7 +9,8 @@ except ImportError:  # pragma: no cover - optional dependency for env loading
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # .env laden (optional, falls python-dotenv installiert ist)
-if load_dotenv:
+if importlib.util.find_spec("dotenv"):
+    load_dotenv = importlib.import_module("dotenv").load_dotenv
     load_dotenv(BASE_DIR / ".env")
 
 # Home Assistant (nur aus ENV; keine Hardcodes)
