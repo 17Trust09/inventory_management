@@ -1,7 +1,6 @@
 # inventory/api.py
 from __future__ import annotations
 
-import os
 from typing import Any, Dict
 
 from django.conf import settings
@@ -12,24 +11,35 @@ from django.utils.timezone import localtime, now
 from .models import Feedback
 from .integrations.homeassistant import check_available, get_status_tuple, get_diagnostics
 
-API_KEY = os.getenv("FEEDBACK_API_KEY", "").strip()  # optionaler Schutz (?key=...)
-
 
 def _is_local(request) -> bool:
-    if settings.DEBUG:
-        return True
     ra = request.META.get("REMOTE_ADDR", "")
     return ra in ("127.0.0.1", "::1")
 
 
+def _is_key_valid(request) -> bool:
+    api_key = settings.FEEDBACK_API_KEY.strip()
+    if not api_key:
+        return False
+    return request.GET.get("key") == api_key
+
+
 def _require_key(request):
-    if not API_KEY:
-        return None
-    if _is_local(request):
-        return None
-    if request.GET.get("key") == API_KEY:
+    api_key = settings.FEEDBACK_API_KEY.strip()
+    if not api_key:
+        if settings.DEBUG:
+            return None
+        return HttpResponseForbidden("missing key")
+    if _is_key_valid(request):
         return None
     return HttpResponseForbidden("invalid key")
+
+
+def _can_view_diagnostics(request) -> bool:
+    if _is_key_valid(request):
+        return True
+    user = getattr(request, "user", None)
+    return bool(user and user.is_authenticated and (user.is_staff or user.is_superuser))
 
 
 class FeedbackSummaryAPI(View):
@@ -74,8 +84,8 @@ class HAStatusAPI(View):
             "checked_at": now().isoformat(),
         }
 
-        # Debug-Infos nur wenn explizit angefragt oder DEBUG True
-        if request.GET.get("debug") in ("1", "true", "True") or settings.DEBUG:
+        # Debug-Infos nur wenn explizit angefragt und autorisiert
+        if request.GET.get("debug") in ("1", "true", "True") and _can_view_diagnostics(request):
             diag = get_diagnostics()
             # Token niemals rausgeben
             diag.pop("has_token", None)  # bool wäre ok, aber wir lassen's weg, um Verwirrung zu vermeiden
