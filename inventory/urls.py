@@ -11,7 +11,6 @@ from .api import FeedbackSummaryAPI, HAStatusAPI
 urlpatterns = [
     # 1) Frontend-Views
     path('', views.Index.as_view(), name='index'),
-    path('dashboard/', views.DashboardLanding.as_view(), name='dashboard'),
     path('dashboard/equipment/', views.EquipmentDashboardView.as_view(), name='dashboard-equipment'),
     path('dashboard/verbrauch/', views.ConsumableDashboardView.as_view(), name='dashboard-consumables'),
 
@@ -45,9 +44,6 @@ urlpatterns = [
     # Verleih
     path('borrow/<int:item_id>/', views.BorrowedItemsView.as_view(), name='borrow-item'),
     path('return/<int:borrow_id>/', views.ReturnItemView.as_view(), name='return-item'),
-
-    # Test-Form
-    path('testform/', views.TestFormView.as_view(), name='test-form'),
 
     # 2) Eigenes Admin-Frontend
     path('manage/', include('inventory.admin_urls')),

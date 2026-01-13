@@ -1,7 +1,7 @@
 # inventory/management/commands/strip_roles.py
 #
 # Räumt Rollen/Matrix temporär auf:
-# - leert visible_for_groups bei allen Overviews
+# - reaktiviert alle Overviews
 # - lässt Gruppen (Administrator/Editor/User/Viewer) bestehen, aber ohne Einfluss
 #   (optional: Auskommentierte Zeilen aktivieren, wenn du Gruppen löschen willst)
 
@@ -15,10 +15,9 @@ class Command(BaseCommand):
     help = "Entfernt temporär alle Seiten-/Matrix-Rechte und Gruppen-Sichtbarkeiten (Overviews), ohne Superuser anzutasten."
 
     def handle(self, *args, **options):
-        # 1) Overviews: Sichtbarkeiten neutralisieren
+        # 1) Overviews: aktivieren
         cnt = 0
         for ov in Overview.objects.all():
-            ov.visible_for_groups.clear()
             ov.is_active = True
             ov.save()
             cnt += 1

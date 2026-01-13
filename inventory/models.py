@@ -1,15 +1,16 @@
 from datetime import date
 import logging
 import os
+import threading
 import uuid
 from django.conf import settings
+
 from django.contrib.auth.models import User
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from barcode import Code128
 from barcode.writer import ImageWriter
 import qrcode
-from django.db.models import JSONField
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +234,26 @@ class InventoryItem(models.Model):
 
         if settings.GENERATE_CODES_SYNC:
             self.generate_codes_if_needed(is_new=is_new, regenerate_qr=regenerate_qr)
+        else:
+            self._schedule_code_generation(is_new=is_new, regenerate_qr=regenerate_qr)
+
+    def _schedule_code_generation(self, *, is_new: bool, regenerate_qr: bool) -> None:
+        def _task(item_id: int, is_new_flag: bool, regenerate_flag: bool) -> None:
+            item = InventoryItem.objects.filter(pk=item_id).first()
+            if not item:
+                return
+            item.generate_codes_if_needed(is_new=is_new_flag, regenerate_qr=regenerate_flag)
+
+        if not self.pk:
+            return
+
+        transaction.on_commit(
+            lambda: threading.Thread(
+                target=_task,
+                args=(self.pk, is_new, regenerate_qr),
+                daemon=True,
+            ).start()
+        )
 
     def generate_codes_if_needed(self, *, is_new: bool = False, regenerate_qr: bool = False):
         if is_new or regenerate_qr or not self.qr_exists or not self.barcode_exists:
@@ -453,7 +474,6 @@ class Overview(models.Model):
     order = models.PositiveIntegerField(default=0, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
 
-    visible_for_groups = models.ManyToManyField(Group, blank=True, help_text="Leer = für alle sichtbar.")
     categories = models.ManyToManyField('Category', blank=True, help_text="Optional: Filter auf Kategorien.")
 
     show_quantity = models.BooleanField(default=True, verbose_name="Mengen anzeigen")
@@ -474,10 +494,6 @@ class Overview(models.Model):
     def __str__(self):
         return self.name
 
-    def get_absolute_url(self):
-        from django.urls import reverse
-        return reverse("overview-dashboard", kwargs={"slug": self.slug})
-
     def features(self):
         return {
             "show_quantity": self.show_quantity,
@@ -487,6 +503,23 @@ class Overview(models.Model):
             "is_consumable_mode": self.is_consumable_mode,
             "require_qr": self.require_qr,
         }
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse("overview-dashboard", kwargs={"slug": self.slug})
+
+
+class IntegrationStatus(models.Model):
+    name = models.CharField(max_length=64, unique=True)
+    last_success_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Integration Status"
+        verbose_name_plural = "Integration Status"
+
+    def __str__(self):
+        return self.name
 
 
 # -------------------------------------------------------------------

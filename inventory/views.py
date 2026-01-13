@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from collections import defaultdict
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
-import logging
 
 from django.urls import reverse, reverse_lazy, NoReverseMatch
 from django.views.generic import TemplateView, View, UpdateView, DeleteView, ListView
@@ -42,8 +41,6 @@ from .models import (
     FeedbackVote,
 )
 from .integrations.homeassistant import notify_item_marked
-
-logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -126,15 +123,6 @@ class Index(TemplateView):
     template_name = "inventory/index.html"
 
 
-class TestFormView(View):
-    def get(self, request):
-        return render(request, "inventory/../a1_OLD/test_form.html")
-
-    def post(self, request):
-        logger.info("Testformular abgeschickt: %s", request.POST)
-        return HttpResponse("Danke! POST erhalten.")
-
-
 class SignUpView(View):
     def get(self, request):
         form = UserRegisterForm()
@@ -166,13 +154,6 @@ class SignUpView(View):
             return redirect("index")
 
         return render(request, "inventory/signup.html", {"form": form})
-
-
-class DashboardLanding(LoginRequiredMixin, TemplateView):
-    """
-    Alte Landing-Page mit Auswahl Equipment/Verbrauchsmaterial (Kompatibilität).
-    """
-    template_name = "inventory/../a1_OLD/dashboard_landing.html"
 
 
 # ---------------------------------------------------------------------------

@@ -139,6 +139,7 @@ def get_status_tuple() -> tuple[bool, str]:
     return False, "Keine Internet-Verbindung oder Server nicht erreichbar – Feedbacks werden nicht übertragen"
 
 def get_diagnostics() -> Dict[str, Any]:
+    status = _get_status_record()
     return {
         "mode": "webhook" if _use_webhook() else "api",
         "ha_url": HA_URL,
@@ -152,11 +153,36 @@ def get_diagnostics() -> Dict[str, Any]:
         "last_error": _LAST_ERROR,
         "tries": _LAST_TRIES,
         "last_success_ts": cache.get(_LAST_SUCCESS_CACHE_KEY),
+        "db_last_success_at": getattr(status, "last_success_at", None),
+        "db_last_error": getattr(status, "last_error", None),
     }
 
+def _get_status_record():
+    try:
+        from ..models import IntegrationStatus
+        status, _ = IntegrationStatus.objects.get_or_create(name="homeassistant")
+        return status
+    except Exception:
+        return None
+
+def _update_status(*, last_success_at=None, last_error=None) -> None:
+    status = _get_status_record()
+    if not status:
+        return
+    updates = []
+    if last_success_at is not None:
+        status.last_success_at = last_success_at
+        updates.append("last_success_at")
+    if last_error is not None:
+        status.last_error = last_error
+        updates.append("last_error")
+    if updates:
+        status.save(update_fields=updates)
 
 def _mark_success() -> None:
-    cache.set(_LAST_SUCCESS_CACHE_KEY, now().isoformat(), timeout=None)
+    ts = now()
+    cache.set(_LAST_SUCCESS_CACHE_KEY, ts.isoformat(), timeout=None)
+    _update_status(last_success_at=ts, last_error="")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Senden
@@ -234,6 +260,7 @@ def _api_try_urls(urls: List[str], method: str, json: Dict[str, Any]) -> bool:
             return True
         except Exception as e:
             _remember(u, error=e)
+            _update_status(last_error=_LAST_ERROR)
     if last_url:
         logger.warning("[HA] letzter Versuch fehlgeschlagen: %s", last_url)
     return False
@@ -258,12 +285,15 @@ def _post_webhook_with_fallback(url: str, payload: Dict[str, Any]) -> bool:
                 return True
         except Exception as e2:
             _remember(url, error=e2)
+            _update_status(last_error=_LAST_ERROR)
             logger.warning("[HA] webhook fallback (verify=False) fehlgeschlagen: %s", e2)
         _remember(url, error=e)
+        _update_status(last_error=_LAST_ERROR)
         logger.warning("[HA] webhook SSL-Fehler: %s", e)
         return False
     except Exception as e:
         _remember(url, error=e)
+        _update_status(last_error=_LAST_ERROR)
         logger.warning("[HA] webhook send fehlgeschlagen: %s", e)
         return False
 

@@ -179,13 +179,13 @@ class OverviewAdmin(admin.ModelAdmin):
         "enable_borrow", "is_consumable_mode"
     )
     search_fields = ("name", "slug", "description")
-    filter_horizontal = ("visible_for_groups", "categories")
+    filter_horizontal = ("categories",)
     fieldsets = (
         ("Basis", {
             "fields": ("name", "slug", "description", "icon_emoji", "order", "is_active")
         }),
         ("Sichtbarkeit / Filter", {
-            "fields": ("visible_for_groups", "categories")
+            "fields": ("categories",)
         }),
         ("Features", {
             "fields": (
