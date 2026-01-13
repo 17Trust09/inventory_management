@@ -171,6 +171,7 @@ class SystemHealthView(LoginRequiredMixin, TemplateView):
         db_status = self._database_status()
         storage_status = self._storage_status()
         cache_status = self._cache_status()
+        config_status = self._config_status()
         ctx.update(
             {
                 "ha_available": available,
@@ -180,6 +181,7 @@ class SystemHealthView(LoginRequiredMixin, TemplateView):
                 "db_status": db_status,
                 "storage_status": storage_status,
                 "cache_status": cache_status,
+                "config_status": config_status,
             }
         )
         return ctx
@@ -214,6 +216,18 @@ class SystemHealthView(LoginRequiredMixin, TemplateView):
             return {"ok": False, "message": "Cache antwortet nicht"}
         except Exception as exc:
             return {"ok": False, "message": f"Cachefehler: {exc}"}
+
+    def _config_status(self) -> dict:
+        issues = []
+        if settings.DEBUG:
+            issues.append("DEBUG ist aktiv")
+        if settings.SECRET_KEY == "django-insecure-default-key":
+            issues.append("DJANGO_SECRET_KEY ist nicht gesetzt")
+        if not settings.ALLOWED_HOSTS:
+            issues.append("ALLOWED_HOSTS ist leer")
+        if issues:
+            return {"ok": False, "message": " / ".join(issues)}
+        return {"ok": True, "message": "Konfiguration ok"}
 
 
 # ---------------------------------------------------------------------------
