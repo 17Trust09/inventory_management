@@ -1,0 +1,99 @@
+[1mdiff --git a/.env b/.env[m
+[1mnew file mode 100644[m
+[1mindex 0000000..9aa5d38[m
+[1m--- /dev/null[m
+[1m+++ b/.env[m
+[36m@@ -0,0 +1,19 @@[m
+[32m+[m[32mDJANGO_SECRET_KEY=dev-insecure-change-me[m
+[32m+[m[32mDJANGO_DEBUG=true[m
+[32m+[m[32mDJANGO_ALLOWED_HOSTS=*[m
+[32m+[m[32mCSRF_TRUSTED_ORIGINS=[m
+[32m+[m
+[32m+[m[32m# Database selection: postgres|sqlite|mysql[m
+[32m+[m[32mDB_ENGINE=sqlite[m
+[32m+[m
+[32m+[m[32m# Optional Home Assistant integration[m
+[32m+[m[32mHA_API_TOKEN=[m
+[32m+[m[32mHA_URL=http://homeassistant.local:8123[m
+[32m+[m[32mHA_VERIFY_SSL=true[m
+[32m+[m[32mHA_TIMEOUT=6[m
+[32m+[m
+[32m+[m[32m# Optional base URL for QR/deeplinks[m
+[32m+[m[32mINVENTORY_BASE_URL=[m
+[32m+[m
+[32m+[m[32m# Optional API key for feedback/health endpoints[m
+[32m+[m[32mFEEDBACK_API_KEY=[m
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mnew file mode 100644[m
+[1mindex 0000000..24687d5[m
+[1m--- /dev/null[m
+[1m+++ b/.gitignore[m
+[36m@@ -0,0 +1,5 @@[m
+[32m+[m[32mdb.sqlite3[m
+[32m+[m[32mmedia/[m
+[32m+[m[32mvenv/[m
+[32m+[m[32m__pycache__/[m
+[32m+[m[32m*.pyc[m
+[1mdiff --git a/.idea/dataSources.xml b/.idea/dataSources.xml[m
+[1mnew file mode 100644[m
+[1mindex 0000000..f27e3e5[m
+[1m--- /dev/null[m
+[1m+++ b/.idea/dataSources.xml[m
+[36m@@ -0,0 +1,14 @@[m
+[32m+[m[32m<?xml version="1.0" encoding="UTF-8"?>[m
+[32m+[m[32m<project version="4">[m
+[32m+[m[32m  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">[m
+[32m+[m[32m    <data-source source="LOCAL" name="Django default" uuid="ac2c9c3a-5969-45b9-9d75-9bc835ac21be">[m
+[32m+[m[32m      <driver-ref>sqlite.xerial</driver-ref>[m
+[32m+[m[32m      <synchronize>true</synchronize>[m
+[32m+[m[32m      <imported>true</imported>[m
+[32m+[m[32m      <remarks>$PROJECT_DIR$/inventory_management/settings.py</remarks>[m
+[32m+[m[32m      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>[m
+[32m+[m[32m      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/db.sqlite3</jdbc-url>[m
+[32m+[m[32m      <working-dir>$ProjectFileDir$</working-dir>[m
+[32m+[m[32m    </data-source>[m
+[32m+[m[32m  </component>[m
+[32m+[m[32m</project>[m
+\ No newline at end of file[m
+[1mdiff --git a/.idea/inventory_management.iml b/.idea/inventory_management.iml[m
+[1mindex 737ae90..4694a62 100644[m
+[1m--- a/.idea/inventory_management.iml[m
+[1m+++ b/.idea/inventory_management.iml[m
+[36m@@ -14,7 +14,7 @@[m
+   </component>[m
+   <component name="NewModuleRootManager">[m
+     <content url="file://$MODULE_DIR$" />[m
+[31m-    <orderEntry type="inheritedJdk" />[m
+[32m+[m[32m    <orderEntry type="jdk" jdkName="Python 3.13" jdkType="Python SDK" />[m
+     <orderEntry type="sourceFolder" forTests="false" />[m
+   </component>[m
+   <component name="PyDocumentationSettings">[m
+[1mdiff --git a/.idea/misc.xml b/.idea/misc.xml[m
+[1mindex a6218fe..bc76d25 100644[m
+[1m--- a/.idea/misc.xml[m
+[1m+++ b/.idea/misc.xml[m
+[36m@@ -3,5 +3,5 @@[m
+   <component name="Black">[m
+     <option name="sdkName" value="Python 3.11" />[m
+   </component>[m
+[31m-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11" project-jdk-type="Python SDK" />[m
+[32m+[m[32m  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.13" project-jdk-type="Python SDK" />[m
+ </project>[m
+\ No newline at end of file[m
+[1mdiff --git a/.idea/sqldialects.xml b/.idea/sqldialects.xml[m
+[1mnew file mode 100644[m
+[1mindex 0000000..c0e01ca[m
+[1m--- /dev/null[m
+[1m+++ b/.idea/sqldialects.xml[m
+[36m@@ -0,0 +1,6 @@[m
+[32m+[m[32m<?xml version="1.0" encoding="UTF-8"?>[m
+[32m+[m[32m<project version="4">[m
+[32m+[m[32m  <component name="SqlDialectMappings">[m
+[32m+[m[32m    <file url="PROJECT" dialect="SQLite" />[m
+[32m+[m[32m  </component>[m
+[32m+[m[32m</project>[m
+\ No newline at end of file[m
+[1mdiff --git a/README.md b/README.md[m
+[1mindex 9f69f4a..082e03e 100644[m
+Binary files a/README.md and b/README.md differ
+[1mdi
