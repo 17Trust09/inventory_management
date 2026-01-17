@@ -24,8 +24,20 @@
             </thead>
             <tbody>
               {% for location in locations %}
-              <tr>
-                <td>{{ location.name }}</td>
+              <tr class="{% if not location.parent %}storage-location--root{% endif %}">
+                <td>
+                  <div class="storage-location__name {% if location.parent %}storage-location__name--child{% endif %}" style="--level: {{ location.level }};">
+                    <span class="storage-location__label">{{ location.name }}</span>
+                    {% if not location.parent %}
+                      <span class="badge bg-secondary ms-2">Hauptgruppe</span>
+                    {% endif %}
+                    {% if location.parent %}
+                      <div class="storage-location__path text-muted small">
+                        Untergeordnet zu: {{ location.parent.get_full_path }}
+                      </div>
+                    {% endif %}
+                  </div>
+                </td>
                 <td>{{ location.parent.name|default:"–" }}</td>
                 <td class="text-end">
                   <a href="{% url 'admin_storagelocation_edit' location.pk %}" class="btn btn-sm btn-outline-light me-1" title="Bearbeiten">
@@ -48,4 +60,37 @@
     </div>
   </div>
 </div>
+
+<style>
+  .storage-location__name {
+    position: relative;
+    padding-left: calc(var(--level) * 1.25rem);
+  }
+  .storage-location__name--child::before {
+    content: "";
+    position: absolute;
+    left: calc((var(--level) * 1.25rem) - 0.85rem);
+    top: 0.85rem;
+    width: 0.7rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  .storage-location__name--child::after {
+    content: "";
+    position: absolute;
+    left: calc((var(--level) * 1.25rem) - 0.85rem);
+    top: -0.2rem;
+    bottom: 0.85rem;
+    width: 0.7rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .storage-location__label {
+    font-weight: 600;
+  }
+  .storage-location__path {
+    margin-top: 0.2rem;
+  }
+  .storage-location--root .storage-location__label {
+    color: #fff;
+  }
+</style>
 {% endblock %}

@@ -1,16 +1,19 @@
-<ul class="storage-tree list-unstyled ps-3">
-  {% for node in nodes %}
-    <li class="mb-1">
-      <button
-        type="button"
-        class="btn btn-sm btn-outline-light storage-tree__item"
-        data-parent-id="{{ node.id }}"
-      >
-        {{ node.name }}
-      </button>
-      {% if node.children %}
-        {% include "inventory/partials/storage_location_tree.html" with nodes=node.children %}
-      {% endif %}
-    </li>
-  {% endfor %}
-</ul>
+{% with level=level|default:0 %}
+  <ul class="storage-tree list-unstyled ps-3" data-level="{{ level }}">
+    {% for node in nodes %}
+      <li class="storage-tree__node">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-light storage-tree__item"
+          data-parent-id="{{ node.id }}"
+          data-level="{{ level }}"
+        >
+          {{ node.name }}
+        </button>
+        {% if node.children %}
+          {% include "inventory/partials/storage_location_tree.html" with nodes=node.children level=level|add:"1" %}
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% endwith %}
