@@ -8,7 +8,9 @@
 from __future__ import annotations
 
 import os
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, Future
 import requests
 from typing import Any, Dict, Optional, List, Tuple
 from django.conf import settings
@@ -43,6 +45,10 @@ HA_MARK_ENTITY_ID = os.getenv("HA_MARK_ENTITY_ID", "").strip()
 _LAST_CHECK_TS: float = 0.0
 _IS_AVAILABLE: Optional[bool] = None
 _CACHE_SECONDS = 60
+_STATUS_REFRESH_FUTURE: Optional[Future] = None
+_LAST_STATUS_MESSAGE: Optional[str] = None
+_STATUS_LOCK = threading.Lock()
+_HA_EXECUTOR = ThreadPoolExecutor(max_workers=2)
 
 _LAST_URL: Optional[str] = None
 _LAST_ERROR: Optional[str] = None
@@ -121,6 +127,14 @@ def check_available(force: bool = False) -> bool:
         _remember("N/A", tries=tries)
     return False
 
+def _refresh_status_background() -> None:
+    global _LAST_STATUS_MESSAGE
+    available = check_available(force=True)
+    _LAST_STATUS_MESSAGE = (
+        "Feedbacks werden online übertragen" if available
+        else "Keine Internet-Verbindung oder Server nicht erreichbar – Feedbacks werden nicht übertragen"
+    )
+
 def get_status_tuple() -> tuple[bool, str]:
     """
     Liefert (available, message) für den UI-Badge.
@@ -129,6 +143,22 @@ def get_status_tuple() -> tuple[bool, str]:
         return True, "Feedbacks werden online per Webhook übertragen"
     if not _has_api_config():
         return False, "Keine HA-Konfiguration (.env) – Token/URL fehlen"
+    async_status = os.getenv("HA_STATUS_ASYNC", "true").lower() == "true"
+    if async_status:
+        global _STATUS_REFRESH_FUTURE
+        now = time.monotonic()
+        cache_valid = _IS_AVAILABLE is not None and (now - _LAST_CHECK_TS) < _CACHE_SECONDS
+        if not cache_valid:
+            with _STATUS_LOCK:
+                if _STATUS_REFRESH_FUTURE is None or _STATUS_REFRESH_FUTURE.done():
+                    _STATUS_REFRESH_FUTURE = _HA_EXECUTOR.submit(_refresh_status_background)
+        if _IS_AVAILABLE is None:
+            return False, _LAST_STATUS_MESSAGE or "Status wird geprüft…"
+        return (
+            True if _IS_AVAILABLE else False,
+            _LAST_STATUS_MESSAGE
+            or ("Feedbacks werden online übertragen" if _IS_AVAILABLE else "Keine Internet-Verbindung oder Server nicht erreichbar – Feedbacks werden nicht übertragen"),
+        )
     if check_available():
         return True, "Feedbacks werden online übertragen"
     return False, "Keine Internet-Verbindung oder Server nicht erreichbar – Feedbacks werden nicht übertragen"
@@ -289,7 +319,7 @@ def fire_event(event_type: str, data: Dict[str, Any]) -> bool:
     urls = [base, base + "/"]
     return _api_try_urls(urls, "post", data)
 
-def notify_feedback_event(kind: str, feedback, extra: Optional[Dict[str, Any]] = None) -> None:
+def _notify_feedback_event_sync(kind: str, feedback, extra: Optional[Dict[str, Any]] = None) -> None:
     """
     Einheitlicher Eingang: baut Payload + sendet je nach Modus (API oder Webhook).
     Im API-Modus zusätzlich sichtbare Persistent Notification in HA.
@@ -330,6 +360,13 @@ def notify_feedback_event(kind: str, feedback, extra: Optional[Dict[str, Any]] =
             "notification_id": f"feedback_{payload.get('id')}",
         })
 
+
+def notify_feedback_event(kind: str, feedback, extra: Optional[Dict[str, Any]] = None) -> None:
+    async_send = os.getenv("HA_FEEDBACK_ASYNC", "true").lower() == "true"
+    if async_send:
+        _HA_EXECUTOR.submit(_notify_feedback_event_sync, kind, feedback, extra)
+        return
+    _notify_feedback_event_sync(kind, feedback, extra)
 
 def notify_item_marked(item, user=None) -> bool:
     """

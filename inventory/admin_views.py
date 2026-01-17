@@ -29,6 +29,7 @@ from .models import (
     Overview,
     Feedback,
 )
+from .forms import StorageLocationForm
 
 # ============================================================
 # Zugriffsschutz: Nur Admins (is_staff ODER is_superuser)
@@ -537,8 +538,15 @@ class StorageLocationListView(StaffRequiredMixin, ListView):
 
 class StorageLocationCreateView(StaffRequiredMixin, CreateView):
     model = StorageLocation
-    fields = ['name', 'parent']
+    form_class = StorageLocationForm
     template_name = 'inventory/admin_storagelocation_form.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["parent_tree"] = ctx["form"].parent_tree()
+        ctx["parent_selected"] = ctx["form"].instance.parent_id
+        ctx["is_create"] = True
+        return ctx
 
     def get_success_url(self):
         messages.success(self.request, f"Lagerort „{self.object.name}“ wurde erstellt.")
@@ -547,8 +555,15 @@ class StorageLocationCreateView(StaffRequiredMixin, CreateView):
 
 class StorageLocationUpdateView(StaffRequiredMixin, UpdateView):
     model = StorageLocation
-    fields = ['name', 'parent']
+    form_class = StorageLocationForm
     template_name = 'inventory/admin_storagelocation_form.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["parent_tree"] = ctx["form"].parent_tree()
+        ctx["parent_selected"] = ctx["form"].instance.parent_id
+        ctx["is_create"] = False
+        return ctx
 
     def get_success_url(self):
         messages.success(self.request, f"Lagerort „{self.object.name}“ wurde gespeichert.")

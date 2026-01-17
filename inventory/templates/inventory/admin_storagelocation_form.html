@@ -2,11 +2,14 @@
 {% block admin_title %}Lagerort bearbeiten{% endblock %}
 
 {% block admin_content %}
-<div class="d-flex justify-content-center" style="color:var(--text);">
+<div class="row justify-content-center g-4" style="color:var(--text);">
   <div class="col-lg-7">
     <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
       <div class="card-body">
-        <h4 class="mb-4"><i class="bi bi-pencil-square me-2"></i>Lagerort bearbeiten</h4>
+        <h4 class="mb-4">
+          <i class="bi bi-pencil-square me-2"></i>
+          {% if is_create %}Lagerort anlegen{% else %}Lagerort bearbeiten{% endif %}
+        </h4>
         <form method="post" novalidate>
           {% csrf_token %}
           <div class="mb-3">
@@ -16,6 +19,10 @@
           <div class="mb-3">
             <label for="id_parent" class="form-label">Übergeordneter Lagerort (optional)</label>
             {{ form.parent }}
+            <small class="text-muted d-block mt-1">
+              Tipp: Lagerorte können verschachtelt werden (z. B. „Regal A → Fach 1 → Box 3“).
+              Wähle hier den übergeordneten Lagerort oder lasse es leer für einen Hauptordner.
+            </small>
           </div>
           <div class="mt-4 d-flex gap-2">
             <button type="submit" class="btn btn-success">
@@ -29,5 +36,64 @@
       </div>
     </div>
   </div>
+  <div class="col-lg-5">
+    <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+      <div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>Hierarchie auswählen</h5>
+        <p class="text-muted mb-3">
+          Klicke auf einen vorhandenen Lagerort, um ihn als übergeordneten Stamm zu setzen.
+          Für einen neuen Hauptordner wähle „Kein übergeordneter Lagerort“.
+        </p>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <button type="button" class="btn btn-sm btn-outline-info storage-tree__item" data-parent-id="">
+            Kein übergeordneter Lagerort
+          </button>
+          {% if parent_selected %}
+            <span class="badge bg-success align-self-center">Aktuell ausgewählt</span>
+          {% endif %}
+        </div>
+        {% if parent_tree %}
+          {% include "inventory/partials/storage_location_tree.html" with nodes=parent_tree %}
+        {% else %}
+          <div class="text-muted">Noch keine Lagerorte vorhanden.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </div>
+
+<style>
+  .storage-tree__item.is-selected {
+    background: #0d6efd;
+    color: #fff;
+    border-color: #0d6efd;
+  }
+  .storage-tree__item {
+    text-align: left;
+  }
+</style>
+
+<script>
+  (function () {
+    const select = document.getElementById("id_parent");
+    const buttons = document.querySelectorAll(".storage-tree__item");
+    if (!select || !buttons.length) return;
+
+    const setSelected = (value) => {
+      select.value = value;
+      buttons.forEach((btn) => {
+        const isMatch = btn.dataset.parentId === value;
+        btn.classList.toggle("is-selected", isMatch);
+      });
+    };
+
+    setSelected(select.value || "");
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        setSelected(btn.dataset.parentId || "");
+      });
+    });
+  })();
+</script>
 {% endblock %}

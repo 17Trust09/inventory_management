@@ -1,0 +1,16 @@
+<ul class="storage-tree list-unstyled ps-3">
+  {% for node in nodes %}
+    <li class="mb-1">
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-light storage-tree__item"
+        data-parent-id="{{ node.id }}"
+      >
+        {{ node.name }}
+      </button>
+      {% if node.children %}
+        {% include "inventory/partials/storage_location_tree.html" with nodes=node.children %}
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>

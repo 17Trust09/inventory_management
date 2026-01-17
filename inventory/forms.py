@@ -81,6 +81,70 @@ def visible_tags_qs():
 # -----------------------------
 # Forms
 # -----------------------------
+class StorageLocationForm(forms.ModelForm):
+    parent = forms.ModelChoiceField(
+        queryset=StorageLocation.objects.none(),
+        required=False,
+        empty_label=None,
+        label="Übergeordneter Lagerort",
+        widget=forms.Select(attrs={"class": "form-control form-control-lg"}),
+    )
+
+    class Meta:
+        model = StorageLocation
+        fields = ["name", "parent"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control form-control-lg"}),
+        }
+
+    def _descendant_ids(self, root: StorageLocation) -> set[int]:
+        ids: set[int] = set()
+        stack = [root]
+        while stack:
+            node = stack.pop()
+            for child in node.children.all():
+                if child.pk and child.pk not in ids:
+                    ids.add(child.pk)
+                    stack.append(child)
+        return ids
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        qs = StorageLocation.objects.all()
+
+        if self.instance and self.instance.pk:
+            exclude_ids = self._descendant_ids(self.instance)
+            exclude_ids.add(self.instance.pk)
+            qs = qs.exclude(pk__in=exclude_ids)
+
+        ordered = sorted(qs, key=lambda loc: loc.get_full_path().lower())
+        self.fields["parent"].queryset = qs
+        choices = [("", "– Kein übergeordneter Lagerort –")]
+        for loc in ordered:
+            indent = "— " * loc.level
+            choices.append((loc.pk, f"{indent}{loc.get_full_path()}"))
+        self.fields["parent"].choices = choices
+
+        self._parent_tree = self._build_parent_tree(ordered)
+
+    def _build_parent_tree(self, ordered: list[StorageLocation]) -> list[dict]:
+        node_map: dict[int, dict] = {}
+        root_nodes: list[dict] = []
+        for loc in ordered:
+            node = {"id": loc.pk, "name": loc.name, "children": []}
+            node_map[loc.pk] = node
+        for loc in ordered:
+            node = node_map[loc.pk]
+            if loc.parent_id and loc.parent_id in node_map:
+                node_map[loc.parent_id]["children"].append(node)
+            else:
+                root_nodes.append(node)
+        return root_nodes
+
+    def parent_tree(self) -> list[dict]:
+        return self._parent_tree
+
+
 class UserRegisterForm(UserCreationForm):
     email = forms.EmailField()
 
