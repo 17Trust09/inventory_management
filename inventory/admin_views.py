@@ -493,14 +493,22 @@ def admin_globalsettings_edit(request, pk):
     class GSForm(forms.ModelForm):
         class Meta:
             model = GlobalSettings
-            fields = ['qr_base_url']
+            fields = ['qr_base_url', 'nfc_base_url_local', 'nfc_base_url_remote']
             widgets = {
                 'qr_base_url': forms.TextInput(attrs={'class': 'form-control form-control-lg'}),
+                'nfc_base_url_local': forms.TextInput(attrs={'class': 'form-control form-control-lg'}),
+                'nfc_base_url_remote': forms.TextInput(attrs={'class': 'form-control form-control-lg'}),
             }
             labels = {
                 'qr_base_url': 'Basis-URL für QR-Code-Links',
+                'nfc_base_url_local': 'NFC-Basis-URL (Lokal)',
+                'nfc_base_url_remote': 'NFC-Basis-URL (Tailscale/Remote)',
             }
-            help_texts = {'qr_base_url': 'z. B. http://192.168.178.20:8000'}
+            help_texts = {
+                'qr_base_url': 'z. B. http://192.168.178.20:8000',
+                'nfc_base_url_local': 'z. B. http://192.168.178.20:8000',
+                'nfc_base_url_remote': 'z. B. https://host.tailnet-xyz.ts.net',
+            }
 
     if request.method == 'POST':
         form = GSForm(request.POST, instance=gs)
@@ -546,6 +554,7 @@ class StorageLocationCreateView(StaffRequiredMixin, CreateView):
         ctx["parent_tree"] = ctx["form"].parent_tree()
         ctx["parent_selected"] = ctx["form"].instance.parent_id
         ctx["is_create"] = True
+        ctx["nfc_url"] = ""
         return ctx
 
     def get_success_url(self):
@@ -563,6 +572,12 @@ class StorageLocationUpdateView(StaffRequiredMixin, UpdateView):
         ctx["parent_tree"] = ctx["form"].parent_tree()
         ctx["parent_selected"] = ctx["form"].instance.parent_id
         ctx["is_create"] = False
+        if self.object.nfc_token:
+            ctx["nfc_url"] = self.request.build_absolute_uri(
+                reverse("nfc-location-redirect", kwargs={"token": self.object.nfc_token})
+            )
+        else:
+            ctx["nfc_url"] = ""
         return ctx
 
     def get_success_url(self):
