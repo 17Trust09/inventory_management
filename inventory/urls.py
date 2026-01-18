@@ -25,6 +25,7 @@ urlpatterns = [
     path('edit-item/<int:pk>/regenerate-qr/', views.RegenerateQRView.as_view(), name='regenerate-qr'),
     path('edit-item/<int:pk>/regenerate-nfc/', views.RegenerateNFCTokenView.as_view(), name='regenerate-nfc'),
     path('edit-item/<int:pk>/delete-image/', views.DeleteImageView.as_view(), name='delete-image'),
+    path('item/<int:pk>/history/<int:history_id>/rollback/', views.ItemHistoryRollbackView.as_view(), name='item-history-rollback'),
     path('item/<int:item_id>/mark/', views.MarkItemAPI.as_view(), name='mark-item'),
     path('item/<int:item_id>/adjust-quantity/', views.QuickAdjustQuantityView.as_view(), name='adjust-quantity'),
     path('nfc/<str:token>/', views.NFCItemRedirectView.as_view(), name='nfc-redirect'),
@@ -62,6 +63,8 @@ urlpatterns = [
     # 3) Modulares Dashboard (Overview)
     path('dashboards/', views.DashboardSelectorView.as_view(), name='dashboards'),
     path('dashboards/<slug:slug>/', views.OverviewDashboardView.as_view(), name='overview-dashboard'),
+    path('dashboards/<slug:slug>/export/<str:export_format>/', views.OverviewExportView.as_view(), name='overview-export'),
+    path('reports/movements/', views.MovementReportView.as_view(), name='movement-report'),
 
     # 4) Feedback
     path('feedback/', views.FeedbackListView.as_view(), name='feedback-list'),

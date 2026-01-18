@@ -1,6 +1,7 @@
-# inventory/views.py
+import csv
 import os
 import uuid
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 from collections import defaultdict
 from django import forms
@@ -13,6 +14,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db.models import Q, F, Sum, Prefetch
 from django.conf import settings
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User, Group
@@ -30,6 +32,7 @@ from .forms import (
 )
 from .models import (
     InventoryItem,
+    InventoryHistory,
     Category,
     UserProfile,
     BorrowedItem,
@@ -101,6 +104,163 @@ def _resolve_nfc_base_url(request, base_choice: str) -> str:
     if not base:
         return request.build_absolute_uri("/").rstrip("/")
     return base.rstrip("/")
+
+
+# ---------------------------------------------------------------------------
+# NEU: Historie/Timeline Helper
+# ---------------------------------------------------------------------------
+HISTORY_FIELDS = (
+    "name",
+    "description",
+    "quantity",
+    "category_id",
+    "storage_location_id",
+    "location_letter",
+    "location_number",
+    "location_shelf",
+    "low_quantity",
+    "order_link",
+    "maintenance_date",
+    "overview_id",
+    "item_type",
+    "is_active",
+    "tags",
+)
+
+HISTORY_LABELS = {
+    "name": "Name",
+    "description": "Beschreibung",
+    "quantity": "Bestand",
+    "category_id": "Kategorie",
+    "storage_location_id": "Lagerort",
+    "location_letter": "Ort (Buchstabe)",
+    "location_number": "Ort (Nummer)",
+    "location_shelf": "Ort (Fach)",
+    "low_quantity": "Mindestbestand",
+    "order_link": "Bestell-Link",
+    "maintenance_date": "Wartungs-/Ablaufdatum",
+    "overview_id": "Dashboard",
+    "item_type": "Typ",
+    "is_active": "Aktiv",
+    "tags": "Tags",
+}
+
+MOVEMENT_FIELDS = {
+    "storage_location_id",
+    "location_letter",
+    "location_number",
+    "location_shelf",
+}
+
+
+def _snapshot_item(item: InventoryItem) -> dict:
+    return {
+        "name": item.name,
+        "description": item.description,
+        "quantity": item.quantity,
+        "category_id": item.category_id,
+        "storage_location_id": item.storage_location_id,
+        "location_letter": item.location_letter,
+        "location_number": item.location_number,
+        "location_shelf": item.location_shelf,
+        "low_quantity": item.low_quantity,
+        "order_link": item.order_link,
+        "maintenance_date": item.maintenance_date.isoformat() if item.maintenance_date else None,
+        "overview_id": item.overview_id,
+        "item_type": item.item_type,
+        "is_active": item.is_active,
+        "tags": sorted(item.application_tags.values_list("id", flat=True)),
+    }
+
+
+def _format_bool(value):
+    if value is True:
+        return "Ja"
+    if value is False:
+        return "Nein"
+    return "–"
+
+
+def _format_date(value):
+    if not value:
+        return "–"
+    try:
+        parsed = datetime.fromisoformat(value)
+        return parsed.date().isoformat()
+    except ValueError:
+        return value
+
+
+def _build_changes(before: dict, after: dict) -> list[dict]:
+    category_ids = {before.get("category_id"), after.get("category_id")} - {None}
+    location_ids = {before.get("storage_location_id"), after.get("storage_location_id")} - {None}
+    overview_ids = {before.get("overview_id"), after.get("overview_id")} - {None}
+    tag_ids = set(before.get("tags", [])) | set(after.get("tags", []))
+
+    categories = {c.id: c.name for c in Category.objects.filter(id__in=category_ids)}
+    locations = {l.id: l.get_full_path() for l in StorageLocation.objects.filter(id__in=location_ids)}
+    overviews = {o.id: o.name for o in Overview.objects.filter(id__in=overview_ids)}
+    tags = {t.id: t.name for t in ApplicationTag.objects.filter(id__in=tag_ids)}
+
+    def display_value(field: str, value):
+        if field == "category_id":
+            return categories.get(value, "–") if value else "–"
+        if field == "storage_location_id":
+            return locations.get(value, "–") if value else "–"
+        if field == "overview_id":
+            return overviews.get(value, "–") if value else "–"
+        if field == "tags":
+            return ", ".join(sorted([tags.get(tid, "–") for tid in value])) if value else "–"
+        if field == "maintenance_date":
+            return _format_date(value)
+        if field == "is_active":
+            return _format_bool(value)
+        return value if value not in (None, "") else "–"
+
+    changes = []
+    for field in HISTORY_FIELDS:
+        if before.get(field) != after.get(field):
+            delta = None
+            if field == "quantity":
+                try:
+                    delta = int(after.get(field) or 0) - int(before.get(field) or 0)
+                except (TypeError, ValueError):
+                    delta = None
+            changes.append(
+                {
+                    "field": field,
+                    "label": HISTORY_LABELS.get(field, field),
+                    "before": display_value(field, before.get(field)),
+                    "after": display_value(field, after.get(field)),
+                    "delta": delta,
+                }
+            )
+    return changes
+
+
+def _create_history_entry(
+    *,
+    item: InventoryItem,
+    user,
+    action: str,
+    before: dict | None = None,
+    after: dict | None = None,
+    changes: list | None = None,
+    meta: dict | None = None,
+) -> None:
+    data_before = before or {}
+    data_after = after or {}
+    if changes is None and before is not None and after is not None:
+        changes = _build_changes(before, after)
+    InventoryHistory.objects.create(
+        item=item,
+        user=user,
+        action=action,
+        changes=changes or [],
+        data_before=data_before,
+        data_after=data_after,
+        meta=meta or {},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -352,6 +512,13 @@ class AddEquipmentItem(LoginRequiredMixin, View):
 
             item.save()
             form.save_m2m()
+            _create_history_entry(
+                item=item,
+                user=request.user,
+                action=InventoryHistory.Action.CREATED,
+                after=_snapshot_item(item),
+                meta={"source": "create"},
+            )
             messages.success(request, f"Artikel „{item.name}“ wurde angelegt.")
             if ov:
                 return redirect("overview-dashboard", slug=ov.slug)
@@ -402,6 +569,13 @@ class AddConsumableItem(LoginRequiredMixin, View):
 
             item.save()
             form.save_m2m()
+            _create_history_entry(
+                item=item,
+                user=request.user,
+                action=InventoryHistory.Action.CREATED,
+                after=_snapshot_item(item),
+                meta={"source": "create"},
+            )
             messages.success(request, f"Artikel „{item.name}“ wurde angelegt.")
             if ov:
                 return redirect("overview-dashboard", slug=ov.slug)
@@ -463,6 +637,27 @@ class EditItem(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         item = self.get_object()
+        history_entries = InventoryHistory.objects.filter(item=item).select_related("user")
+        history_action = (self.request.GET.get("history_action") or "").strip()
+        history_user = (self.request.GET.get("history_user") or "").strip()
+        history_days = (self.request.GET.get("history_days") or "").strip()
+        if history_action:
+            history_entries = history_entries.filter(action=history_action)
+        if history_user:
+            history_entries = history_entries.filter(user_id=history_user)
+        if history_days:
+            try:
+                days = int(history_days)
+                since = timezone.now() - timedelta(days=days)
+                history_entries = history_entries.filter(created_at__gte=since)
+            except ValueError:
+                history_days = ""
+        history_entries = history_entries.order_by("-created_at")[:50]
+        history_users = (
+            User.objects.filter(inventory_history_entries__item=item)
+            .distinct()
+            .order_by("username")
+        )
 
         ov, features, slug = _get_overview_and_features(
             self.request,
@@ -494,14 +689,118 @@ class EditItem(LoginRequiredMixin, UpdateView):
                 )
                 if item.nfc_token
                 else "",
+                "history_entries": history_entries,
+                "history_action": history_action,
+                "history_user": history_user,
+                "history_days": history_days,
+                "history_action_choices": InventoryHistory.Action.choices,
+                "history_users": history_users,
             }
         )
         return ctx
+
+    def form_valid(self, form):
+        item = self.get_object()
+        before = _snapshot_item(item)
+        response = super().form_valid(form)
+        item.refresh_from_db()
+        after = _snapshot_item(item)
+        changes = _build_changes(before, after)
+        if not changes:
+            return response
+
+        movement_changes = [c for c in changes if c["field"] in MOVEMENT_FIELDS]
+        other_changes = [c for c in changes if c["field"] not in MOVEMENT_FIELDS]
+
+        if movement_changes:
+            _create_history_entry(
+                item=item,
+                user=self.request.user,
+                action=InventoryHistory.Action.MOVEMENT,
+                before=before,
+                after=after,
+                changes=movement_changes,
+                meta={"source": "edit"},
+            )
+
+        if other_changes:
+            unique_fields = {c["field"] for c in other_changes}
+            action = (
+                InventoryHistory.Action.QUANTITY
+                if unique_fields == {"quantity"}
+                else InventoryHistory.Action.UPDATED
+            )
+            _create_history_entry(
+                item=item,
+                user=self.request.user,
+                action=action,
+                before=before,
+                after=after,
+                changes=other_changes,
+                meta={"source": "edit"},
+            )
+        return response
+
+
+class ItemHistoryRollbackView(LoginRequiredMixin, View):
+    def post(self, request, pk, history_id):
+        item = get_object_or_404(InventoryItem, pk=pk)
+        if not request.user.is_superuser:
+            messages.error(request, "Rollback ist nur für Admins erlaubt.")
+            return redirect("edit-item", pk=pk)
+
+        history = get_object_or_404(InventoryHistory, pk=history_id, item=item)
+        if not history.data_before:
+            messages.error(request, "Kein Rollback-Zustand vorhanden.")
+            return redirect("edit-item", pk=pk)
+
+        current = _snapshot_item(item)
+        target = history.data_before
+
+        item.name = target.get("name")
+        item.description = target.get("description")
+        item.quantity = target.get("quantity") or 0
+        item.category_id = target.get("category_id")
+        item.storage_location_id = target.get("storage_location_id")
+        item.location_letter = target.get("location_letter")
+        item.location_number = target.get("location_number")
+        item.location_shelf = target.get("location_shelf")
+        item.low_quantity = target.get("low_quantity") or 0
+        item.order_link = target.get("order_link")
+        item.maintenance_date = (
+            datetime.fromisoformat(target["maintenance_date"]).date()
+            if target.get("maintenance_date")
+            else None
+        )
+        item.overview_id = target.get("overview_id")
+        item.item_type = target.get("item_type") or item.item_type
+        item.is_active = target.get("is_active", item.is_active)
+        item.save()
+
+        if "tags" in target:
+            item.application_tags.set(target["tags"])
+
+        item.refresh_from_db()
+        after = _snapshot_item(item)
+        changes = _build_changes(current, after)
+        _create_history_entry(
+            item=item,
+            user=request.user,
+            action=InventoryHistory.Action.ROLLBACK,
+            before=current,
+            after=after,
+            changes=changes,
+            meta={"source_history_id": history.id},
+        )
+
+        messages.success(request, "Rollback durchgeführt.")
+        return redirect("edit-item", pk=pk)
 
 
 class MoveItemToOverviewView(LoginRequiredMixin, View):
     def post(self, request, pk):
         item = get_object_or_404(InventoryItem, pk=pk)
+        before = _snapshot_item(item)
 
         # 🔒 Item-Besitz prüfen
         if not request.user.is_superuser and item.user != request.user:
@@ -525,6 +824,19 @@ class MoveItemToOverviewView(LoginRequiredMixin, View):
         old = item.overview
         item.overview = target
         item.save(update_fields=["overview"])
+        item.refresh_from_db()
+        after = _snapshot_item(item)
+        changes = _build_changes(before, after)
+        if changes:
+            _create_history_entry(
+                item=item,
+                user=request.user,
+                action=InventoryHistory.Action.UPDATED,
+                before=before,
+                after=after,
+                changes=changes,
+                meta={"source": "move_dashboard"},
+            )
 
         messages.success(
             request,
@@ -532,6 +844,133 @@ class MoveItemToOverviewView(LoginRequiredMixin, View):
         )
 
         return redirect("overview-dashboard", slug=target.slug)
+
+
+class OverviewExportView(LoginRequiredMixin, View):
+    def get(self, request, slug, export_format):
+        overview = get_object_or_404(Overview, slug=slug, is_active=True)
+
+        if not request.user.is_superuser:
+            profile = UserProfile.objects.filter(user=request.user).first()
+            allowed = profile.allowed_overviews.filter(pk=overview.pk).exists() if profile else False
+            if not allowed:
+                messages.error(request, "Du hast keinen Zugriff auf dieses Dashboard.")
+                return redirect("dashboards")
+
+        if export_format not in ("csv", "excel"):
+            return HttpResponseBadRequest("Ungültiges Export-Format.")
+
+        view = OverviewDashboardView()
+        view.request = request
+        view.overview = overview
+        qs = view.base_queryset()
+        qs = view.apply_filters(qs)
+        qs, _, _ = view.apply_sort(qs)
+
+        items = (
+            qs.select_related("category", "storage_location", "overview")
+            .prefetch_related("application_tags")
+            .order_by("name")
+        )
+
+        columns = [
+            ("id", "ID", lambda it: it.id),
+            ("name", "Name", lambda it: it.name),
+            ("type", "Typ", lambda it: it.get_item_type_display()),
+            ("quantity", "Bestand", lambda it: it.quantity),
+            ("category", "Kategorie", lambda it: it.category.name if it.category else ""),
+            ("storage_location", "Lagerort", lambda it: it.storage_location.get_full_path() if it.storage_location else ""),
+            ("location_letter", "Ort (Buchstabe)", lambda it: it.location_letter or ""),
+            ("location_number", "Ort (Nummer)", lambda it: it.location_number or ""),
+            ("location_shelf", "Ort (Fach)", lambda it: it.location_shelf or ""),
+            ("min_stock", "Mindestbestand", lambda it: it.low_quantity),
+            ("tags", "Tags", lambda it: ", ".join(sorted(it.application_tags.values_list("name", flat=True)))),
+            ("overview", "Dashboard", lambda it: it.overview.name if it.overview else ""),
+            ("maintenance_date", "Wartungsdatum", lambda it: it.maintenance_date.isoformat() if it.maintenance_date else ""),
+            ("last_used", "Letzte Nutzung", lambda it: it.last_used.isoformat() if it.last_used else ""),
+            ("created_at", "Erstellt am", lambda it: it.date_created.isoformat() if it.date_created else ""),
+        ]
+        selected = request.GET.getlist("cols")
+        if selected:
+            selected_set = set(selected)
+            columns = [col for col in columns if col[0] in selected_set]
+        if not columns:
+            return HttpResponseBadRequest("Keine Export-Spalten ausgewählt.")
+
+        delimiter = ";" if export_format == "csv" else "\t"
+        content_type = "text/csv" if export_format == "csv" else "application/vnd.ms-excel"
+        extension = "csv" if export_format == "csv" else "xls"
+
+        filename = f"inventory_{overview.slug}.{extension}"
+        response = HttpResponse(content_type=content_type)
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        writer = csv.writer(response, delimiter=delimiter)
+        writer.writerow([col[1] for col in columns])
+        for item in items:
+            writer.writerow([col[2](item) for col in columns])
+
+        return response
+
+
+class MovementReportView(LoginRequiredMixin, TemplateView):
+    template_name = "inventory/movement_report.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        qs = InventoryHistory.objects.filter(action=InventoryHistory.Action.MOVEMENT).select_related(
+            "item",
+            "user",
+            "item__overview",
+        )
+
+        allowed_overviews = Overview.objects.filter(is_active=True)
+        if not self.request.user.is_superuser:
+            allowed_overviews = _allowed_overviews_for_user(self.request.user)
+            qs = qs.filter(item__overview__in=allowed_overviews)
+
+        overview_id = (self.request.GET.get("overview") or "").strip()
+        user_id = (self.request.GET.get("user") or "").strip()
+        days = (self.request.GET.get("days") or "").strip()
+
+        if overview_id:
+            qs = qs.filter(item__overview_id=overview_id)
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+        if days:
+            try:
+                days_int = int(days)
+                since = timezone.now() - timedelta(days=days_int)
+                qs = qs.filter(created_at__gte=since)
+            except ValueError:
+                days = ""
+
+        qs = qs.order_by("-created_at")
+        paginator = Paginator(qs, 50)
+        page_number = self.request.GET.get("page", "1")
+        page_obj = paginator.get_page(page_number)
+
+        users = (
+            User.objects.filter(
+                inventory_history_entries__action=InventoryHistory.Action.MOVEMENT,
+                inventory_history_entries__item__overview__in=allowed_overviews,
+            )
+            .distinct()
+            .order_by("username")
+        )
+
+        ctx.update(
+            {
+                "page_obj": page_obj,
+                "paginator": paginator,
+                "overview_list": allowed_overviews.order_by("order", "name"),
+                "users": users,
+                "selected_overview": overview_id,
+                "selected_user": user_id,
+                "selected_days": days,
+            }
+        )
+        return ctx
 
 
 # ---------------------------------------------------------------------------
@@ -568,11 +1007,27 @@ class BorrowedItemsView(LoginRequiredMixin, View):
         next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or ""
 
         if form.is_valid():
+            before = _snapshot_item(item)
             borrowed = form.save(commit=False)
             borrowed.item = item
             borrowed.save()
             item.quantity -= borrowed.quantity_borrowed
             item.save()
+            item.refresh_from_db()
+            after = _snapshot_item(item)
+            changes = _build_changes(before, after)
+            _create_history_entry(
+                item=item,
+                user=request.user,
+                action=InventoryHistory.Action.BORROWED,
+                before=before,
+                after=after,
+                changes=changes,
+                meta={
+                    "borrower": borrowed.borrower,
+                    "quantity": borrowed.quantity_borrowed,
+                },
+            )
             messages.success(request, f"{borrowed.quantity_borrowed}x {item.name} an {borrowed.borrower} verliehen.")
             return self._safe_redirect(request, next_url)
 
@@ -591,7 +1046,23 @@ class ReturnItemView(LoginRequiredMixin, View):
     def post(self, request, borrow_id):
         borrowed = get_object_or_404(BorrowedItem, id=borrow_id)
         if not borrowed.returned:
+            before = _snapshot_item(borrowed.item)
             borrowed.return_item()
+            borrowed.item.refresh_from_db()
+            after = _snapshot_item(borrowed.item)
+            changes = _build_changes(before, after)
+            _create_history_entry(
+                item=borrowed.item,
+                user=request.user,
+                action=InventoryHistory.Action.RETURNED,
+                before=before,
+                after=after,
+                changes=changes,
+                meta={
+                    "borrower": borrowed.borrower,
+                    "quantity": borrowed.quantity_borrowed,
+                },
+            )
             messages.success(request, f"{borrowed.quantity_borrowed}x {borrowed.item.name} zurückgegeben.")
         else:
             messages.info(request, "Dieser Artikel wurde bereits zurückgegeben.")
@@ -779,11 +1250,24 @@ class QuickAdjustQuantityView(LoginRequiredMixin, View):
                 messages.error(request, "Du hast keinen Zugriff auf dieses Dashboard.")
                 return redirect(next_url)
 
+        before = _snapshot_item(item)
         new_quantity = item.quantity + delta
         if new_quantity < 0:
             new_quantity = 0
         item.quantity = new_quantity
         item.save(update_fields=["quantity"])
+        item.refresh_from_db()
+        after = _snapshot_item(item)
+        changes = _build_changes(before, after)
+        _create_history_entry(
+            item=item,
+            user=request.user,
+            action=InventoryHistory.Action.QUANTITY,
+            before=before,
+            after=after,
+            changes=changes,
+            meta={"delta": delta, "source": "quick_adjust"},
+        )
         if request.headers.get("x-requested-with") == "XMLHttpRequest":
             return JsonResponse({"quantity": item.quantity})
         return redirect(next_url)
@@ -1026,6 +1510,31 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
                 "tags": tags,
                 "storage_locations": storage_locations,
                 "add_url": self._compute_add_url(),
+                "export_csv_url": reverse(
+                    "overview-export",
+                    kwargs={"slug": self.overview.slug, "export_format": "csv"},
+                ),
+                "export_excel_url": reverse(
+                    "overview-export",
+                    kwargs={"slug": self.overview.slug, "export_format": "excel"},
+                ),
+                "export_columns": [
+                    ("id", "ID"),
+                    ("name", "Name"),
+                    ("type", "Typ"),
+                    ("quantity", "Bestand"),
+                    ("category", "Kategorie"),
+                    ("storage_location", "Lagerort"),
+                    ("location_letter", "Ort (Buchstabe)"),
+                    ("location_number", "Ort (Nummer)"),
+                    ("location_shelf", "Ort (Fach)"),
+                    ("min_stock", "Mindestbestand"),
+                    ("tags", "Tags"),
+                    ("overview", "Dashboard"),
+                    ("maintenance_date", "Wartungsdatum"),
+                    ("last_used", "Letzte Nutzung"),
+                    ("created_at", "Erstellt am"),
+                ],
             }
         )
         return ctx

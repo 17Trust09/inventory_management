@@ -1,0 +1,112 @@
+{% extends 'inventory/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="m-0">📦 Lagerbewegungen</h2>
+    <a class="btn btn-outline-light" href="{% url 'dashboards' %}">Zurück zu Dashboards</a>
+  </div>
+
+  <div class="card mb-4" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Dashboard</label>
+          <select class="form-select" name="overview">
+            <option value="">Alle</option>
+            {% for ov in overview_list %}
+              <option value="{{ ov.id }}" {% if selected_overview == ov.id|stringformat:'s' %}selected{% endif %}>
+                {{ ov.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Benutzer</label>
+          <select class="form-select" name="user">
+            <option value="">Alle</option>
+            {% for u in users %}
+              <option value="{{ u.id }}" {% if selected_user == u.id|stringformat:'s' %}selected{% endif %}>
+                {{ u.username }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Zeitraum</label>
+          <select class="form-select" name="days">
+            <option value="">Gesamt</option>
+            <option value="7" {% if selected_days == '7' %}selected{% endif %}>Letzte 7 Tage</option>
+            <option value="30" {% if selected_days == '30' %}selected{% endif %}>Letzte 30 Tage</option>
+            <option value="90" {% if selected_days == '90' %}selected{% endif %}>Letzte 90 Tage</option>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <button class="btn btn-outline-primary w-100">Filtern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if page_obj %}
+    <div class="list-group">
+      {% for entry in page_obj %}
+        <div class="list-group-item"
+             style="background:var(--surface); color:var(--text); border:1px solid var(--border);">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">
+                {{ entry.item.name }}
+                {% if entry.item.overview %}<span class="text-muted">• {{ entry.item.overview.name }}</span>{% endif %}
+              </div>
+              <div class="text-muted small">
+                {{ entry.created_at|date:"d.m.Y H:i" }}
+                {% if entry.user %}• {{ entry.user.username }}{% endif %}
+              </div>
+            </div>
+            <span class="badge bg-info text-dark">Lagerbewegung</span>
+          </div>
+
+          {% if entry.changes %}
+            <ul class="mt-2 mb-0 small">
+              {% for change in entry.changes %}
+                <li>
+                  <strong>{{ change.label }}:</strong>
+                  {{ change.before }} → {{ change.after }}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="text-muted small mt-2">Keine Details vorhanden.</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if paginator.num_pages > 1 %}
+      <nav class="mt-3">
+        <ul class="pagination">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?{% if selected_overview %}overview={{ selected_overview }}&{% endif %}{% if selected_user %}user={{ selected_user }}&{% endif %}{% if selected_days %}days={{ selected_days }}&{% endif %}page={{ page_obj.previous_page_number }}">Zurück</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Zurück</span></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?{% if selected_overview %}overview={{ selected_overview }}&{% endif %}{% if selected_user %}user={{ selected_user }}&{% endif %}{% if selected_days %}days={{ selected_days }}&{% endif %}page={{ page_obj.next_page_number }}">Weiter</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Weiter</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="alert alert-info">Keine Lagerbewegungen gefunden.</div>
+  {% endif %}
+</div>
+{% endblock %}

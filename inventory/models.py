@@ -321,6 +321,52 @@ class InventoryItem(models.Model):
         ]
 
 
+class InventoryHistory(models.Model):
+    class Action(models.TextChoices):
+        CREATED = "created", "Erstellt"
+        UPDATED = "updated", "Geändert"
+        MOVEMENT = "movement", "Lagerbewegung"
+        QUANTITY = "quantity_adjusted", "Bestand angepasst"
+        BORROWED = "borrowed", "Ausgeliehen"
+        RETURNED = "returned", "Zurückgegeben"
+        ROLLBACK = "rollback", "Rollback"
+
+    item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.CASCADE,
+        related_name="history_entries",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inventory_history_entries",
+    )
+    action = models.CharField(max_length=32, choices=Action.choices, db_index=True)
+    changes = models.JSONField(default=list, blank=True)
+    data_before = models.JSONField(default=dict, blank=True)
+    data_after = models.JSONField(default=dict, blank=True)
+    meta = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Inventar-Historie"
+        verbose_name_plural = "Inventar-Historie"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["item", "created_at"]),
+            models.Index(fields=["action", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.item.name} – {self.get_action_display()} ({self.created_at:%Y-%m-%d %H:%M})"
+
+    @property
+    def can_rollback(self) -> bool:
+        return bool(self.data_before)
+
+
 class Category(models.Model):
     """
     Globale Kategorien – KEINE Unterscheidung mehr nach Equipment/Verbrauchsmaterial.

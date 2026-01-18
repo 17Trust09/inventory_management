@@ -1,5 +1,25 @@
 PATCH_NOTES = [
     {
+        "version": "1.0.4",
+        "date": "2026-02-10",
+        "title": "Historie erweitert & Export-Optionen",
+        "changes": [
+            "Historie/Timeline mit Filtern für Aktion, Benutzer und Zeitraum ergänzt.",
+            "Delta-Anzeige für Bestandsänderungen sowie Rollback-Bestätigung hinzugefügt.",
+            "Export-Dialog mit Spaltenauswahl und neue Lagerbewegungs-Übersicht ergänzt.",
+        ],
+    },
+    {
+        "version": "1.0.3",
+        "date": "2026-02-10",
+        "title": "Historie, Rollback & Exporte gestartet",
+        "changes": [
+            "Timeline/Historie für Artikel ergänzt (inkl. Lagerbewegungen).",
+            "Rollback-Funktion für Admins vorbereitet.",
+            "CSV/Excel-Export im Overview-Dashboard hinzugefügt.",
+        ],
+    },
+    {
         "version": "1.0.2",
         "date": "2026-01-25",
         "title": "Dashboard ohne Reload bei Plus/Minus",
