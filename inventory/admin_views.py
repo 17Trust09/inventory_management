@@ -546,6 +546,7 @@ class StorageLocationCreateView(StaffRequiredMixin, CreateView):
         ctx["parent_tree"] = ctx["form"].parent_tree()
         ctx["parent_selected"] = ctx["form"].instance.parent_id
         ctx["is_create"] = True
+        ctx["nfc_url"] = ""
         return ctx
 
     def get_success_url(self):
@@ -563,6 +564,12 @@ class StorageLocationUpdateView(StaffRequiredMixin, UpdateView):
         ctx["parent_tree"] = ctx["form"].parent_tree()
         ctx["parent_selected"] = ctx["form"].instance.parent_id
         ctx["is_create"] = False
+        if self.object.nfc_token:
+            ctx["nfc_url"] = self.request.build_absolute_uri(
+                reverse("nfc-location-redirect", kwargs={"token": self.object.nfc_token})
+            )
+        else:
+            ctx["nfc_url"] = ""
         return ctx
 
     def get_success_url(self):

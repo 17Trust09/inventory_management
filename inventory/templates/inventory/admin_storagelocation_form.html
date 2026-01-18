@@ -17,6 +17,29 @@
             {{ form.name }}
           </div>
           <div class="mb-3">
+            <label for="id_nfc_token" class="form-label">NFC-Tag Token</label>
+            {{ form.nfc_token }}
+            <small class="text-muted d-block mt-1">
+              Leer lassen, um automatisch einen Token zu erzeugen.
+            </small>
+            <details class="mt-2">
+              <summary class="text-muted" style="cursor:pointer;">❓ Kurzanleitung</summary>
+              <div class="mt-1">
+                <ol class="mb-1">
+                  <li>Lagerort speichern (Token wird erzeugt oder übernommen).</li>
+                  <li>NFC-URL unten kopieren.</li>
+                  <li>Die URL auf den NFC-Tag schreiben.</li>
+                </ol>
+              </div>
+            </details>
+          </div>
+          {% if nfc_url %}
+            <div class="mb-3">
+              <label class="form-label">NFC-URL</label>
+              <input class="form-control" type="text" value="{{ nfc_url }}" readonly>
+            </div>
+          {% endif %}
+          <div class="mb-3">
             <label for="id_parent" class="form-label">Übergeordneter Lagerort (optional)</label>
             {{ form.parent }}
             <small class="text-muted d-block mt-1">
