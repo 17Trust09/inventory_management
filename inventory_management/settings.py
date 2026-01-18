@@ -152,7 +152,7 @@ LANGUAGE_CODE = 'de'
 # ──────────────────────────────────────────────────────────────────────────────
 # Versionierung (mit Patch Notes synchron halten)
 # ──────────────────────────────────────────────────────────────────────────────
-INVENTORY_VERSION = "1.0.1"
+INVENTORY_VERSION = "1.0.2"
 TIME_ZONE = 'Europe/Berlin'
 USE_I18N = True
 USE_TZ = True

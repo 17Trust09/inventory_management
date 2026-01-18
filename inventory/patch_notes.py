@@ -1,5 +1,14 @@
 PATCH_NOTES = [
     {
+        "version": "1.0.2",
+        "date": "2026-01-25",
+        "title": "Dashboard ohne Reload bei Plus/Minus",
+        "changes": [
+            "Bestands-Plus/Minus aktualisiert den Wert jetzt ohne kompletten Seiten-Reload.",
+            "Fallback bleibt erhalten, falls der Browser kein AJAX unterstützt.",
+        ],
+    },
+    {
         "version": "1.0.1",
         "date": "2026-01-18",
         "title": "Bestand per Plus/Minus im Dashboard",

@@ -310,7 +310,10 @@
               <td class="text-end">
                 {% if features.enable_quick_adjust %}
                   <div class="d-inline-flex align-items-center gap-2">
-                    <form method="post" action="{% url 'adjust-quantity' it.id %}" class="m-0">
+                    <form method="post"
+                          action="{% url 'adjust-quantity' it.id %}"
+                          class="m-0 js-quick-adjust"
+                          data-item-id="{{ it.id }}">
                       {% csrf_token %}
                       <input type="hidden" name="delta" value="-1">
                       <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -318,8 +321,13 @@
                         <i class="bi bi-dash-lg"></i>
                       </button>
                     </form>
-                    <span class="fw-semibold">{{ it.quantity|default:"–" }}</span>
-                    <form method="post" action="{% url 'adjust-quantity' it.id %}" class="m-0">
+                    <span class="fw-semibold js-quantity-value" data-item-id="{{ it.id }}">
+                      {{ it.quantity|default:"–" }}
+                    </span>
+                    <form method="post"
+                          action="{% url 'adjust-quantity' it.id %}"
+                          class="m-0 js-quick-adjust"
+                          data-item-id="{{ it.id }}">
                       {% csrf_token %}
                       <input type="hidden" name="delta" value="1">
                       <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -445,4 +453,60 @@
     </ul>
   </nav>
 </div>
+<script>
+  (() => {
+    if (!window.fetch) {
+      return;
+    }
+
+    const forms = document.querySelectorAll(".js-quick-adjust");
+    if (!forms.length) {
+      return;
+    }
+
+    const getQuantityEl = (form) => {
+      const itemId = form.dataset.itemId;
+      if (!itemId) {
+        return null;
+      }
+      return document.querySelector(`.js-quantity-value[data-item-id="${itemId}"]`);
+    };
+
+    forms.forEach((form) => {
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const submitButton = form.querySelector("button[type='submit']");
+        if (submitButton) {
+          submitButton.disabled = true;
+        }
+
+        try {
+          const response = await fetch(form.action, {
+            method: "POST",
+            headers: {
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            body: new FormData(form),
+          });
+
+          if (!response.ok) {
+            throw new Error("Request failed");
+          }
+
+          const payload = await response.json();
+          const quantityEl = getQuantityEl(form);
+          if (quantityEl && typeof payload.quantity !== "undefined") {
+            quantityEl.textContent = payload.quantity;
+          }
+        } catch (error) {
+          form.submit();
+        } finally {
+          if (submitButton) {
+            submitButton.disabled = false;
+          }
+        }
+      });
+    });
+  })();
+</script>
 {% endblock %}

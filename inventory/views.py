@@ -784,6 +784,8 @@ class QuickAdjustQuantityView(LoginRequiredMixin, View):
             new_quantity = 0
         item.quantity = new_quantity
         item.save(update_fields=["quantity"])
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({"quantity": item.quantity})
         return redirect(next_url)
 
 
