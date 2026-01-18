@@ -643,6 +643,7 @@ def admin_overview_create(request):
                 'categories',
                 'show_quantity', 'has_locations', 'has_min_stock',
                 'enable_borrow', 'is_consumable_mode', 'require_qr',
+                'enable_quick_adjust',
                 'config',
             ]
             widgets = {
@@ -680,6 +681,7 @@ def admin_overview_edit(request, pk):
                 'categories',
                 'show_quantity', 'has_locations', 'has_min_stock',
                 'enable_borrow', 'is_consumable_mode', 'require_qr',
+                'enable_quick_adjust',
                 'config',
             ]
             widgets = {

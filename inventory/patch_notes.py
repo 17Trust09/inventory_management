@@ -1,5 +1,14 @@
 PATCH_NOTES = [
     {
+        "version": "1.0.1",
+        "date": "2026-01-18",
+        "title": "Bestand per Plus/Minus im Dashboard",
+        "changes": [
+            "Schnellanpassung der Bestände im Dashboard per Plus/Minus-Buttons ergänzt.",
+            "Dashboard-Option für Schnellbestand aktiviert/deaktiviert.",
+        ],
+    },
+    {
         "version": "1.0.0",
         "date": "2024-03-21",
         "title": "Patch-Notes eingeführt",

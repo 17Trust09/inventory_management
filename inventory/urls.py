@@ -26,6 +26,7 @@ urlpatterns = [
     path('edit-item/<int:pk>/regenerate-nfc/', views.RegenerateNFCTokenView.as_view(), name='regenerate-nfc'),
     path('edit-item/<int:pk>/delete-image/', views.DeleteImageView.as_view(), name='delete-image'),
     path('item/<int:item_id>/mark/', views.MarkItemAPI.as_view(), name='mark-item'),
+    path('item/<int:item_id>/adjust-quantity/', views.QuickAdjustQuantityView.as_view(), name='adjust-quantity'),
     path('nfc/<str:token>/', views.NFCItemRedirectView.as_view(), name='nfc-redirect'),
     path('nfc/location/<str:token>/', views.NFCStorageLocationView.as_view(), name='nfc-location-redirect'),
 

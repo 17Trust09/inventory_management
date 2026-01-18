@@ -538,6 +538,7 @@ class Overview(models.Model):
     enable_borrow = models.BooleanField(default=False, verbose_name="Verleih/Return verwenden")
     is_consumable_mode = models.BooleanField(default=False, verbose_name="Verbrauchsmaterial-Logik")
     require_qr = models.BooleanField(default=False, verbose_name="QR/Barcode Pflicht")
+    enable_quick_adjust = models.BooleanField(default=False, verbose_name="Schnellbestand +/- erlauben")
 
     config = models.JSONField(default=dict, blank=True)
 
@@ -562,6 +563,7 @@ class Overview(models.Model):
             "enable_borrow": self.enable_borrow,
             "is_consumable_mode": self.is_consumable_mode,
             "require_qr": self.require_qr,
+            "enable_quick_adjust": self.enable_quick_adjust,
         }
 
 

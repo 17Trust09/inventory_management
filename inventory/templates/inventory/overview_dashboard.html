@@ -307,7 +307,31 @@
             </td>
 
             {% if features.show_quantity %}
-              <td class="text-end">{{ it.quantity|default:"–" }}</td>
+              <td class="text-end">
+                {% if features.enable_quick_adjust %}
+                  <div class="d-inline-flex align-items-center gap-2">
+                    <form method="post" action="{% url 'adjust-quantity' it.id %}" class="m-0">
+                      {% csrf_token %}
+                      <input type="hidden" name="delta" value="-1">
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button class="btn btn-sm btn-outline-light" type="submit" aria-label="Bestand verringern">
+                        <i class="bi bi-dash-lg"></i>
+                      </button>
+                    </form>
+                    <span class="fw-semibold">{{ it.quantity|default:"–" }}</span>
+                    <form method="post" action="{% url 'adjust-quantity' it.id %}" class="m-0">
+                      {% csrf_token %}
+                      <input type="hidden" name="delta" value="1">
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button class="btn btn-sm btn-outline-light" type="submit" aria-label="Bestand erhöhen">
+                        <i class="bi bi-plus-lg"></i>
+                      </button>
+                    </form>
+                  </div>
+                {% else %}
+                  {{ it.quantity|default:"–" }}
+                {% endif %}
+              </td>
             {% endif %}
 
             {% if features.has_min_stock %}

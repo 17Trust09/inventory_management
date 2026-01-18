@@ -7,7 +7,7 @@ from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy, NoReverseMatch
 from django.views.generic import TemplateView, View, UpdateView, DeleteView, ListView
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
@@ -755,6 +755,36 @@ class MarkItemAPI(LoginRequiredMixin, View):
         if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
             return redirect(next_url)
         return redirect("dashboards")
+
+
+class QuickAdjustQuantityView(LoginRequiredMixin, View):
+    def post(self, request, item_id):
+        next_url = request.POST.get("next") or request.META.get("HTTP_REFERER", "/")
+        try:
+            delta = int(request.POST.get("delta", "0"))
+        except ValueError:
+            return HttpResponseBadRequest("Ungültige Anpassung.")
+        if delta not in (-1, 1):
+            return HttpResponseBadRequest("Ungültige Anpassung.")
+
+        item = get_object_or_404(InventoryItem.objects.select_related("overview"), pk=item_id)
+        overview = item.overview
+        if not overview or not overview.enable_quick_adjust or not overview.show_quantity:
+            messages.error(request, "Schnellanpassung ist für dieses Dashboard deaktiviert.")
+            return redirect(next_url)
+
+        if not request.user.is_superuser:
+            allowed = _allowed_overviews_for_user(request.user).filter(pk=overview.pk).exists()
+            if not allowed:
+                messages.error(request, "Du hast keinen Zugriff auf dieses Dashboard.")
+                return redirect(next_url)
+
+        new_quantity = item.quantity + delta
+        if new_quantity < 0:
+            new_quantity = 0
+        item.quantity = new_quantity
+        item.save(update_fields=["quantity"])
+        return redirect(next_url)
 
 
 class NFCItemRedirectView(LoginRequiredMixin, View):
