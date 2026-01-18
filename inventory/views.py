@@ -1,5 +1,6 @@
 # inventory/views.py
 import os
+import uuid
 from types import SimpleNamespace
 from collections import defaultdict
 from django import forms
@@ -34,6 +35,7 @@ from .models import (
     BorrowedItem,
     TagType,
     ApplicationTag,
+    StorageLocation,
     Overview,
     Feedback,
     FeedbackComment,
@@ -464,6 +466,11 @@ class EditItem(LoginRequiredMixin, UpdateView):
                 "item_type": item.item_type or "equipment",
                 "similar_items": [],
                 "overview_list": overview_list,  # 👈 WICHTIG
+                "nfc_url": self.request.build_absolute_uri(
+                    reverse("nfc-redirect", kwargs={"token": item.nfc_token})
+                )
+                if item.nfc_token
+                else "",
             }
         )
         return ctx
@@ -599,6 +606,35 @@ class RegenerateQRView(LoginRequiredMixin, View):
         return redirect(url)
 
 
+class RegenerateNFCTokenView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        item = get_object_or_404(InventoryItem, pk=pk)
+        if not request.user.is_superuser and item.user != request.user:
+            messages.error(request, "Du darfst dieses Item nicht bearbeiten.")
+            return redirect("edit-item", pk=pk)
+
+        token = uuid.uuid4().hex[:16]
+        while InventoryItem.objects.filter(nfc_token=token).exists():
+            token = uuid.uuid4().hex[:16]
+        item.nfc_token = token
+        item.save(update_fields=["nfc_token"])
+        messages.success(request, "NFC-Token wurde neu erzeugt.")
+
+        o = request.POST.get("o") or request.GET.get("o") or ""
+        nxt = request.POST.get("next") or request.GET.get("next") or ""
+        url = reverse("edit-item", kwargs={"pk": pk})
+        q = []
+        if o:
+            q.append(f"o={o}")
+        if nxt:
+            from urllib.parse import quote
+
+            q.append(f"next={quote(nxt)}")
+        if q:
+            url = f"{url}?{'&'.join(q)}"
+        return redirect(url)
+
+
 class DeleteImageView(LoginRequiredMixin, View):
     def post(self, request, pk):
         item = get_object_or_404(InventoryItem, pk=pk)
@@ -698,6 +734,48 @@ class MarkItemAPI(LoginRequiredMixin, View):
         return redirect("dashboards")
 
 
+class NFCItemRedirectView(LoginRequiredMixin, View):
+    def get(self, request, token):
+        item = get_object_or_404(InventoryItem, nfc_token=token)
+        url = reverse("edit-item", kwargs={"pk": item.id})
+        o = request.GET.get("o", "")
+        nxt = request.GET.get("next", "")
+        q = []
+        if o:
+            q.append(f"o={o}")
+        if nxt:
+            from urllib.parse import quote
+
+            q.append(f"next={quote(nxt)}")
+        if q:
+            url = f"{url}?{'&'.join(q)}"
+        return redirect(url)
+
+
+class NFCStorageLocationView(LoginRequiredMixin, View):
+    def get(self, request, token):
+        location = get_object_or_404(StorageLocation, nfc_token=token)
+        items = InventoryItem.objects.filter(
+            storage_location=location,
+            is_active=True,
+        ).select_related("overview", "category")
+
+        if not request.user.is_superuser:
+            allowed_overviews = _allowed_overviews_for_user(request.user)
+            items = items.filter(overview__in=allowed_overviews)
+
+        items = items.order_by("name")
+
+        return render(
+            request,
+            "inventory/storage_location_items.html",
+            {
+                "location": location,
+                "items": items,
+            },
+        )
+
+
 class DrawerItemsAPI(LoginRequiredMixin, View):
     def get(self, request, location_letter, location_number):
         items = InventoryItem.objects.filter(
@@ -768,6 +846,7 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
         q = request.GET.get("q", "").strip()
         category_id = request.GET.get("category", "").strip()
         tag_name = request.GET.get("tag", "").strip()
+        storage_location_id = request.GET.get("storage_location", "").strip()
         loc_letter = request.GET.get("location_letter", "").strip()
         loc_number = request.GET.get("location_number", "").strip()
         only_low = request.GET.get("only_low", "") == "1"
@@ -785,6 +864,9 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
 
         if tag_name and tag_name != "all":
             qs = qs.filter(application_tags__name=tag_name)
+
+        if storage_location_id:
+            qs = qs.filter(storage_location_id=storage_location_id)
 
         if loc_letter:
             qs = qs.filter(location_letter__iexact=loc_letter)
@@ -854,6 +936,11 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
             return "asc"
 
         cats, tags = self.get_auxiliary_choices()
+        storage_locations = list(
+            StorageLocation.objects.filter(items__overview=self.overview)
+            .distinct()
+        )
+        storage_locations.sort(key=lambda loc: loc.get_full_path().lower())
 
         ctx.update(
             {
@@ -866,6 +953,7 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
                 "q": self.request.GET.get("q", "").strip(),
                 "selected_category": self.request.GET.get("category", ""),
                 "selected_tag": self.request.GET.get("tag", ""),
+                "selected_storage_location": self.request.GET.get("storage_location", ""),
                 "location_letter": self.request.GET.get("location_letter", ""),
                 "location_number": self.request.GET.get("location_number", ""),
                 "only_low": self.request.GET.get("only_low", "") == "1",
@@ -881,6 +969,7 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
                 },
                 "categories": cats,
                 "tags": tags,
+                "storage_locations": storage_locations,
                 "add_url": self._compute_add_url(),
             }
         )

@@ -1,0 +1,42 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <a href="{% url 'dashboards' %}" class="btn btn-outline-primary my-3">← Zurück</a>
+  <h2 class="mb-2">📍 Lagerort: {{ location.get_full_path }}</h2>
+  <p class="text-muted">Wähle ein Item aus, um es zu bearbeiten.</p>
+
+  {% if items %}
+    <div class="table-responsive">
+      <table class="table table-striped align-middle table-darkish">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Kategorie</th>
+            <th>Dashboard</th>
+            <th class="text-end">Bestand</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+            <tr>
+              <td>{{ item.name }}</td>
+              <td>{{ item.category.name|default:"–" }}</td>
+              <td>{{ item.overview.name|default:"–" }}</td>
+              <td class="text-end">{{ item.quantity }}</td>
+              <td class="text-end">
+                <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' item.id %}">
+                  Bearbeiten
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-info">In diesem Lagerort befinden sich keine Items.</div>
+  {% endif %}
+</div>
+{% endblock %}

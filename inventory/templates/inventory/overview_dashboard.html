@@ -136,12 +136,12 @@
   <!-- Filterpanel -->
   <button class="btn btn-outline-light mb-3" type="button"
           data-bs-toggle="collapse" data-bs-target="#filterPanel"
-          aria-expanded="{% if q or selected_category or selected_tag or only_low %}true{% else %}false{% endif %}"
+          aria-expanded="{% if q or selected_category or selected_tag or selected_storage_location or only_low %}true{% else %}false{% endif %}"
           aria-controls="filterPanel">
     🔎 Filter anzeigen
   </button>
 
-  <div class="collapse{% if q or selected_category or selected_tag or only_low %} show{% endif %}" id="filterPanel">
+  <div class="collapse{% if q or selected_category or selected_tag or selected_storage_location or only_low %} show{% endif %}" id="filterPanel">
     <div class="card">
       <div class="card-body">
         <form method="get">
@@ -172,6 +172,21 @@
                 {% endfor %}
               </select>
             </div>
+
+            {% if features.has_locations %}
+              <div class="col-md-3">
+                <label class="form-label">Lagerort</label>
+                <select name="storage_location" class="form-select">
+                  <option value="">–</option>
+                  {% for loc in storage_locations %}
+                    <option value="{{ loc.id }}"
+                      {% if selected_storage_location == loc.id|stringformat:'s' %}selected{% endif %}>
+                      {{ loc.get_full_path }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            {% endif %}
 
             {% if features.has_min_stock %}
               <div class="col-md-3">

@@ -128,6 +128,15 @@ class InventoryItem(models.Model):
 
     barcode = models.CharField(max_length=50, unique=True, blank=True)
     barcode_text = models.TextField(blank=True, null=True)
+    nfc_token = models.CharField(
+        max_length=32,
+        unique=True,
+        blank=True,
+        null=True,
+        db_index=True,
+        verbose_name="NFC-Tag Token",
+        help_text="Token für NFC-Tags (wird automatisch erzeugt, wenn leer).",
+    )
 
     location_letter = models.CharField(max_length=1, null=True, blank=True, db_index=True)
     location_number = models.IntegerField(null=True, blank=True, db_index=True)
@@ -189,6 +198,11 @@ class InventoryItem(models.Model):
                 self.barcode = str(uuid.uuid4())[:12]
 
         self.barcode_text = f"Barcode für {self.name}: {self.barcode}"
+
+        if not self.nfc_token:
+            self.nfc_token = uuid.uuid4().hex[:16]
+            while InventoryItem.objects.filter(nfc_token=self.nfc_token).exists():
+                self.nfc_token = uuid.uuid4().hex[:16]
 
         if not is_new:
             old = InventoryItem.objects.get(pk=self.pk)
@@ -420,6 +434,15 @@ class RolePermission(models.Model):
 # --- Lagerorte Verwaltung --- #
 class StorageLocation(models.Model):
     name = models.CharField(max_length=100, db_index=True)
+    nfc_token = models.CharField(
+        max_length=32,
+        unique=True,
+        blank=True,
+        null=True,
+        db_index=True,
+        verbose_name="NFC-Tag Token",
+        help_text="Token für NFC-Tags (wird automatisch erzeugt, wenn leer).",
+    )
     ha_entity_id = models.CharField(
         max_length=100,
         blank=True,
@@ -449,6 +472,13 @@ class StorageLocation(models.Model):
             lvl += 1
             node = node.parent
         return lvl
+
+    def save(self, *args, **kwargs):
+        if not self.nfc_token:
+            self.nfc_token = uuid.uuid4().hex[:16]
+            while StorageLocation.objects.filter(nfc_token=self.nfc_token).exists():
+                self.nfc_token = uuid.uuid4().hex[:16]
+        super().save(*args, **kwargs)
 
     class Meta:
         indexes = [
