@@ -45,6 +45,9 @@ urlpatterns = [
     path('barcodes/', views.BarcodeListView.as_view(), name='barcode-list'),
     path('scan-barcode/', views.ScanBarcodeView.as_view(), name='scan-barcode'),
 
+    # Patch Notes
+    path('patch-notes/', views.PatchNotesView.as_view(), name='patch-notes'),
+
     # Verleih
     path('borrow/<int:item_id>/', views.BorrowedItemsView.as_view(), name='borrow-item'),
     path('return/<int:borrow_id>/', views.ReturnItemView.as_view(), name='return-item'),

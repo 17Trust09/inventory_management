@@ -43,6 +43,7 @@ from .models import (
     FeedbackVote,
 )
 from .integrations.homeassistant import notify_item_marked
+from .patch_notes import PATCH_NOTES, CURRENT_VERSION
 
 
 # ---------------------------------------------------------------------------
@@ -133,6 +134,16 @@ def dashboards(request):
 
 class Index(TemplateView):
     template_name = "inventory/index.html"
+
+
+class PatchNotesView(TemplateView):
+    template_name = "inventory/patch_notes.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["patch_notes"] = PATCH_NOTES
+        ctx["current_version"] = CURRENT_VERSION
+        return ctx
 
 
 class TestFormView(View):

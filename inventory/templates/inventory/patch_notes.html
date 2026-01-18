@@ -1,0 +1,50 @@
+{% extends "inventory/base.html" %}
+
+{% block content %}
+  <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4">
+    <div>
+      <h1 class="h3 mb-1">Patch Notes &amp; Versionen</h1>
+      <p class="text-muted mb-0">
+        Übersicht aller Änderungen am System. Neue Anpassungen bitte immer hier ergänzen.
+      </p>
+    </div>
+    <div class="mt-3 mt-md-0">
+      <span class="badge bg-info text-dark fs-6">Aktuelle Version: {{ current_version }}</span>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    {% for patch in patch_notes %}
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-2">
+              <div>
+                <h2 class="h5 mb-1">{{ patch.title }}</h2>
+                <div class="text-muted">
+                  Version {{ patch.version }} &bull; {{ patch.date }}
+                </div>
+              </div>
+              {% if forloop.first %}
+                <span class="badge bg-success mt-3 mt-md-0">Neu</span>
+              {% endif %}
+            </div>
+            <ul class="mb-0">
+              {% for change in patch.changes %}
+                <li>{{ change }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            <p class="mb-0 text-muted">Noch keine Patch Notes vorhanden.</p>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}
