@@ -10,7 +10,8 @@
           <i class="bi bi-pencil-square me-2"></i>
           {% if is_create %}Lagerort anlegen{% else %}Lagerort bearbeiten{% endif %}
         </h4>
-        <form method="post" novalidate>
+        <form method="post" novalidate
+              action="{% if is_create %}{% url 'admin_storagelocation_add' %}{% else %}{% url 'admin_storagelocation_edit' form.instance.pk %}{% endif %}">
           {% csrf_token %}
           <div class="mb-3">
             <label for="id_name" class="form-label">Name</label>
