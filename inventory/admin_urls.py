@@ -47,6 +47,7 @@ from .admin_views import (
     StorageLocationCreateView,
     StorageLocationUpdateView,
     StorageLocationDeleteView,
+    admin_storagelocation_regenerate_nfc,
 
     # Overviews (Dashboards)
     OverviewListView,
@@ -102,6 +103,7 @@ urlpatterns = [
     path('storage-locations/', StorageLocationListView.as_view(), name='admin_storagelocations'),
     path('storage-locations/add/', StorageLocationCreateView.as_view(), name='admin_storagelocation_add'),
     path('storage-locations/<int:pk>/edit/', StorageLocationUpdateView.as_view(), name='admin_storagelocation_edit'),
+    path('storage-locations/<int:pk>/regenerate-nfc/', admin_storagelocation_regenerate_nfc, name='admin_storagelocation_regenerate_nfc'),
     path('storage-locations/<int:pk>/delete/', StorageLocationDeleteView.as_view(), name='admin_storagelocation_delete'),
 
     # Overviews (Dashboards)

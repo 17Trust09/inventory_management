@@ -92,9 +92,11 @@ class StorageLocationForm(forms.ModelForm):
 
     class Meta:
         model = StorageLocation
-        fields = ["name", "parent"]
+        fields = ["name", "nfc_token", "nfc_base_choice", "parent"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control form-control-lg"}),
+            "nfc_token": forms.TextInput(attrs={"class": "form-control form-control-lg"}),
+            "nfc_base_choice": forms.Select(attrs={"class": "form-control form-control-lg"}),
         }
 
     def _descendant_ids(self, root: StorageLocation) -> set[int]:
@@ -183,13 +185,15 @@ class EquipmentItemForm(forms.ModelForm):
         model = InventoryItem
         fields = [
             'name', 'quantity', 'category', 'storage_location',
-            'order_link', 'application_tags', 'image', 'maintenance_date',
+            'order_link', 'nfc_token', 'nfc_base_choice', 'application_tags', 'image', 'maintenance_date',
         ]
         labels = {
             'name': 'Name*',
             'quantity': 'Ist-Bestand*',
             'storage_location': 'Lagerort',
             'order_link': 'Bestell-Link',
+            'nfc_token': 'NFC-Tag Token',
+            'nfc_base_choice': 'NFC-Basis',
             'application_tags': 'Tags*',
             'image': 'Bild (optional)',
             'maintenance_date': 'Wartungs-/Ablaufdatum',
@@ -280,7 +284,7 @@ class ConsumableItemForm(forms.ModelForm):
         model = InventoryItem
         fields = [
             'name', 'quantity', 'category', 'storage_location',
-            'low_quantity', 'order_link', 'application_tags', 'image', 'maintenance_date',
+            'low_quantity', 'order_link', 'nfc_token', 'nfc_base_choice', 'application_tags', 'image', 'maintenance_date',
         ]
         labels = {
             'name': 'Name*',
@@ -288,6 +292,8 @@ class ConsumableItemForm(forms.ModelForm):
             'storage_location': 'Lagerort',
             'low_quantity': 'Mindestbestand*',
             'order_link': 'Bestell-Link',
+            'nfc_token': 'NFC-Tag Token',
+            'nfc_base_choice': 'NFC-Basis',
             'application_tags': 'Tags*',
             'image': 'Bild (optional)',
             'maintenance_date': 'Wartungs-/Ablaufdatum',

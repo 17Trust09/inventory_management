@@ -76,6 +76,18 @@ class GlobalSettings(models.Model):
         default='http://127.0.0.1:8000',
         help_text='Basis-URL für QR-Code-Links, z. B. http://192.168.178.20:8000'
     )
+    nfc_base_url_local = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Lokale Basis-URL für NFC-Links, z. B. http://192.168.178.20:8000",
+    )
+    nfc_base_url_remote = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Remote/Tailscale Basis-URL für NFC-Links, z. B. https://host.tailnet-xyz.ts.net",
+    )
 
     def __str__(self):
         return "Globale Einstellungen"
@@ -86,6 +98,10 @@ class GlobalSettings(models.Model):
 
 
 class InventoryItem(models.Model):
+    NFC_BASE_CHOICES = (
+        ("local", "Lokal"),
+        ("remote", "Tailscale/Remote"),
+    )
     ITEM_TYPES = (
         ("equipment", "Equipment"),
         ("consumable", "Verbrauchsmaterial"),
@@ -128,6 +144,22 @@ class InventoryItem(models.Model):
 
     barcode = models.CharField(max_length=50, unique=True, blank=True)
     barcode_text = models.TextField(blank=True, null=True)
+    nfc_token = models.CharField(
+        max_length=32,
+        unique=True,
+        blank=True,
+        null=True,
+        db_index=True,
+        verbose_name="NFC-Tag Token",
+        help_text="Token für NFC-Tags (wird automatisch erzeugt, wenn leer).",
+    )
+    nfc_base_choice = models.CharField(
+        max_length=12,
+        choices=NFC_BASE_CHOICES,
+        default="local",
+        verbose_name="NFC-Basis",
+        help_text="Welche Basis-URL für NFC-Links verwendet werden soll.",
+    )
 
     location_letter = models.CharField(max_length=1, null=True, blank=True, db_index=True)
     location_number = models.IntegerField(null=True, blank=True, db_index=True)
@@ -189,6 +221,11 @@ class InventoryItem(models.Model):
                 self.barcode = str(uuid.uuid4())[:12]
 
         self.barcode_text = f"Barcode für {self.name}: {self.barcode}"
+
+        if not self.nfc_token:
+            self.nfc_token = uuid.uuid4().hex[:16]
+            while InventoryItem.objects.filter(nfc_token=self.nfc_token).exists():
+                self.nfc_token = uuid.uuid4().hex[:16]
 
         if not is_new:
             old = InventoryItem.objects.get(pk=self.pk)
@@ -419,7 +456,27 @@ class RolePermission(models.Model):
 
 # --- Lagerorte Verwaltung --- #
 class StorageLocation(models.Model):
+    NFC_BASE_CHOICES = (
+        ("local", "Lokal"),
+        ("remote", "Tailscale/Remote"),
+    )
     name = models.CharField(max_length=100, db_index=True)
+    nfc_token = models.CharField(
+        max_length=32,
+        unique=True,
+        blank=True,
+        null=True,
+        db_index=True,
+        verbose_name="NFC-Tag Token",
+        help_text="Token für NFC-Tags (wird automatisch erzeugt, wenn leer).",
+    )
+    nfc_base_choice = models.CharField(
+        max_length=12,
+        choices=NFC_BASE_CHOICES,
+        default="local",
+        verbose_name="NFC-Basis",
+        help_text="Welche Basis-URL für NFC-Links verwendet werden soll.",
+    )
     ha_entity_id = models.CharField(
         max_length=100,
         blank=True,
@@ -449,6 +506,13 @@ class StorageLocation(models.Model):
             lvl += 1
             node = node.parent
         return lvl
+
+    def save(self, *args, **kwargs):
+        if not self.nfc_token:
+            self.nfc_token = uuid.uuid4().hex[:16]
+            while StorageLocation.objects.filter(nfc_token=self.nfc_token).exists():
+                self.nfc_token = uuid.uuid4().hex[:16]
+        super().save(*args, **kwargs)
 
     class Meta:
         indexes = [

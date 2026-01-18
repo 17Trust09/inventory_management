@@ -20,6 +20,41 @@
             {% endfor %}
           </div>
         {% endif %}
+        {% if form.qr_base_url.help_text %}
+          <div class="form-text">{{ form.qr_base_url.help_text }}</div>
+        {% endif %}
+      </div>
+      <div class="mb-3">
+        <label for="{{ form.nfc_base_url_local.id_for_label }}" class="form-label fw-semibold">
+          <i class="bi bi-link-45deg me-1"></i> {{ form.nfc_base_url_local.label }}
+        </label>
+        {{ form.nfc_base_url_local }}
+        {% if form.nfc_base_url_local.errors %}
+          <div class="text-danger mt-1 small">
+            {% for error in form.nfc_base_url_local.errors %}
+              ⚠ {{ error }}
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if form.nfc_base_url_local.help_text %}
+          <div class="form-text">{{ form.nfc_base_url_local.help_text }}</div>
+        {% endif %}
+      </div>
+      <div class="mb-3">
+        <label for="{{ form.nfc_base_url_remote.id_for_label }}" class="form-label fw-semibold">
+          <i class="bi bi-link-45deg me-1"></i> {{ form.nfc_base_url_remote.label }}
+        </label>
+        {{ form.nfc_base_url_remote }}
+        {% if form.nfc_base_url_remote.errors %}
+          <div class="text-danger mt-1 small">
+            {% for error in form.nfc_base_url_remote.errors %}
+              ⚠ {{ error }}
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if form.nfc_base_url_remote.help_text %}
+          <div class="form-text">{{ form.nfc_base_url_remote.help_text }}</div>
+        {% endif %}
       </div>
       <div class="d-flex justify-content-end mt-4">
         <a href="{% url 'admin_global_settings' %}" class="btn btn-outline-secondary me-2">

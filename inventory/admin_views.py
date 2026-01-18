@@ -16,6 +16,7 @@ from django.contrib.auth.models import User
 from barcode import Code128
 from barcode.writer import ImageWriter
 import qrcode
+import uuid
 
 from .models import (
     InventoryItem,
@@ -485,6 +486,13 @@ class GlobalSettingsListView(StaffRequiredMixin, ListView):
     template_name = 'inventory/admin_globalsettings_list.html'
     context_object_name = 'settings'
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if not qs.exists():
+            GlobalSettings.objects.create()
+            qs = super().get_queryset()
+        return qs
+
 
 @staff_required
 def admin_globalsettings_edit(request, pk):
@@ -493,14 +501,22 @@ def admin_globalsettings_edit(request, pk):
     class GSForm(forms.ModelForm):
         class Meta:
             model = GlobalSettings
-            fields = ['qr_base_url']
+            fields = ['qr_base_url', 'nfc_base_url_local', 'nfc_base_url_remote']
             widgets = {
                 'qr_base_url': forms.TextInput(attrs={'class': 'form-control form-control-lg'}),
+                'nfc_base_url_local': forms.TextInput(attrs={'class': 'form-control form-control-lg'}),
+                'nfc_base_url_remote': forms.TextInput(attrs={'class': 'form-control form-control-lg'}),
             }
             labels = {
                 'qr_base_url': 'Basis-URL für QR-Code-Links',
+                'nfc_base_url_local': 'NFC-Basis-URL (Lokal)',
+                'nfc_base_url_remote': 'NFC-Basis-URL (Tailscale/Remote)',
             }
-            help_texts = {'qr_base_url': 'z. B. http://192.168.178.20:8000'}
+            help_texts = {
+                'qr_base_url': 'z. B. http://192.168.178.20:8000',
+                'nfc_base_url_local': 'z. B. http://192.168.178.20:8000',
+                'nfc_base_url_remote': 'z. B. https://host.tailnet-xyz.ts.net',
+            }
 
     if request.method == 'POST':
         form = GSForm(request.POST, instance=gs)
@@ -546,6 +562,7 @@ class StorageLocationCreateView(StaffRequiredMixin, CreateView):
         ctx["parent_tree"] = ctx["form"].parent_tree()
         ctx["parent_selected"] = ctx["form"].instance.parent_id
         ctx["is_create"] = True
+        ctx["nfc_url"] = ""
         return ctx
 
     def get_success_url(self):
@@ -563,6 +580,18 @@ class StorageLocationUpdateView(StaffRequiredMixin, UpdateView):
         ctx["parent_tree"] = ctx["form"].parent_tree()
         ctx["parent_selected"] = ctx["form"].instance.parent_id
         ctx["is_create"] = False
+        if self.object.nfc_token:
+            gs = GlobalSettings.objects.first()
+            local_base = gs.nfc_base_url_local if gs else ""
+            remote_base = gs.nfc_base_url_remote if gs else ""
+            base = local_base if self.object.nfc_base_choice == "local" else remote_base
+            if not base:
+                base = self.request.build_absolute_uri("/").rstrip("/")
+            ctx["nfc_url"] = (
+                f"{base.rstrip('/')}{reverse('nfc-location-redirect', kwargs={'token': self.object.nfc_token})}"
+            )
+        else:
+            ctx["nfc_url"] = ""
         return ctx
 
     def get_success_url(self):
@@ -577,6 +606,21 @@ class StorageLocationDeleteView(StaffRequiredMixin, DeleteView):
     def get_success_url(self):
         messages.success(self.request, f"Lagerort „{self.object.name}“ wurde gelöscht.")
         return reverse('admin_storagelocations')
+
+
+@staff_required
+def admin_storagelocation_regenerate_nfc(request, pk):
+    location = get_object_or_404(StorageLocation, pk=pk)
+    base_choice = request.POST.get("nfc_base_choice")
+    if base_choice in dict(StorageLocation.NFC_BASE_CHOICES):
+        location.nfc_base_choice = base_choice
+    token = uuid.uuid4().hex[:16]
+    while StorageLocation.objects.filter(nfc_token=token).exists():
+        token = uuid.uuid4().hex[:16]
+    location.nfc_token = token
+    location.save(update_fields=["nfc_token", "nfc_base_choice"])
+    messages.success(request, "NFC-Token wurde neu erzeugt.")
+    return redirect("admin_storagelocation_edit", pk=pk)
 
 
 # ---------------------------------------------------------------------
