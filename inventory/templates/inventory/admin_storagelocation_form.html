@@ -32,6 +32,12 @@
                 </ol>
               </div>
             </details>
+            {% if not is_create %}
+              <form method="post" action="{% url 'admin_storagelocation_regenerate_nfc' form.instance.pk %}" class="mt-2">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-primary">NFC-Token neu erzeugen</button>
+              </form>
+            {% endif %}
           </div>
           <div class="mb-3">
             <label for="id_nfc_base_choice" class="form-label">NFC-Basis</label>

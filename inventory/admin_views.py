@@ -16,6 +16,7 @@ from django.contrib.auth.models import User
 from barcode import Code128
 from barcode.writer import ImageWriter
 import qrcode
+import uuid
 
 from .models import (
     InventoryItem,
@@ -605,6 +606,18 @@ class StorageLocationDeleteView(StaffRequiredMixin, DeleteView):
     def get_success_url(self):
         messages.success(self.request, f"Lagerort „{self.object.name}“ wurde gelöscht.")
         return reverse('admin_storagelocations')
+
+
+@staff_required
+def admin_storagelocation_regenerate_nfc(request, pk):
+    location = get_object_or_404(StorageLocation, pk=pk)
+    token = uuid.uuid4().hex[:16]
+    while StorageLocation.objects.filter(nfc_token=token).exists():
+        token = uuid.uuid4().hex[:16]
+    location.nfc_token = token
+    location.save(update_fields=["nfc_token"])
+    messages.success(request, "NFC-Token wurde neu erzeugt.")
+    return redirect("admin_storagelocation_edit", pk=pk)
 
 
 # ---------------------------------------------------------------------
