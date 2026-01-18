@@ -485,6 +485,13 @@ class GlobalSettingsListView(StaffRequiredMixin, ListView):
     template_name = 'inventory/admin_globalsettings_list.html'
     context_object_name = 'settings'
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if not qs.exists():
+            GlobalSettings.objects.create()
+            qs = super().get_queryset()
+        return qs
+
 
 @staff_required
 def admin_globalsettings_edit(request, pk):
