@@ -33,11 +33,12 @@
               </div>
             </details>
             {% if not is_create %}
-              <form method="post" action="{% url 'admin_storagelocation_regenerate_nfc' form.instance.pk %}" class="mt-2">
-                {% csrf_token %}
-                <input type="hidden" name="nfc_base_choice" value="{{ form.nfc_base_choice.value }}">
-                <button class="btn btn-sm btn-outline-primary">NFC-Token neu erzeugen</button>
-              </form>
+              <button class="btn btn-sm btn-outline-primary mt-2"
+                      type="submit"
+                      formaction="{% url 'admin_storagelocation_regenerate_nfc' form.instance.pk %}"
+                      formmethod="post">
+                NFC-Token neu erzeugen
+              </button>
             {% endif %}
           </div>
           <div class="mb-3">
