@@ -456,6 +456,10 @@ class RolePermission(models.Model):
 
 # --- Lagerorte Verwaltung --- #
 class StorageLocation(models.Model):
+    NFC_BASE_CHOICES = (
+        ("local", "Lokal"),
+        ("remote", "Tailscale/Remote"),
+    )
     name = models.CharField(max_length=100, db_index=True)
     nfc_token = models.CharField(
         max_length=32,
@@ -465,6 +469,13 @@ class StorageLocation(models.Model):
         db_index=True,
         verbose_name="NFC-Tag Token",
         help_text="Token für NFC-Tags (wird automatisch erzeugt, wenn leer).",
+    )
+    nfc_base_choice = models.CharField(
+        max_length=12,
+        choices=NFC_BASE_CHOICES,
+        default="local",
+        verbose_name="NFC-Basis",
+        help_text="Welche Basis-URL für NFC-Links verwendet werden soll.",
     )
     ha_entity_id = models.CharField(
         max_length=100,

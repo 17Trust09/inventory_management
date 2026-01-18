@@ -92,10 +92,11 @@ class StorageLocationForm(forms.ModelForm):
 
     class Meta:
         model = StorageLocation
-        fields = ["name", "nfc_token", "parent"]
+        fields = ["name", "nfc_token", "nfc_base_choice", "parent"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control form-control-lg"}),
             "nfc_token": forms.TextInput(attrs={"class": "form-control form-control-lg"}),
+            "nfc_base_choice": forms.Select(attrs={"class": "form-control form-control-lg"}),
         }
 
     def _descendant_ids(self, root: StorageLocation) -> set[int]:

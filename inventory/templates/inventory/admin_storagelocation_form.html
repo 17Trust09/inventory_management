@@ -33,6 +33,13 @@
               </div>
             </details>
           </div>
+          <div class="mb-3">
+            <label for="id_nfc_base_choice" class="form-label">NFC-Basis</label>
+            {{ form.nfc_base_choice }}
+            <small class="text-muted d-block mt-1">
+              Wähle, ob der NFC-Link die lokale oder die Tailscale/Remote Basis-URL verwenden soll.
+            </small>
+          </div>
           {% if nfc_url %}
             <div class="mb-3">
               <label class="form-label">NFC-URL</label>

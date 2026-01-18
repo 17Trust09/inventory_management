@@ -106,6 +106,8 @@
           {% if form.instance.pk %}
             <form method="post" action="{% url 'regenerate-nfc' form.instance.id %}" class="mt-2">
               {% csrf_token %}
+              {% if o %}<input type="hidden" name="o" value="{{ o }}">{% endif %}
+              {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
               <button class="btn btn-sm btn-outline-primary">NFC-Token neu erzeugen</button>
             </form>
           {% endif %}

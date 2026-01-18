@@ -580,8 +580,14 @@ class StorageLocationUpdateView(StaffRequiredMixin, UpdateView):
         ctx["parent_selected"] = ctx["form"].instance.parent_id
         ctx["is_create"] = False
         if self.object.nfc_token:
-            ctx["nfc_url"] = self.request.build_absolute_uri(
-                reverse("nfc-location-redirect", kwargs={"token": self.object.nfc_token})
+            gs = GlobalSettings.objects.first()
+            local_base = gs.nfc_base_url_local if gs else ""
+            remote_base = gs.nfc_base_url_remote if gs else ""
+            base = local_base if self.object.nfc_base_choice == "local" else remote_base
+            if not base:
+                base = self.request.build_absolute_uri("/").rstrip("/")
+            ctx["nfc_url"] = (
+                f"{base.rstrip('/')}{reverse('nfc-location-redirect', kwargs={'token': self.object.nfc_token})}"
             )
         else:
             ctx["nfc_url"] = ""
