@@ -35,6 +35,7 @@
             {% if not is_create %}
               <form method="post" action="{% url 'admin_storagelocation_regenerate_nfc' form.instance.pk %}" class="mt-2">
                 {% csrf_token %}
+                <input type="hidden" name="nfc_base_choice" value="{{ form.nfc_base_choice.value }}">
                 <button class="btn btn-sm btn-outline-primary">NFC-Token neu erzeugen</button>
               </form>
             {% endif %}
@@ -72,30 +73,32 @@
       </div>
     </div>
   </div>
-  <div class="col-lg-5">
-    <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
-      <div class="card-body">
-        <h5 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>Hierarchie auswählen</h5>
-        <p class="text-muted mb-3">
-          Klicke auf einen vorhandenen Lagerort, um ihn als übergeordneten Stamm zu setzen.
-          Für einen neuen Hauptordner wähle „Kein übergeordneter Lagerort“.
-        </p>
-        <div class="d-flex flex-wrap gap-2 mb-3">
-          <button type="button" class="btn btn-sm btn-outline-info storage-tree__item" data-parent-id="">
-            Kein übergeordneter Lagerort
-          </button>
-          {% if parent_selected %}
-            <span class="badge bg-success align-self-center">Aktuell ausgewählt</span>
+  {% if is_create %}
+    <div class="col-lg-5">
+      <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+        <div class="card-body">
+          <h5 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>Hierarchie auswählen</h5>
+          <p class="text-muted mb-3">
+            Klicke auf einen vorhandenen Lagerort, um ihn als übergeordneten Stamm zu setzen.
+            Für einen neuen Hauptordner wähle „Kein übergeordneter Lagerort“.
+          </p>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="btn btn-sm btn-outline-info storage-tree__item" data-parent-id="">
+              Kein übergeordneter Lagerort
+            </button>
+            {% if parent_selected %}
+              <span class="badge bg-success align-self-center">Aktuell ausgewählt</span>
+            {% endif %}
+          </div>
+          {% if parent_tree %}
+            {% include "inventory/partials/storage_location_tree.html" with nodes=parent_tree %}
+          {% else %}
+            <div class="text-muted">Noch keine Lagerorte vorhanden.</div>
           {% endif %}
         </div>
-        {% if parent_tree %}
-          {% include "inventory/partials/storage_location_tree.html" with nodes=parent_tree %}
-        {% else %}
-          <div class="text-muted">Noch keine Lagerorte vorhanden.</div>
-        {% endif %}
       </div>
     </div>
-  </div>
+  {% endif %}
 </div>
 
 <style>

@@ -611,11 +611,14 @@ class StorageLocationDeleteView(StaffRequiredMixin, DeleteView):
 @staff_required
 def admin_storagelocation_regenerate_nfc(request, pk):
     location = get_object_or_404(StorageLocation, pk=pk)
+    base_choice = request.POST.get("nfc_base_choice")
+    if base_choice in dict(StorageLocation.NFC_BASE_CHOICES):
+        location.nfc_base_choice = base_choice
     token = uuid.uuid4().hex[:16]
     while StorageLocation.objects.filter(nfc_token=token).exists():
         token = uuid.uuid4().hex[:16]
     location.nfc_token = token
-    location.save(update_fields=["nfc_token"])
+    location.save(update_fields=["nfc_token", "nfc_base_choice"])
     messages.success(request, "NFC-Token wurde neu erzeugt.")
     return redirect("admin_storagelocation_edit", pk=pk)
 
