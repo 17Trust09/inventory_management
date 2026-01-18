@@ -1,12 +1,6 @@
 
--Userprofil so, das man anklicken kann,welche dashboards der user sehen kann. (leer = keine sichtbar = standart)
--Items haben einen Typ tag? nutze die nicht mehr, da sie jetzt einen unsichbaren tag haben.
--User rollen nur zwischen "admin" und "user" unterscheiden.
 -Kosmetische Bereinigungen (html anzeigen vereinheitlichen)
 -versions anzeige
 -system health
-
--QR code geht nciht im dashboard.
-index.html und logout.html noch einbinden.
-Dashboard erstellen in mittlere spalte schieben.
-
+-Lagerort (Ort) im dashbopard soll nur die wirklichen Lagerort (den untersten) anzeigen. wenn man dann drauf drück öffnet sich ein dropdown oder pop up wie mehr details zum lagerort (vollständig) zu sehen ist.
+-Filter für Ort im Dashborad
