@@ -11,3 +11,6 @@ PATCH_NOTES = [
 ]
 
 CURRENT_VERSION = PATCH_NOTES[0]["version"] if PATCH_NOTES else "unbekannt"
+
+# Hinweis: Der neueste Eintrag muss immer oben stehen.
+# Bei Änderungen bitte INVENTORY_VERSION in settings.py und diese Liste aktualisieren.

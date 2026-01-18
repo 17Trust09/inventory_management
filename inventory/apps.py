@@ -10,3 +10,4 @@ class InventoryConfig(AppConfig):
     def ready(self):
         # Signals für UserProfile-Erstellung und Default-Tag/-Group laden
         import inventory.signals
+        import inventory.checks

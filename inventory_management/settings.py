@@ -148,6 +148,11 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'de'
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Versionierung (mit Patch Notes synchron halten)
+# ──────────────────────────────────────────────────────────────────────────────
+INVENTORY_VERSION = "1.0.0"
 TIME_ZONE = 'Europe/Berlin'
 USE_I18N = True
 USE_TZ = True
