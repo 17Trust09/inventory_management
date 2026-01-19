@@ -79,6 +79,9 @@
       <div class="card h-100" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
         <div class="card-body">
           <div class="fw-semibold mb-2">Hotspots (Lagerorte)</div>
+          <div class="text-muted small mb-2">
+            Hotspots ergeben sich aus den Lagerorten mit den meisten Bewegungen im gewählten Zeitraum.
+          </div>
           {% if top_locations %}
             <ol class="mb-0">
               {% for entry in top_locations %}
