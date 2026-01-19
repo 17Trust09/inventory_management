@@ -105,12 +105,13 @@
             </div>
           </details>
           {% if form.instance.pk %}
-            <form method="post" action="{% url 'regenerate-nfc' form.instance.id %}" class="mt-2">
-              {% csrf_token %}
-              {% if o %}<input type="hidden" name="o" value="{{ o }}">{% endif %}
-              {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-              <button class="btn btn-sm btn-outline-primary">NFC-Token neu erzeugen</button>
-            </form>
+            <button class="btn btn-sm btn-outline-primary mt-2"
+                    type="submit"
+                    formmethod="post"
+                    formaction="{% url 'regenerate-nfc' form.instance.id %}"
+                    formnovalidate>
+              NFC-Token neu erzeugen
+            </button>
           {% endif %}
         </div>
         <div class="col-12">
@@ -176,15 +177,13 @@
                 </div>
               {% else %}
                 <p class="text-muted mb-2">Noch kein QR-Code erzeugt.</p>
-                <form method="post"
-                      action="{% url 'regenerate-qr' form.instance.id %}">
-                  {% csrf_token %}
-                  {% if o %}<input type="hidden" name="o" value="{{ o }}">{% endif %}
-                  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-                  <button class="btn btn-sm btn-outline-primary">
-                    QR jetzt erzeugen
-                  </button>
-                </form>
+                <button class="btn btn-sm btn-outline-primary"
+                        type="submit"
+                        formmethod="post"
+                        formaction="{% url 'regenerate-qr' form.instance.id %}"
+                        formnovalidate>
+                  QR jetzt erzeugen
+                </button>
               {% endif %}
             </div>
           </details>
