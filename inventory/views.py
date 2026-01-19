@@ -3,7 +3,7 @@ import os
 import uuid
 from datetime import datetime, timedelta
 from types import SimpleNamespace
-from collections import defaultdict
+from collections import defaultdict, Counter
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy, NoReverseMatch
@@ -29,6 +29,7 @@ from .forms import (
     BorrowItemForm,
     FeedbackForm,
     FeedbackCommentForm,
+    ScheduledExportForm,
 )
 from .models import (
     InventoryItem,
@@ -44,9 +45,12 @@ from .models import (
     Feedback,
     FeedbackComment,
     FeedbackVote,
+    ScheduledExport,
+    ExportRun,
 )
 from .integrations.homeassistant import notify_item_marked
 from .patch_notes import PATCH_NOTES, CURRENT_VERSION
+from .exports import EXPORT_COLUMNS, calculate_next_run, export_overview_to_file, get_export_columns
 
 
 # ---------------------------------------------------------------------------
@@ -261,6 +265,9 @@ def _create_history_entry(
         data_after=data_after,
         meta=meta or {},
     )
+
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -873,27 +880,8 @@ class OverviewExportView(LoginRequiredMixin, View):
             .order_by("name")
         )
 
-        columns = [
-            ("id", "ID", lambda it: it.id),
-            ("name", "Name", lambda it: it.name),
-            ("type", "Typ", lambda it: it.get_item_type_display()),
-            ("quantity", "Bestand", lambda it: it.quantity),
-            ("category", "Kategorie", lambda it: it.category.name if it.category else ""),
-            ("storage_location", "Lagerort", lambda it: it.storage_location.get_full_path() if it.storage_location else ""),
-            ("location_letter", "Ort (Buchstabe)", lambda it: it.location_letter or ""),
-            ("location_number", "Ort (Nummer)", lambda it: it.location_number or ""),
-            ("location_shelf", "Ort (Fach)", lambda it: it.location_shelf or ""),
-            ("min_stock", "Mindestbestand", lambda it: it.low_quantity),
-            ("tags", "Tags", lambda it: ", ".join(sorted(it.application_tags.values_list("name", flat=True)))),
-            ("overview", "Dashboard", lambda it: it.overview.name if it.overview else ""),
-            ("maintenance_date", "Wartungsdatum", lambda it: it.maintenance_date.isoformat() if it.maintenance_date else ""),
-            ("last_used", "Letzte Nutzung", lambda it: it.last_used.isoformat() if it.last_used else ""),
-            ("created_at", "Erstellt am", lambda it: it.date_created.isoformat() if it.date_created else ""),
-        ]
         selected = request.GET.getlist("cols")
-        if selected:
-            selected_set = set(selected)
-            columns = [col for col in columns if col[0] in selected_set]
+        columns = get_export_columns(selected)
         if not columns:
             return HttpResponseBadRequest("Keine Export-Spalten ausgewählt.")
 
@@ -911,6 +899,96 @@ class OverviewExportView(LoginRequiredMixin, View):
             writer.writerow([col[2](item) for col in columns])
 
         return response
+
+
+class ScheduledExportView(LoginRequiredMixin, View):
+    template_name = "inventory/scheduled_exports.html"
+
+    def get(self, request):
+        if not request.user.is_superuser:
+            messages.error(request, "Nur Admins können geplante Exporte verwalten.")
+            return redirect("dashboards")
+
+        form = ScheduledExportForm()
+        schedules = (
+            ScheduledExport.objects.select_related("overview", "created_by")
+            .order_by("-created_at")
+        )
+        runs = ExportRun.objects.select_related("scheduled_export", "scheduled_export__overview")[:20]
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": form,
+                "schedules": schedules,
+                "runs": runs,
+                "export_columns": [(key, label) for key, label, _ in EXPORT_COLUMNS],
+            },
+        )
+
+    def post(self, request):
+        if not request.user.is_superuser:
+            messages.error(request, "Nur Admins können geplante Exporte verwalten.")
+            return redirect("dashboards")
+
+        form = ScheduledExportForm(request.POST)
+        columns = request.POST.getlist("cols")
+        if form.is_valid():
+            schedule = form.save(commit=False)
+            schedule.created_by = request.user
+            schedule.columns = columns
+            schedule.next_run_at = calculate_next_run(schedule.frequency)
+            schedule.save()
+            messages.success(request, "Geplanter Export wurde gespeichert.")
+            return redirect("scheduled-exports")
+
+        schedules = (
+            ScheduledExport.objects.select_related("overview", "created_by")
+            .order_by("-created_at")
+        )
+        runs = ExportRun.objects.select_related("scheduled_export", "scheduled_export__overview")[:20]
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": form,
+                "schedules": schedules,
+                "runs": runs,
+                "export_columns": [(key, label) for key, label, _ in EXPORT_COLUMNS],
+            },
+        )
+
+
+class ScheduledExportRunView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        if not request.user.is_superuser:
+            messages.error(request, "Nur Admins können Exporte starten.")
+            return redirect("dashboards")
+
+        schedule = get_object_or_404(ScheduledExport, pk=pk, is_active=True)
+        run = ExportRun.objects.create(
+            scheduled_export=schedule,
+            status=ExportRun.Status.SUCCESS,
+        )
+        try:
+            file_path = export_overview_to_file(
+                overview=schedule.overview,
+                export_format=schedule.export_format,
+                columns=schedule.columns,
+            )
+            run.file_path = file_path
+            run.save(update_fields=["file_path"])
+            schedule.last_run_at = timezone.now()
+            schedule.next_run_at = calculate_next_run(schedule.frequency, schedule.last_run_at)
+            schedule.save(update_fields=["last_run_at", "next_run_at"])
+            messages.success(request, "Export wurde erstellt.")
+        except Exception as exc:
+            run.status = ExportRun.Status.FAILED
+            run.error_message = str(exc)
+            run.save(update_fields=["status", "error_message"])
+            messages.error(request, "Export fehlgeschlagen.")
+
+        return redirect("scheduled-exports")
 
 
 class MovementReportView(LoginRequiredMixin, TemplateView):
@@ -945,6 +1023,35 @@ class MovementReportView(LoginRequiredMixin, TemplateView):
             except ValueError:
                 days = ""
 
+        item_counts = Counter()
+        location_counts = Counter()
+        for entry in qs.iterator():
+            if entry.item_id:
+                item_counts[entry.item_id] += 1
+            location_id = (entry.data_after or {}).get("storage_location_id")
+            if location_id:
+                location_counts[location_id] += 1
+
+        top_item_ids = [item_id for item_id, _ in item_counts.most_common(5)]
+        top_location_ids = [loc_id for loc_id, _ in location_counts.most_common(5)]
+        item_names = {
+            item.id: item.name
+            for item in InventoryItem.objects.filter(id__in=top_item_ids)
+        }
+        location_names = {
+            loc.id: loc.get_full_path()
+            for loc in StorageLocation.objects.filter(id__in=top_location_ids)
+        }
+
+        top_items = [
+            {"name": item_names.get(item_id, "–"), "count": count}
+            for item_id, count in item_counts.most_common(5)
+        ]
+        top_locations = [
+            {"name": location_names.get(loc_id, "–"), "count": count}
+            for loc_id, count in location_counts.most_common(5)
+        ]
+
         qs = qs.order_by("-created_at")
         paginator = Paginator(qs, 50)
         page_number = self.request.GET.get("page", "1")
@@ -968,6 +1075,8 @@ class MovementReportView(LoginRequiredMixin, TemplateView):
                 "selected_overview": overview_id,
                 "selected_user": user_id,
                 "selected_days": days,
+                "top_items": top_items,
+                "top_locations": top_locations,
             }
         )
         return ctx
@@ -1518,23 +1627,7 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
                     "overview-export",
                     kwargs={"slug": self.overview.slug, "export_format": "excel"},
                 ),
-                "export_columns": [
-                    ("id", "ID"),
-                    ("name", "Name"),
-                    ("type", "Typ"),
-                    ("quantity", "Bestand"),
-                    ("category", "Kategorie"),
-                    ("storage_location", "Lagerort"),
-                    ("location_letter", "Ort (Buchstabe)"),
-                    ("location_number", "Ort (Nummer)"),
-                    ("location_shelf", "Ort (Fach)"),
-                    ("min_stock", "Mindestbestand"),
-                    ("tags", "Tags"),
-                    ("overview", "Dashboard"),
-                    ("maintenance_date", "Wartungsdatum"),
-                    ("last_used", "Letzte Nutzung"),
-                    ("created_at", "Erstellt am"),
-                ],
+                "export_columns": [(key, label) for key, label, _ in EXPORT_COLUMNS],
             }
         )
         return ctx

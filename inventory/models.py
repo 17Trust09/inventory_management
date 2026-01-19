@@ -367,6 +367,69 @@ class InventoryHistory(models.Model):
         return bool(self.data_before)
 
 
+class ScheduledExport(models.Model):
+    class Format(models.TextChoices):
+        CSV = "csv", "CSV"
+        EXCEL = "excel", "Excel (TSV)"
+
+    class Frequency(models.TextChoices):
+        DAILY = "daily", "Täglich"
+        WEEKLY = "weekly", "Wöchentlich"
+        MONTHLY = "monthly", "Monatlich"
+
+    overview = models.ForeignKey(
+        "Overview",
+        on_delete=models.CASCADE,
+        related_name="scheduled_exports",
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="scheduled_exports",
+    )
+    export_format = models.CharField(max_length=12, choices=Format.choices, default=Format.CSV)
+    frequency = models.CharField(max_length=12, choices=Frequency.choices, default=Frequency.WEEKLY)
+    columns = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    last_run_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    next_run_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Geplanter Export"
+        verbose_name_plural = "Geplante Exporte"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Export {self.overview.name} ({self.get_frequency_display()})"
+
+
+class ExportRun(models.Model):
+    class Status(models.TextChoices):
+        SUCCESS = "success", "Erfolgreich"
+        FAILED = "failed", "Fehlgeschlagen"
+
+    scheduled_export = models.ForeignKey(
+        ScheduledExport,
+        on_delete=models.CASCADE,
+        related_name="runs",
+    )
+    status = models.CharField(max_length=12, choices=Status.choices, db_index=True)
+    file_path = models.CharField(max_length=255, blank=True)
+    error_message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Export-Lauf"
+        verbose_name_plural = "Export-Läufe"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Export #{self.id} ({self.get_status_display()})"
+
+
 class Category(models.Model):
     """
     Globale Kategorien – KEINE Unterscheidung mehr nach Equipment/Verbrauchsmaterial.

@@ -64,6 +64,8 @@ urlpatterns = [
     path('dashboards/', views.DashboardSelectorView.as_view(), name='dashboards'),
     path('dashboards/<slug:slug>/', views.OverviewDashboardView.as_view(), name='overview-dashboard'),
     path('dashboards/<slug:slug>/export/<str:export_format>/', views.OverviewExportView.as_view(), name='overview-export'),
+    path('exports/scheduled/', views.ScheduledExportView.as_view(), name='scheduled-exports'),
+    path('exports/scheduled/<int:pk>/run/', views.ScheduledExportRunView.as_view(), name='scheduled-export-run'),
     path('reports/movements/', views.MovementReportView.as_view(), name='movement-report'),
 
     # 4) Feedback

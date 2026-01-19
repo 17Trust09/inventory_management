@@ -49,6 +49,41 @@
     </div>
   </div>
 
+  <div class="row g-3 mb-4">
+    <div class="col-lg-6">
+      <div class="card h-100" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
+        <div class="card-body">
+          <div class="fw-semibold mb-2">Top-Bewegungen (Items)</div>
+          {% if top_items %}
+            <ol class="mb-0">
+              {% for entry in top_items %}
+                <li>{{ entry.name }} <span class="text-muted">({{ entry.count }})</span></li>
+              {% endfor %}
+            </ol>
+          {% else %}
+            <div class="text-muted">Keine Daten vorhanden.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card h-100" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
+        <div class="card-body">
+          <div class="fw-semibold mb-2">Hotspots (Lagerorte)</div>
+          {% if top_locations %}
+            <ol class="mb-0">
+              {% for entry in top_locations %}
+                <li>{{ entry.name }} <span class="text-muted">({{ entry.count }})</span></li>
+              {% endfor %}
+            </ol>
+          {% else %}
+            <div class="text-muted">Keine Daten vorhanden.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
   {% if page_obj %}
     <div class="list-group">
       {% for entry in page_obj %}

@@ -12,7 +12,8 @@ from .models import (
     BorrowedItem,
     StorageLocation,
     Feedback,
-    FeedbackComment
+    FeedbackComment,
+    ScheduledExport,
 )
 
 
@@ -449,3 +450,16 @@ class FeedbackCommentForm(forms.ModelForm):
         for n in visible:
             f = self.fields[n]
             f.widget = forms.Textarea(attrs={"class": "form-control", "rows": 4})
+
+
+class ScheduledExportForm(forms.ModelForm):
+    class Meta:
+        model = ScheduledExport
+        fields = ["overview", "export_format", "frequency", "columns", "is_active"]
+        widgets = {
+            "overview": forms.Select(attrs={"class": "form-control form-control-lg"}),
+            "export_format": forms.Select(attrs={"class": "form-control form-control-lg"}),
+            "frequency": forms.Select(attrs={"class": "form-control form-control-lg"}),
+            "columns": forms.HiddenInput(),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }

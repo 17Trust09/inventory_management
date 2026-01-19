@@ -118,6 +118,11 @@
       <a class="btn btn-outline-light" href="{% url 'movement-report' %}">
         Lagerbewegungen
       </a>
+      {% if request.user.is_superuser %}
+        <a class="btn btn-outline-light" href="{% url 'scheduled-exports' %}">
+          Geplante Exporte
+        </a>
+      {% endif %}
       <a class="btn btn-outline-light"
          href="{{ add_url }}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">
         + Artikel hinzufügen

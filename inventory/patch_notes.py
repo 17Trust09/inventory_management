@@ -1,5 +1,14 @@
 PATCH_NOTES = [
     {
+        "version": "1.0.5",
+        "date": "2026-02-10",
+        "title": "Hotspots & geplante Exporte",
+        "changes": [
+            "Hotspot-Übersicht für Lagerbewegungen ergänzt (Top-Items & Lagerorte).",
+            "Geplante Exporte mit Download-Übersicht und manuellem Ausführen hinzugefügt.",
+        ],
+    },
+    {
         "version": "1.0.4",
         "date": "2026-02-10",
         "title": "Historie erweitert & Export-Optionen",
