@@ -219,126 +219,128 @@
     {% if form.instance.pk %}
     <hr class="my-4">
 
-    <h5>📦 Item in anderes Dashboard verschieben</h5>
-    <form method="post"
-          action="{% url 'move-item-to-overview' form.instance.id %}">
-      {% csrf_token %}
-      <div class="row g-3 align-items-end">
-        <div class="col-md-6">
-          <label class="form-label">Ziel-Dashboard</label>
-          <select name="target_overview"
-                  class="form-select"
-                  required>
-            {% for ov in overview_list %}
-              <option value="{{ ov.id }}"
-                {% if form.instance.overview_id == ov.id %}selected{% endif %}>
-                {{ ov.name }}
-              </option>
+    <details class="mb-3">
+      <summary class="h5 mb-3" style="cursor:pointer;">📦 Item in anderes Dashboard verschieben</summary>
+      <form method="post"
+            action="{% url 'move-item-to-overview' form.instance.id %}">
+        {% csrf_token %}
+        <div class="row g-3 align-items-end">
+          <div class="col-md-6">
+            <label class="form-label">Ziel-Dashboard</label>
+            <select name="target_overview"
+                    class="form-select"
+                    required>
+              {% for ov in overview_list %}
+                <option value="{{ ov.id }}"
+                  {% if form.instance.overview_id == ov.id %}selected{% endif %}>
+                  {{ ov.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <button class="btn btn-warning">
+              Verschieben
+            </button>
+          </div>
+        </div>
+      </form>
+    </details>
+    {% endif %}
+
+    {% if form.instance.pk %}
+    <details>
+      <summary class="h5 mb-3" style="cursor:pointer;">🕒 Verlauf &amp; Timeline</summary>
+      <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-md-4">
+          <label class="form-label">Aktion</label>
+          <select name="history_action" class="form-select">
+            <option value="">Alle</option>
+            {% for value, label in history_action_choices %}
+              <option value="{{ value }}" {% if history_action == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="col-md-4">
-          <button class="btn btn-warning">
-            Verschieben
-          </button>
+          <label class="form-label">Benutzer</label>
+          <select name="history_user" class="form-select">
+            <option value="">Alle</option>
+            {% for u in history_users %}
+              <option value="{{ u.id }}" {% if history_user == u.id|stringformat:'s' %}selected{% endif %}>{{ u.username }}</option>
+            {% endfor %}
+          </select>
         </div>
-      </div>
-    </form>
-    {% endif %}
+        <div class="col-md-3">
+          <label class="form-label">Zeitraum</label>
+          <select name="history_days" class="form-select">
+            <option value="">Gesamt</option>
+            <option value="7" {% if history_days == '7' %}selected{% endif %}>Letzte 7 Tage</option>
+            <option value="30" {% if history_days == '30' %}selected{% endif %}>Letzte 30 Tage</option>
+            <option value="90" {% if history_days == '90' %}selected{% endif %}>Letzte 90 Tage</option>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <button class="btn btn-outline-primary w-100">Filtern</button>
+        </div>
+      </form>
 
-    {% if form.instance.pk %}
-    <hr class="my-4">
-
-    <h5>🕒 Verlauf &amp; Timeline</h5>
-    <form method="get" class="row g-2 align-items-end mb-3">
-      <div class="col-md-4">
-        <label class="form-label">Aktion</label>
-        <select name="history_action" class="form-select">
-          <option value="">Alle</option>
-          {% for value, label in history_action_choices %}
-            <option value="{{ value }}" {% if history_action == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Benutzer</label>
-        <select name="history_user" class="form-select">
-          <option value="">Alle</option>
-          {% for u in history_users %}
-            <option value="{{ u.id }}" {% if history_user == u.id|stringformat:'s' %}selected{% endif %}>{{ u.username }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Zeitraum</label>
-        <select name="history_days" class="form-select">
-          <option value="">Gesamt</option>
-          <option value="7" {% if history_days == '7' %}selected{% endif %}>Letzte 7 Tage</option>
-          <option value="30" {% if history_days == '30' %}selected{% endif %}>Letzte 30 Tage</option>
-          <option value="90" {% if history_days == '90' %}selected{% endif %}>Letzte 90 Tage</option>
-        </select>
-      </div>
-      <div class="col-md-1">
-        <button class="btn btn-outline-primary w-100">Filtern</button>
-      </div>
-    </form>
-
-    {% if history_entries %}
-      <div class="list-group">
-        {% for entry in history_entries %}
-          <div class="list-group-item"
-               style="background:var(--surface); color:var(--text); border:1px solid var(--border);">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <div class="fw-semibold">
-                  {{ entry.get_action_display }}
-                  <span class="text-muted small">• {{ entry.created_at|date:"d.m.Y H:i" }}</span>
-                </div>
-                <div class="text-muted small">
-                  {% if entry.user %}von {{ entry.user.username }}{% else %}System{% endif %}
-                </div>
-                {% if entry.meta.borrower or entry.meta.quantity %}
-                  <div class="text-muted small mt-1">
-                    {% if entry.meta.borrower %}Ausleiher: {{ entry.meta.borrower }}{% endif %}
-                    {% if entry.meta.quantity %} ({{ entry.meta.quantity }}x){% endif %}
+      {% if history_entries %}
+        <div class="list-group">
+          {% for entry in history_entries %}
+            <div class="list-group-item"
+                 style="background:var(--surface); color:var(--text); border:1px solid var(--border);">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-semibold">
+                    {{ entry.get_action_display }}
+                    <span class="text-muted small">• {{ entry.created_at|date:"d.m.Y H:i" }}</span>
                   </div>
+                  <div class="text-muted small">
+                    {% if entry.user %}von {{ entry.user.username }}{% else %}System{% endif %}
+                  </div>
+                  {% if entry.meta.borrower or entry.meta.quantity %}
+                    <div class="text-muted small mt-1">
+                      {% if entry.meta.borrower %}Ausleiher: {{ entry.meta.borrower }}{% endif %}
+                      {% if entry.meta.quantity %} ({{ entry.meta.quantity }}x){% endif %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                {% if user.is_superuser and entry.can_rollback %}
+                  <form method="post" action="{% url 'item-history-rollback' form.instance.id entry.id %}">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-warning"
+                            onclick="return confirm('Rollback wirklich durchführen?');">
+                      Rollback
+                    </button>
+                  </form>
                 {% endif %}
               </div>
 
-              {% if user.is_superuser and entry.can_rollback %}
-                <form method="post" action="{% url 'item-history-rollback' form.instance.id entry.id %}">
-                  {% csrf_token %}
-                  <button class="btn btn-sm btn-outline-warning"
-                          onclick="return confirm('Rollback wirklich durchführen?');">
-                    Rollback
-                  </button>
-                </form>
+              {% if entry.changes %}
+                <ul class="mt-2 mb-0 small">
+                  {% for change in entry.changes %}
+                    <li>
+                      <strong>{{ change.label }}:</strong>
+                      {{ change.before }} → {{ change.after }}
+                      {% if change.delta %}
+                        <span class="{% if change.delta > 0 %}text-success{% else %}text-warning{% endif %}">
+                          (Δ {% if change.delta > 0 %}+{% endif %}{{ change.delta }})
+                        </span>
+                      {% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <div class="text-muted small mt-2">Keine Detailänderungen gespeichert.</div>
               {% endif %}
             </div>
-
-            {% if entry.changes %}
-              <ul class="mt-2 mb-0 small">
-                {% for change in entry.changes %}
-                  <li>
-                    <strong>{{ change.label }}:</strong>
-                    {{ change.before }} → {{ change.after }}
-                    {% if change.delta %}
-                      <span class="{% if change.delta > 0 %}text-success{% else %}text-warning{% endif %}">
-                        (Δ {% if change.delta > 0 %}+{% endif %}{{ change.delta }})
-                      </span>
-                    {% endif %}
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <div class="text-muted small mt-2">Keine Detailänderungen gespeichert.</div>
-            {% endif %}
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="text-muted mb-0">Noch keine Historie vorhanden.</p>
-    {% endif %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted mb-0">Noch keine Historie vorhanden.</p>
+      {% endif %}
+    </details>
     {% endif %}
 
   </div>
