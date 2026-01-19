@@ -47,6 +47,7 @@
                 <th>Aktion</th>
                 <th>Benutzer</th>
                 <th>Datum</th>
+                <th>Details</th>
                 <th class="text-end">Rollback</th>
               </tr>
             </thead>
@@ -57,6 +58,23 @@
                   <td>{{ entry.get_action_display }}</td>
                   <td>{% if entry.user %}{{ entry.user.username }}{% else %}System{% endif %}</td>
                   <td>{{ entry.created_at|date:"d.m.Y H:i" }}</td>
+                  <td>
+                    <details>
+                      <summary style="cursor:pointer;">Details</summary>
+                      {% if entry.changes %}
+                        <ul class="mt-2 mb-0 small">
+                          {% for change in entry.changes %}
+                            <li>
+                              <strong>{{ change.label }}:</strong>
+                              {{ change.before }} → {{ change.after }}
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% else %}
+                        <div class="text-muted small mt-2">Keine Details vorhanden.</div>
+                      {% endif %}
+                    </details>
+                  </td>
                   <td class="text-end">
                     {% if entry.can_rollback %}
                       <form method="post" action="{% url 'admin_history_rollback' entry.id %}">
