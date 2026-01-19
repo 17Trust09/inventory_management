@@ -135,6 +135,10 @@
         {% if global_features.enable_image_upload or global_features.enable_image_library %}
           <div class="col-12">
             <label class="form-label">Bild (optional)</label>
+            <div class="form-text text-muted">
+              Das Bild wird im Dashboard/Overview als Vorschaubild angezeigt.
+              Du kannst ein neues Bild hochladen oder ein vorhandenes aus der Bibliothek wählen.
+            </div>
             {% if global_features.enable_image_upload %}
               {{ form.image }}
             {% else %}
@@ -158,6 +162,10 @@
         {% if form.instance.pk and global_features.enable_attachments %}
           <div class="col-12">
             <label class="form-label">Bild-/Dokumenten-Galerie</label>
+            <div class="form-text text-muted">
+              Mehrere Dateien pro Artikel möglich (z. B. Fotos, Anleitungen, Prüfprotokolle).
+              Nach dem Hochladen kannst du die Dateien hier öffnen.
+            </div>
             <form method="post" action="{% url 'item-attachment-upload' form.instance.id %}" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
               {% csrf_token %}
               <input class="form-control" type="text" name="label" placeholder="Bezeichnung (optional)">
@@ -293,7 +301,7 @@
       </div>
     </form>
 
-    {% if form.instance.pk %}
+    {% if form.instance.pk and global_features.enable_item_move %}
     <hr class="my-4">
 
     <details class="mb-3">
@@ -325,7 +333,7 @@
     </details>
     {% endif %}
 
-    {% if form.instance.pk %}
+    {% if form.instance.pk and global_features.enable_item_history %}
     <details>
       <summary class="h5 mb-3" style="cursor:pointer;">🕒 Verlauf &amp; Timeline</summary>
       <form method="get" class="row g-2 align-items-end mb-3">

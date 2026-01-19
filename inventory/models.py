@@ -120,6 +120,14 @@ class GlobalSettings(models.Model):
         default=True,
         verbose_name="Bulk-Aktionen erlauben",
     )
+    enable_item_move = models.BooleanField(
+        default=True,
+        verbose_name="Item in anderes Dashboard verschieben erlauben",
+    )
+    enable_item_history = models.BooleanField(
+        default=True,
+        verbose_name="Verlauf & Timeline im Item-Edit anzeigen",
+    )
     enable_attachments = models.BooleanField(
         default=True,
         verbose_name="Dokumente/Bilder (Anhänge) erlauben",
