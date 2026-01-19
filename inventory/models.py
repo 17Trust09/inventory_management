@@ -675,6 +675,7 @@ class Overview(models.Model):
     show_images = models.BooleanField(default=True, verbose_name="Bilder anzeigen")
     show_tags = models.BooleanField(default=True, verbose_name="Tags anzeigen")
     enable_mark_button = models.BooleanField(default=False, verbose_name="Markieren-Button anzeigen")
+    enable_advanced_filters = models.BooleanField(default=True, verbose_name="Erweiterte Suche/Filter")
 
     config = models.JSONField(default=dict, blank=True)
 
@@ -703,7 +704,31 @@ class Overview(models.Model):
             "show_images": self.show_images,
             "show_tags": self.show_tags,
             "enable_mark_button": self.enable_mark_button,
+            "enable_advanced_filters": self.enable_advanced_filters,
         }
+
+
+class ItemAttachment(models.Model):
+    item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.CASCADE,
+        related_name="attachments",
+    )
+    label = models.CharField(max_length=120, blank=True)
+    file = models.FileField(upload_to="item_attachments/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+
+    @property
+    def is_image(self) -> bool:
+        name = (self.file.name or "").lower()
+        return name.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"))
+
+    def __str__(self):
+        label = self.label or self.file.name
+        return f"{self.item.name}: {label}"
 
 
 # -------------------------------------------------------------------

@@ -35,6 +35,7 @@ from .feature_flags import get_feature_flags
 from .models import (
     InventoryItem,
     InventoryHistory,
+    ItemAttachment,
     Category,
     UserProfile,
     BorrowedItem,
@@ -716,6 +717,7 @@ class EditItem(LoginRequiredMixin, UpdateView):
                 "history_days": history_days,
                 "history_action_choices": InventoryHistory.Action.choices,
                 "history_users": history_users,
+                "attachments": item.attachments.all(),
             }
         )
         return ctx
@@ -1617,8 +1619,10 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        features = self.overview.features()
         qs = self.base_queryset()
-        qs = self.apply_filters(qs)
+        if features.get("enable_advanced_filters", True):
+            qs = self.apply_filters(qs)
         qs, sort_key, order = self.apply_sort(qs)
 
         try:
@@ -1641,22 +1645,27 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
             .distinct()
         )
         storage_locations.sort(key=lambda loc: loc.get_full_path().lower())
+        favorites = (
+            self.base_queryset()
+            .filter(is_favorite=True)
+            .order_by("name")[:6]
+        )
 
         ctx.update(
             {
                 "overview": self.overview,
-                "features": self.overview.features(),
+                "features": features,
                 "items": page_obj.object_list,
                 "page_obj": page_obj,
                 "paginator": paginator,
                 "per_page": per_page,
-                "q": self.request.GET.get("q", "").strip(),
-                "selected_category": self.request.GET.get("category", ""),
-                "selected_tag": self.request.GET.get("tag", ""),
-                "selected_storage_location": self.request.GET.get("storage_location", ""),
-                "location_letter": self.request.GET.get("location_letter", ""),
-                "location_number": self.request.GET.get("location_number", ""),
-                "only_low": self.request.GET.get("only_low", "") == "1",
+                "q": self.request.GET.get("q", "").strip() if features.get("enable_advanced_filters", True) else "",
+                "selected_category": self.request.GET.get("category", "") if features.get("enable_advanced_filters", True) else "",
+                "selected_tag": self.request.GET.get("tag", "") if features.get("enable_advanced_filters", True) else "",
+                "selected_storage_location": self.request.GET.get("storage_location", "") if features.get("enable_advanced_filters", True) else "",
+                "location_letter": self.request.GET.get("location_letter", "") if features.get("enable_advanced_filters", True) else "",
+                "location_number": self.request.GET.get("location_number", "") if features.get("enable_advanced_filters", True) else "",
+                "only_low": self.request.GET.get("only_low", "") == "1" if features.get("enable_advanced_filters", True) else False,
                 "sort_key": sort_key,
                 "order": order,
                 "next_order": {
@@ -1680,9 +1689,73 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
                     kwargs={"slug": self.overview.slug, "export_format": "excel"},
                 ),
                 "export_columns": [(key, label) for key, label, _ in EXPORT_COLUMNS],
+                "favorites": favorites,
             }
         )
         return ctx
+
+
+class ToggleFavoriteView(LoginRequiredMixin, View):
+    def post(self, request, item_id):
+        item = get_object_or_404(InventoryItem, pk=item_id)
+        if not request.user.is_superuser:
+            allowed = _allowed_overviews_for_user(request.user)
+            if item.overview_id not in allowed.values_list("id", flat=True):
+                messages.error(request, "Kein Zugriff auf diesen Artikel.")
+                return redirect("dashboards")
+
+        item.is_favorite = not item.is_favorite
+        item.save(update_fields=["is_favorite"])
+        messages.success(
+            request,
+            "Favorit gesetzt." if item.is_favorite else "Favorit entfernt.",
+        )
+        return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
+
+
+class BulkItemActionView(LoginRequiredMixin, View):
+    def post(self, request):
+        action = (request.POST.get("action") or "").strip()
+        ids = request.POST.getlist("item_ids")
+        if not ids:
+            messages.warning(request, "Keine Artikel ausgewählt.")
+            return redirect(request.META.get("HTTP_REFERER") or "dashboards")
+
+        items = InventoryItem.objects.filter(id__in=ids)
+        if not request.user.is_superuser:
+            allowed = _allowed_overviews_for_user(request.user)
+            items = items.filter(overview__in=allowed)
+
+        if action == "favorite":
+            items.update(is_favorite=True)
+            messages.success(request, "Ausgewählte Artikel wurden als Favorit markiert.")
+        elif action == "unfavorite":
+            items.update(is_favorite=False)
+            messages.success(request, "Favoriten wurden entfernt.")
+        else:
+            messages.error(request, "Ungültige Bulk-Aktion.")
+
+        return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
+
+
+class ItemAttachmentUploadView(LoginRequiredMixin, View):
+    def post(self, request, item_id):
+        item = get_object_or_404(InventoryItem, pk=item_id)
+        if not request.user.is_superuser:
+            allowed = _allowed_overviews_for_user(request.user)
+            if item.overview_id not in allowed.values_list("id", flat=True):
+                messages.error(request, "Kein Zugriff auf diesen Artikel.")
+                return redirect("dashboards")
+
+        file = request.FILES.get("attachment")
+        if not file:
+            messages.error(request, "Bitte eine Datei auswählen.")
+            return redirect("edit-item", pk=item_id)
+
+        label = (request.POST.get("label") or "").strip()
+        ItemAttachment.objects.create(item=item, file=file, label=label)
+        messages.success(request, "Datei wurde hinzugefügt.")
+        return redirect("edit-item", pk=item_id)
 
 
 # ============================================================================

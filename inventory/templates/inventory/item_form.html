@@ -147,6 +147,35 @@
           {% endif %}
         </div>
 
+        {% if form.instance.pk %}
+          <div class="col-12">
+            <label class="form-label">Bild-/Dokumenten-Galerie</label>
+            <form method="post" action="{% url 'item-attachment-upload' form.instance.id %}" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
+              {% csrf_token %}
+              <input class="form-control" type="text" name="label" placeholder="Bezeichnung (optional)">
+              <input class="form-control" type="file" name="attachment" required>
+              <button class="btn btn-outline-light">Hinzufügen</button>
+            </form>
+            {% if attachments %}
+              <div class="mt-3 d-flex flex-wrap gap-3">
+                {% for attachment in attachments %}
+                  <div class="border rounded p-2 text-center" style="border-color:var(--border); width:140px;">
+                    {% if attachment.is_image %}
+                      <img src="{{ attachment.file.url }}" alt="{{ attachment.label|default:'Bild' }}" class="rounded mb-2" style="width:120px;height:90px;object-fit:cover;">
+                    {% else %}
+                      <div class="mb-2"><i class="bi bi-file-earmark-text" style="font-size:2rem;"></i></div>
+                    {% endif %}
+                    <div class="small text-muted">{{ attachment.label|default:attachment.file.name }}</div>
+                    <a class="btn btn-sm btn-outline-light mt-2" href="{{ attachment.file.url }}" target="_blank" rel="noopener">Öffnen</a>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-muted small mt-2">Noch keine Dateien hinzugefügt.</div>
+            {% endif %}
+          </div>
+        {% endif %}
+
         <div class="col-12">
           <label class="form-label">Wartungs-/Ablaufdatum</label>
           {{ form.maintenance_date }}

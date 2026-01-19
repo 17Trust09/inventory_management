@@ -821,6 +821,7 @@ def admin_overview_create(request):
                 'show_quantity', 'has_locations', 'has_min_stock',
                 'enable_borrow', 'is_consumable_mode', 'require_qr',
                 'enable_quick_adjust', 'show_images', 'show_tags', 'enable_mark_button',
+                'enable_advanced_filters',
                 'config',
             ]
             widgets = {
@@ -859,6 +860,7 @@ def admin_overview_edit(request, pk):
                 'show_quantity', 'has_locations', 'has_min_stock',
                 'enable_borrow', 'is_consumable_mode', 'require_qr',
                 'enable_quick_adjust', 'show_images', 'show_tags', 'enable_mark_button',
+                'enable_advanced_filters',
                 'config',
             ]
             widgets = {
