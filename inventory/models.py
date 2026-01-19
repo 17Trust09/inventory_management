@@ -112,6 +112,34 @@ class GlobalSettings(models.Model):
         default=False,
         verbose_name="Markieren-Button anzeigen",
     )
+    show_favorites = models.BooleanField(
+        default=True,
+        verbose_name="Favoriten & Schnellzugriff anzeigen",
+    )
+    enable_bulk_actions = models.BooleanField(
+        default=True,
+        verbose_name="Bulk-Aktionen erlauben",
+    )
+    enable_attachments = models.BooleanField(
+        default=True,
+        verbose_name="Dokumente/Bilder (Anhänge) erlauben",
+    )
+    enable_image_upload = models.BooleanField(
+        default=True,
+        verbose_name="Bild-Upload erlauben",
+    )
+    enable_image_library = models.BooleanField(
+        default=True,
+        verbose_name="Bild-Bibliothek erlauben",
+    )
+    enable_qr_actions = models.BooleanField(
+        default=True,
+        verbose_name="QR-Aktionen erlauben",
+    )
+    enable_nfc_fields = models.BooleanField(
+        default=True,
+        verbose_name="NFC-Felder anzeigen",
+    )
 
     def __str__(self):
         return "Globale Einstellungen"

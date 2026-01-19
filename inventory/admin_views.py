@@ -677,6 +677,13 @@ def admin_feature_toggles(request):
                 "show_admin_history",
                 "show_scheduled_exports",
                 "show_mark_button",
+                "show_favorites",
+                "enable_bulk_actions",
+                "enable_attachments",
+                "enable_image_upload",
+                "enable_image_library",
+                "enable_qr_actions",
+                "enable_nfc_fields",
             ]
             widgets = {
                 "show_patch_notes": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -685,6 +692,13 @@ def admin_feature_toggles(request):
                 "show_admin_history": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "show_scheduled_exports": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "show_mark_button": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_favorites": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_bulk_actions": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_attachments": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_image_upload": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_image_library": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_qr_actions": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_nfc_fields": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             }
             labels = {
                 "show_patch_notes": "Patch Notes",
@@ -693,6 +707,13 @@ def admin_feature_toggles(request):
                 "show_admin_history": "Historie & Rollback (Admin)",
                 "show_scheduled_exports": "Geplante Exporte",
                 "show_mark_button": "Markieren-Button im Dashboard",
+                "show_favorites": "Favoriten & Schnellzugriff",
+                "enable_bulk_actions": "Bulk-Aktionen",
+                "enable_attachments": "Dokumente/Bilder (Anhänge)",
+                "enable_image_upload": "Bild-Upload",
+                "enable_image_library": "Bild-Bibliothek",
+                "enable_qr_actions": "QR-Aktionen",
+                "enable_nfc_fields": "NFC-Felder",
             }
 
     if request.method == "POST":

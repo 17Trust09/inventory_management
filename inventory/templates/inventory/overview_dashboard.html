@@ -230,7 +230,7 @@
     „Bearbeiten“ – Artikel öffnen; „Verleihen“ – Ausleihe erfassen; „QR“ – QR anzeigen; „DL“ – QR herunterladen; „QR neu“ – QR-Code neu generieren.
   </p>
 
-  {% if favorites %}
+  {% if global_features.show_favorites and favorites %}
     <div class="card mb-3" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
       <div class="card-body">
         <div class="fw-semibold mb-2">⭐ Favoriten & Schnellzugriff</div>
@@ -246,6 +246,7 @@
     </div>
   {% endif %}
 
+  {% if global_features.enable_bulk_actions %}
   <form id="bulk-action-form" method="post" action="{% url 'bulk-item-action' %}">
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -261,15 +262,18 @@
       </div>
     </div>
   </form>
+  {% endif %}
 
   <!-- Tabelle -->
   <div class="table-responsive">
     <table class="table table-striped align-middle table-darkish">
       <thead>
         <tr>
-          <th>
-            <input class="form-check-input" type="checkbox" id="select-all-items">
-          </th>
+          {% if global_features.enable_bulk_actions %}
+            <th>
+              <input class="form-check-input" type="checkbox" id="select-all-items">
+            </th>
+          {% endif %}
           <th><a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=name&order={{ next_order.name }}">Name</a></th>
 
           {% if features.has_locations %}
@@ -296,13 +300,15 @@
       <tbody>
         {% for it in items %}
           <tr>
-            <td>
-              <input class="form-check-input"
-                     type="checkbox"
-                     name="item_ids"
-                     value="{{ it.id }}"
-                     form="bulk-action-form">
-            </td>
+            {% if global_features.enable_bulk_actions %}
+              <td>
+                <input class="form-check-input"
+                       type="checkbox"
+                       name="item_ids"
+                       value="{{ it.id }}"
+                       form="bulk-action-form">
+              </td>
+            {% endif %}
             <td>
               <div class="d-flex align-items-center gap-2">
                 {% if features.show_images and it.image %}
@@ -424,13 +430,15 @@
             <td class="text-end">
               <div class="btn-group" role="group">
                 <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' it.id %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Bearbeiten</a>
-                <form method="post" action="{% url 'toggle-favorite' it.id %}" class="d-inline">
-                  {% csrf_token %}
-                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                  <button class="btn btn-sm {% if it.is_favorite %}btn-outline-warning{% else %}btn-outline-secondary{% endif %}" type="submit">
-                    {% if it.is_favorite %}★ Favorit{% else %}☆ Favorit{% endif %}
-                  </button>
-                </form>
+                {% if global_features.show_favorites %}
+                  <form method="post" action="{% url 'toggle-favorite' it.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button class="btn btn-sm {% if it.is_favorite %}btn-outline-warning{% else %}btn-outline-secondary{% endif %}" type="submit">
+                      {% if it.is_favorite %}★ Favorit{% else %}☆ Favorit{% endif %}
+                    </button>
+                  </form>
+                {% endif %}
                 {% if global_features.show_mark_button and features.enable_mark_button %}
                   <form method="post" action="{% url 'mark-item' it.id %}" class="d-inline">
                     {% csrf_token %}
@@ -439,7 +447,7 @@
                   </form>
                 {% endif %}
 
-                {% if features.require_qr %}
+                {% if features.require_qr and global_features.enable_qr_actions %}
                   {% include 'inventory/modules/qr_actions.html' with item=it %}
                 {% endif %}
 
@@ -496,17 +504,19 @@
       </tbody>
     </table>
   </div>
-  <script>
-    (() => {
-      const selectAll = document.getElementById("select-all-items");
-      if (!selectAll) return;
-      selectAll.addEventListener("change", () => {
-        document.querySelectorAll("input[name='item_ids'][form='bulk-action-form']").forEach((box) => {
-          box.checked = selectAll.checked;
+  {% if global_features.enable_bulk_actions %}
+    <script>
+      (() => {
+        const selectAll = document.getElementById("select-all-items");
+        if (!selectAll) return;
+        selectAll.addEventListener("change", () => {
+          document.querySelectorAll("input[name='item_ids'][form='bulk-action-form']").forEach((box) => {
+            box.checked = selectAll.checked;
+          });
         });
-      });
-    })();
-  </script>
+      })();
+    </script>
+  {% endif %}
 
   <!-- Pagination -->
   <nav aria-label="Paginierung" class="mt-3">

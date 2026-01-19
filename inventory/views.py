@@ -1697,6 +1697,9 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
 
 class ToggleFavoriteView(LoginRequiredMixin, View):
     def post(self, request, item_id):
+        if not get_feature_flags().get("show_favorites", True):
+            messages.error(request, "Favoriten sind aktuell deaktiviert.")
+            return redirect("dashboards")
         item = get_object_or_404(InventoryItem, pk=item_id)
         if not request.user.is_superuser:
             allowed = _allowed_overviews_for_user(request.user)
@@ -1715,6 +1718,9 @@ class ToggleFavoriteView(LoginRequiredMixin, View):
 
 class BulkItemActionView(LoginRequiredMixin, View):
     def post(self, request):
+        if not get_feature_flags().get("enable_bulk_actions", True):
+            messages.error(request, "Bulk-Aktionen sind aktuell deaktiviert.")
+            return redirect("dashboards")
         action = (request.POST.get("action") or "").strip()
         ids = request.POST.getlist("item_ids")
         if not ids:
@@ -1740,12 +1746,15 @@ class BulkItemActionView(LoginRequiredMixin, View):
 
 class ItemAttachmentUploadView(LoginRequiredMixin, View):
     def post(self, request, item_id):
-        item = get_object_or_404(InventoryItem, pk=item_id)
+        if not get_feature_flags().get("enable_attachments", True):
+            messages.error(request, "Anhänge sind aktuell deaktiviert.")
+            return redirect("dashboards")
         if not request.user.is_superuser:
             allowed = _allowed_overviews_for_user(request.user)
-            if item.overview_id not in allowed.values_list("id", flat=True):
+            if not InventoryItem.objects.filter(pk=item_id, overview__in=allowed).exists():
                 messages.error(request, "Kein Zugriff auf diesen Artikel.")
                 return redirect("dashboards")
+        item = get_object_or_404(InventoryItem, pk=item_id)
 
         file = request.FILES.get("attachment")
         if not file:

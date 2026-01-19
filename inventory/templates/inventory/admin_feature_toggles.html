@@ -10,27 +10,81 @@
         Diese Schalter gelten global und steuern, welche Bereiche im UI sichtbar sind.
       </p>
       <div class="alert alert-secondary">
-        <strong>Aktuell steuerbar:</strong>
-        <ul class="mb-0">
-          <li>Patch Notes (Navigation &amp; Seite)</li>
-          <li>Feedback-Board (Navigation &amp; Seiten)</li>
-          <li>Lagerbewegungen (Report &amp; Button im Dashboard)</li>
-          <li>Historie &amp; Rollback im Admin-Bereich</li>
-          <li>Geplante Exporte im Dashboard</li>
-          <li>Markieren-Button im Dashboard</li>
-        </ul>
+        <strong>Aktuell steuerbar (global):</strong>
+        <div class="row row-cols-1 row-cols-md-2 g-3 mt-2">
+          <div class="col">
+            <div class="fw-semibold">Navigation &amp; Seiten</div>
+            <ul class="mb-0">
+              <li>Patch Notes</li>
+              <li>Feedback-Board</li>
+              <li>Lagerbewegungen (Report)</li>
+              <li>Geplante Exporte</li>
+            </ul>
+          </div>
+          <div class="col">
+            <div class="fw-semibold">Admin &amp; Historie</div>
+            <ul class="mb-0">
+              <li>Historie &amp; Rollback (Admin)</li>
+            </ul>
+          </div>
+          <div class="col">
+            <div class="fw-semibold">Dashboard-Funktionen</div>
+            <ul class="mb-0">
+              <li>Markieren-Button</li>
+              <li>Favoriten &amp; Schnellzugriff</li>
+              <li>Bulk-Aktionen</li>
+            </ul>
+          </div>
+          <div class="col">
+            <div class="fw-semibold">Medien &amp; Codes</div>
+            <ul class="mb-0">
+              <li>Bild-Upload</li>
+              <li>Bild-Bibliothek</li>
+              <li>Dokumente/Bilder (Anhänge)</li>
+              <li>QR-Aktionen</li>
+              <li>NFC-Felder</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       <form method="post" class="mt-3">
         {% csrf_token %}
-        {% for field in form %}
-          <div class="form-check form-switch mb-2">
-            {{ field }}
-            <label class="form-check-label" for="{{ field.id_for_label }}">
-              {{ field.label }}
-            </label>
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+          <div class="col">
+            <div class="border rounded p-3 h-100" style="border-color:var(--border);">
+              <div class="fw-semibold mb-2">Navigation &amp; Seiten</div>
+              <div class="form-check form-switch mb-2">{{ form.show_patch_notes }} <label class="form-check-label" for="{{ form.show_patch_notes.id_for_label }}">{{ form.show_patch_notes.label }}</label></div>
+              <div class="form-check form-switch mb-2">{{ form.show_feedback }} <label class="form-check-label" for="{{ form.show_feedback.id_for_label }}">{{ form.show_feedback.label }}</label></div>
+              <div class="form-check form-switch mb-2">{{ form.show_movement_report }} <label class="form-check-label" for="{{ form.show_movement_report.id_for_label }}">{{ form.show_movement_report.label }}</label></div>
+              <div class="form-check form-switch mb-2">{{ form.show_scheduled_exports }} <label class="form-check-label" for="{{ form.show_scheduled_exports.id_for_label }}">{{ form.show_scheduled_exports.label }}</label></div>
+            </div>
           </div>
-        {% endfor %}
+          <div class="col">
+            <div class="border rounded p-3 h-100" style="border-color:var(--border);">
+              <div class="fw-semibold mb-2">Admin &amp; Historie</div>
+              <div class="form-check form-switch mb-2">{{ form.show_admin_history }} <label class="form-check-label" for="{{ form.show_admin_history.id_for_label }}">{{ form.show_admin_history.label }}</label></div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="border rounded p-3 h-100" style="border-color:var(--border);">
+              <div class="fw-semibold mb-2">Dashboard-Funktionen</div>
+              <div class="form-check form-switch mb-2">{{ form.show_mark_button }} <label class="form-check-label" for="{{ form.show_mark_button.id_for_label }}">{{ form.show_mark_button.label }}</label></div>
+              <div class="form-check form-switch mb-2">{{ form.show_favorites }} <label class="form-check-label" for="{{ form.show_favorites.id_for_label }}">{{ form.show_favorites.label }}</label></div>
+              <div class="form-check form-switch mb-2">{{ form.enable_bulk_actions }} <label class="form-check-label" for="{{ form.enable_bulk_actions.id_for_label }}">{{ form.enable_bulk_actions.label }}</label></div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="border rounded p-3 h-100" style="border-color:var(--border);">
+              <div class="fw-semibold mb-2">Medien &amp; Codes</div>
+              <div class="form-check form-switch mb-2">{{ form.enable_image_upload }} <label class="form-check-label" for="{{ form.enable_image_upload.id_for_label }}">{{ form.enable_image_upload.label }}</label></div>
+              <div class="form-check form-switch mb-2">{{ form.enable_image_library }} <label class="form-check-label" for="{{ form.enable_image_library.id_for_label }}">{{ form.enable_image_library.label }}</label></div>
+              <div class="form-check form-switch mb-2">{{ form.enable_attachments }} <label class="form-check-label" for="{{ form.enable_attachments.id_for_label }}">{{ form.enable_attachments.label }}</label></div>
+              <div class="form-check form-switch mb-2">{{ form.enable_qr_actions }} <label class="form-check-label" for="{{ form.enable_qr_actions.id_for_label }}">{{ form.enable_qr_actions.label }}</label></div>
+              <div class="form-check form-switch mb-2">{{ form.enable_nfc_fields }} <label class="form-check-label" for="{{ form.enable_nfc_fields.id_for_label }}">{{ form.enable_nfc_fields.label }}</label></div>
+            </div>
+          </div>
+        </div>
 
         <button class="btn btn-outline-primary mt-3">Speichern</button>
       </form>
