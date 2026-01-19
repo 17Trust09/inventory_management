@@ -261,7 +261,7 @@
           <tr>
             <td>
               <div class="d-flex align-items-center gap-2">
-                {% if it.image %}
+                {% if features.show_images and it.image %}
                     <a href="#" data-bs-toggle="modal" data-bs-target="#imgModal{{ it.id }}">
                       <img src="{{ it.image.url }}" alt="" class="rounded"
                            style="width:48px;height:48px;object-fit:cover;cursor:pointer;">
@@ -285,17 +285,19 @@
 
                 <div class="d-flex flex-column">
                   <span>{{ it.name }}</span>
-                  {% with tags=it.application_tags.all %}
-                    {% if tags|length %}
-                      <small class="text-muted">
-                        {% for t in tags %}
-                          {% if t.name != '-' and t.name|slice:":6" != "__ov::" %}
-                            <span class="badge bg-secondary me-1">{{ t.name }}</span>
-                          {% endif %}
-                        {% endfor %}
-                      </small>
-                    {% endif %}
-                  {% endwith %}
+                  {% if features.show_tags %}
+                    {% with tags=it.application_tags.all %}
+                      {% if tags|length %}
+                        <small class="text-muted">
+                          {% for t in tags %}
+                            {% if t.name != '-' and t.name|slice:":6" != "__ov::" %}
+                              <span class="badge bg-secondary me-1">{{ t.name }}</span>
+                            {% endif %}
+                          {% endfor %}
+                        </small>
+                      {% endif %}
+                    {% endwith %}
+                  {% endif %}
                 </div>
               </div>
             </td>
@@ -378,7 +380,7 @@
             <td class="text-end">
               <div class="btn-group" role="group">
                 <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' it.id %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Bearbeiten</a>
-                {% if global_features.show_mark_button %}
+                {% if global_features.show_mark_button and features.enable_mark_button %}
                   <form method="post" action="{% url 'mark-item' it.id %}" class="d-inline">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">

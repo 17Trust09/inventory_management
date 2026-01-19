@@ -137,6 +137,13 @@
             <label class="form-label mt-2">{{ form.image_pick.label }}</label>
             {{ form.image_pick }}
             <div class="form-text text-muted">Wählt ein bereits hochgeladenes Bild aus der Bibliothek.</div>
+            <div class="mt-2 d-flex align-items-center gap-3">
+              <img id="image-pick-preview"
+                   alt="Vorschau"
+                   class="rounded"
+                   style="width:72px;height:72px;object-fit:cover;display:none;">
+              <span id="image-pick-label" class="text-muted small"></span>
+            </div>
           {% endif %}
         </div>
 
@@ -189,8 +196,36 @@
                         formnovalidate>
                   QR jetzt erzeugen
                 </button>
-              {% endif %}
-            </div>
+      {% endif %}
+    </div>
+    {% if form.image_pick %}
+      <script>
+        (() => {
+          const select = document.getElementById("{{ form.image_pick.id_for_label }}");
+          const preview = document.getElementById("image-pick-preview");
+          const label = document.getElementById("image-pick-label");
+          const mediaBase = "{{ MEDIA_URL|default:'' }}";
+
+          const updatePreview = () => {
+            const value = select?.value || "";
+            if (!value) {
+              preview.style.display = "none";
+              label.textContent = "";
+              preview.removeAttribute("src");
+              return;
+            }
+            preview.src = `${mediaBase}${value}`;
+            preview.style.display = "block";
+            label.textContent = value.split("/").pop();
+          };
+
+          if (select) {
+            select.addEventListener("change", updatePreview);
+            updatePreview();
+          }
+        })();
+      </script>
+    {% endif %}
           </details>
         </div>
         {% endif %}

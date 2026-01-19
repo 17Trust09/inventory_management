@@ -672,6 +672,9 @@ class Overview(models.Model):
     is_consumable_mode = models.BooleanField(default=False, verbose_name="Verbrauchsmaterial-Logik")
     require_qr = models.BooleanField(default=False, verbose_name="QR/Barcode Pflicht")
     enable_quick_adjust = models.BooleanField(default=False, verbose_name="Schnellbestand +/- erlauben")
+    show_images = models.BooleanField(default=True, verbose_name="Bilder anzeigen")
+    show_tags = models.BooleanField(default=True, verbose_name="Tags anzeigen")
+    enable_mark_button = models.BooleanField(default=False, verbose_name="Markieren-Button anzeigen")
 
     config = models.JSONField(default=dict, blank=True)
 
@@ -697,6 +700,9 @@ class Overview(models.Model):
             "is_consumable_mode": self.is_consumable_mode,
             "require_qr": self.require_qr,
             "enable_quick_adjust": self.enable_quick_adjust,
+            "show_images": self.show_images,
+            "show_tags": self.show_tags,
+            "enable_mark_button": self.enable_mark_button,
         }
 
 

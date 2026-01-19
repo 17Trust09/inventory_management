@@ -1057,12 +1057,18 @@ class MovementReportView(LoginRequiredMixin, TemplateView):
 
         item_counts = Counter()
         location_counts = Counter()
+        user_counts = Counter()
+        action_counts = Counter()
         for entry in qs.iterator():
             if entry.item_id:
                 item_counts[entry.item_id] += 1
             location_id = (entry.data_after or {}).get("storage_location_id")
             if location_id:
                 location_counts[location_id] += 1
+            if entry.user_id:
+                user_counts[entry.user_id] += 1
+            if entry.action:
+                action_counts[entry.action] += 1
 
         top_item_ids = [item_id for item_id, _ in item_counts.most_common(5)]
         top_location_ids = [loc_id for loc_id, _ in location_counts.most_common(5)]
@@ -1074,6 +1080,11 @@ class MovementReportView(LoginRequiredMixin, TemplateView):
             loc.id: loc.get_full_path()
             for loc in StorageLocation.objects.filter(id__in=top_location_ids)
         }
+        user_names = {
+            user.id: user.username
+            for user in User.objects.filter(id__in=[user_id for user_id, _ in user_counts.most_common(5)])
+        }
+        action_labels = dict(InventoryHistory.Action.choices)
 
         top_items = [
             {"name": item_names.get(item_id, "–"), "count": count}
@@ -1082,6 +1093,14 @@ class MovementReportView(LoginRequiredMixin, TemplateView):
         top_locations = [
             {"name": location_names.get(loc_id, "–"), "count": count}
             for loc_id, count in location_counts.most_common(5)
+        ]
+        top_users = [
+            {"name": user_names.get(user_id, "–"), "count": count}
+            for user_id, count in user_counts.most_common(5)
+        ]
+        top_actions = [
+            {"name": action_labels.get(action, action), "count": count}
+            for action, count in action_counts.most_common(5)
         ]
 
         qs = qs.order_by("-created_at")
@@ -1108,6 +1127,8 @@ class MovementReportView(LoginRequiredMixin, TemplateView):
                 "action_choices": InventoryHistory.Action.choices,
                 "top_items": top_items,
                 "top_locations": top_locations,
+                "top_users": top_users,
+                "top_actions": top_actions,
             }
         )
         return ctx
