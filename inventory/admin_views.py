@@ -20,6 +20,7 @@ from barcode.writer import ImageWriter
 import qrcode
 import uuid
 import subprocess
+import shutil
 
 from .feature_flags import get_feature_flags
 from .models import (
@@ -773,13 +774,76 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
     }
 
 
+def _get_backup_entries() -> list[dict[str, str]]:
+    backup_root = settings.BASE_DIR / "backup"
+    if not backup_root.exists():
+        return []
+    entries = []
+    for item in sorted(backup_root.iterdir(), reverse=True):
+        if not item.is_dir():
+            continue
+        db_path = item / "db.sqlite3"
+        media_path = item / "media"
+        entries.append(
+            {
+                "name": item.name,
+                "path": str(item),
+                "has_db": db_path.exists(),
+                "has_media": media_path.exists(),
+            }
+        )
+    return entries
+
+
+def _restore_backup(backup_dir: str) -> tuple[bool, str]:
+    backup_path = settings.BASE_DIR / "backup" / backup_dir
+    if not backup_path.exists():
+        return False, "Backup-Verzeichnis nicht gefunden."
+
+    db_source = backup_path / "db.sqlite3"
+    media_source = backup_path / "media"
+    if not db_source.exists():
+        return False, "Backup enthält keine db.sqlite3."
+    if not media_source.exists():
+        return False, "Backup enthält keinen media-Ordner."
+
+    db_target = settings.BASE_DIR / "db.sqlite3"
+    media_target = settings.BASE_DIR / "media"
+
+    try:
+        shutil.copy2(db_source, db_target)
+        if media_target.exists():
+            shutil.rmtree(media_target)
+        shutil.copytree(media_source, media_target)
+    except OSError as exc:
+        return False, f"Rollback fehlgeschlagen: {exc}"
+
+    return True, "Rollback abgeschlossen."
+
+
 @superuser_required
 def admin_updates(request):
     update_output = None
     update_error = None
     update_branch = None
+    rollback_message = None
+    rollback_error = None
 
     if request.method == "POST":
+        if request.POST.get("action") == "rollback":
+            backup_dir = request.POST.get("backup_dir")
+            if not backup_dir:
+                messages.error(request, "Kein Backup ausgewählt.")
+                return redirect("admin_updates")
+            success, message = _restore_backup(backup_dir)
+            if success:
+                rollback_message = message
+                messages.success(request, message)
+            else:
+                rollback_error = message
+                messages.error(request, message)
+            return redirect("admin_updates")
+
         update_branch = request.POST.get("branch")
         if update_branch not in {"main", "dev"}:
             messages.error(request, "Ungültiger Branch für das Update.")
@@ -818,6 +882,9 @@ def admin_updates(request):
         "update_output": update_output,
         "update_error": update_error,
         "update_branch": update_branch,
+        "backup_entries": _get_backup_entries(),
+        "rollback_message": rollback_message,
+        "rollback_error": rollback_error,
     }
     return render(request, "inventory/admin_updates.html", context)
 
