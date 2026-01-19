@@ -8,6 +8,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django import forms
 from django.http import JsonResponse, HttpResponseBadRequest
+from django.utils import timezone
 
 # NEU: wir brauchen den User für die Bearbeitungs-/Löschmaske
 from django.contrib.auth.models import User
@@ -20,6 +21,7 @@ import uuid
 
 from .models import (
     InventoryItem,
+    InventoryHistory,
     BorrowedItem,
     ApplicationTag,
     TagType,
@@ -110,6 +112,109 @@ def admin_tags_overview(request):
     return render(request, 'inventory/admin_tags_overview.html', {
         'tags': tags,
     })
+
+
+# ---------------------------------------------------------------------
+# Historie & Rollback (Admin)
+# ---------------------------------------------------------------------
+@staff_required
+def admin_history_list(request):
+    action = (request.GET.get("action") or "").strip()
+    user_id = (request.GET.get("user") or "").strip()
+    query = (request.GET.get("q") or "").strip()
+
+    history = InventoryHistory.objects.select_related("item", "user").order_by("-created_at")
+    if action:
+        history = history.filter(action=action)
+    if user_id:
+        history = history.filter(user_id=user_id)
+    if query:
+        history = history.filter(item__name__icontains=query)
+
+    users = User.objects.filter(inventory_history_entries__isnull=False).distinct().order_by("username")
+
+    return render(
+        request,
+        "inventory/admin_history_list.html",
+        {
+            "history_entries": history[:200],
+            "action_choices": InventoryHistory.Action.choices,
+            "selected_action": action,
+            "selected_user": user_id,
+            "selected_query": query,
+            "users": users,
+        },
+    )
+
+
+@staff_required
+def admin_history_rollback(request, pk):
+    if request.method != "post" and request.method != "POST":
+        return HttpResponseBadRequest("Ungültige Methode.")
+
+    history = get_object_or_404(InventoryHistory, pk=pk)
+    if not history.data_before:
+        messages.error(request, "Kein Rollback-Zustand vorhanden.")
+        return redirect("admin_history_list")
+
+    item = history.item
+    current = {
+        "name": item.name,
+        "description": item.description,
+        "quantity": item.quantity,
+        "category_id": item.category_id,
+        "storage_location_id": item.storage_location_id,
+        "location_letter": item.location_letter,
+        "location_number": item.location_number,
+        "location_shelf": item.location_shelf,
+        "low_quantity": item.low_quantity,
+        "order_link": item.order_link,
+        "maintenance_date": item.maintenance_date,
+        "overview_id": item.overview_id,
+        "item_type": item.item_type,
+        "is_active": item.is_active,
+        "tags": list(item.application_tags.values_list("id", flat=True)),
+    }
+    target = history.data_before
+
+    item.name = target.get("name")
+    item.description = target.get("description")
+    item.quantity = target.get("quantity") or 0
+    item.category_id = target.get("category_id")
+    item.storage_location_id = target.get("storage_location_id")
+    item.location_letter = target.get("location_letter")
+    item.location_number = target.get("location_number")
+    item.location_shelf = target.get("location_shelf")
+    item.low_quantity = target.get("low_quantity") or 0
+    item.order_link = target.get("order_link")
+    maintenance_date = target.get("maintenance_date")
+    if maintenance_date:
+        try:
+            item.maintenance_date = timezone.datetime.fromisoformat(maintenance_date).date()
+        except ValueError:
+            item.maintenance_date = None
+    else:
+        item.maintenance_date = None
+    item.overview_id = target.get("overview_id")
+    item.item_type = target.get("item_type") or item.item_type
+    item.is_active = target.get("is_active", item.is_active)
+    item.save()
+
+    if "tags" in target:
+        item.application_tags.set(target["tags"])
+
+    InventoryHistory.objects.create(
+        item=item,
+        user=request.user,
+        action=InventoryHistory.Action.ROLLBACK,
+        data_before=current,
+        data_after=target,
+        changes=[],
+        meta={"source_history_id": history.id, "source": "admin"},
+    )
+
+    messages.success(request, "Rollback durchgeführt.")
+    return redirect("admin_history_list")
 
 
 # ---------------------------------------------------------------------

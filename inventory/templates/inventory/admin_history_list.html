@@ -1,0 +1,84 @@
+{% extends 'inventory/admin_base.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="mb-4">🧾 Historie &amp; Rollback</h2>
+
+  <div class="card mb-4" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Suche nach Item</label>
+          <input type="text" class="form-control" name="q" value="{{ selected_query }}" placeholder="Item-Name">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Aktion</label>
+          <select class="form-select" name="action">
+            <option value="">Alle</option>
+            {% for value, label in action_choices %}
+              <option value="{{ value }}" {% if selected_action == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Benutzer</label>
+          <select class="form-select" name="user">
+            <option value="">Alle</option>
+            {% for u in users %}
+              <option value="{{ u.id }}" {% if selected_user == u.id|stringformat:'s' %}selected{% endif %}>{{ u.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-1">
+          <button class="btn btn-outline-primary w-100">Filtern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-body p-0">
+      {% if history_entries %}
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle" style="background:var(--surface); color:var(--text);">
+            <thead style="background:var(--surface-2); color:var(--text);">
+              <tr>
+                <th>Item</th>
+                <th>Aktion</th>
+                <th>Benutzer</th>
+                <th>Datum</th>
+                <th class="text-end">Rollback</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in history_entries %}
+                <tr>
+                  <td>{{ entry.item.name }}</td>
+                  <td>{{ entry.get_action_display }}</td>
+                  <td>{% if entry.user %}{{ entry.user.username }}{% else %}System{% endif %}</td>
+                  <td>{{ entry.created_at|date:"d.m.Y H:i" }}</td>
+                  <td class="text-end">
+                    {% if entry.can_rollback %}
+                      <form method="post" action="{% url 'admin_history_rollback' entry.id %}">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-outline-warning"
+                                onclick="return confirm('Rollback wirklich durchführen?');">
+                          Rollback
+                        </button>
+                      </form>
+                    {% else %}
+                      <span class="text-muted">–</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="p-3 text-muted">Keine Historie gefunden.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

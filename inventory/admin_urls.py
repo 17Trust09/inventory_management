@@ -57,6 +57,10 @@ from .admin_views import (
 
     # Feedback Quick-Action
     admin_feedback_set_status,
+
+    # History
+    admin_history_list,
+    admin_history_rollback,
 )
 
 urlpatterns = [
@@ -81,6 +85,8 @@ urlpatterns = [
     path('items/<int:pk>/delete/', admin_item_delete, name='admin_item_delete'),
     path('borrowed-items/', BorrowedItemListView.as_view(), name='admin_borrowed_items'),
     path('qr-codes/', admin_qr_codes_view, name='admin_qr_codes'),
+    path('history/', admin_history_list, name='admin_history_list'),
+    path('history/<int:pk>/rollback/', admin_history_rollback, name='admin_history_rollback'),
 
     # User Profiles
     path('profiles/', UserProfileListView.as_view(), name='admin_userprofiles_list'),

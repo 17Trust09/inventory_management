@@ -1,5 +1,13 @@
 PATCH_NOTES = [
     {
+        "version": "1.0.6",
+        "date": "2026-02-10",
+        "title": "Admin-Rollback-Übersicht",
+        "changes": [
+            "Neue Admin-Seite für Historie & Rollback hinzugefügt.",
+        ],
+    },
+    {
         "version": "1.0.5",
         "date": "2026-02-10",
         "title": "Hotspots & geplante Exporte",
