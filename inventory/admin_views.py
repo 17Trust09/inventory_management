@@ -885,6 +885,7 @@ def admin_updates(request):
         "backup_entries": _get_backup_entries(),
         "rollback_message": rollback_message,
         "rollback_error": rollback_error,
+        "hide_admin_back": True,
     }
     return render(request, "inventory/admin_updates.html", context)
 
