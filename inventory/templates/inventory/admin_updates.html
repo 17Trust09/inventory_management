@@ -1,0 +1,94 @@
+{% extends 'inventory/admin_base.html' %}
+
+{% block admin_title %}Updates{% endblock %}
+
+{% block admin_content %}
+  <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-body">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+        <div>
+          <h5 class="mb-1">Updates aus Git</h5>
+          <p class="text-muted mb-0">
+            Updates behalten Medien und Datenbank bei. Die Skripte sichern <code>db.sqlite3</code> und <code>media</code> vorab.
+          </p>
+        </div>
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary btn-sm">Zurück zum Admin</a>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">
+          <div class="border rounded p-3 h-100" style="border-color:var(--border);">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="fw-semibold">Main-Branch</div>
+              {% if status_main.error %}
+                <span class="badge bg-warning text-dark">Status unbekannt</span>
+              {% elif status_main.behind_count > 0 %}
+                <span class="badge bg-primary">{{ status_main.behind_count }} Update(s)</span>
+              {% else %}
+                <span class="badge bg-success">Aktuell</span>
+              {% endif %}
+            </div>
+            <p class="text-muted small mb-3">
+              Stabiler Stand aus dem main-Branch. Empfohlen für produktive Systeme.
+            </p>
+            {% if status_main.error %}
+              <div class="alert alert-warning py-2 mb-3">{{ status_main.error }}</div>
+            {% endif %}
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="branch" value="main">
+              <button class="btn btn-outline-light w-100">
+                Update von main starten
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <div class="border rounded p-3 h-100" style="border-color:var(--border);">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="fw-semibold">Dev-Branch</div>
+              {% if status_dev.error %}
+                <span class="badge bg-warning text-dark">Status unbekannt</span>
+              {% elif status_dev.behind_count > 0 %}
+                <span class="badge bg-primary">{{ status_dev.behind_count }} Update(s)</span>
+              {% else %}
+                <span class="badge bg-success">Aktuell</span>
+              {% endif %}
+            </div>
+            <p class="text-muted small mb-3">
+              Aktueller Entwicklungsstand für Tests oder neue Funktionen.
+            </p>
+            {% if status_dev.error %}
+              <div class="alert alert-warning py-2 mb-3">{{ status_dev.error }}</div>
+            {% endif %}
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="branch" value="dev">
+              <button class="btn btn-outline-light w-100">
+                Update von dev starten
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <h6 class="text-uppercase text-muted small mb-2">Letztes Update-Log</h6>
+        {% if update_output or update_error %}
+          {% if update_branch %}
+            <div class="text-muted small mb-2">Branch: {{ update_branch }}</div>
+          {% endif %}
+          {% if update_error %}
+            <pre class="small text-warning mb-2" style="white-space:pre-wrap;">{{ update_error }}</pre>
+          {% endif %}
+          {% if update_output %}
+            <pre class="small text-muted mb-0" style="white-space:pre-wrap;">{{ update_output }}</pre>
+          {% endif %}
+        {% else %}
+          <div class="text-muted small">Noch keine Updates ausgeführt.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

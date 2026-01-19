@@ -2,6 +2,7 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, NoReverseMatch
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
@@ -18,6 +19,7 @@ from barcode import Code128
 from barcode.writer import ImageWriter
 import qrcode
 import uuid
+import subprocess
 
 from .feature_flags import get_feature_flags
 from .models import (
@@ -732,6 +734,92 @@ def admin_feature_toggles(request):
         form = FeatureToggleForm(instance=settings)
 
     return render(request, "inventory/admin_feature_toggles.html", {"form": form})
+
+
+def _get_git_status(branch: str) -> dict[str, str | int]:
+    base_dir = settings.BASE_DIR
+    fetch = subprocess.run(
+        ["git", "fetch", "origin", branch],
+        cwd=base_dir,
+        capture_output=True,
+        text=True,
+    )
+    if fetch.returncode != 0:
+        return {
+            "branch": branch,
+            "error": fetch.stderr.strip() or fetch.stdout.strip() or "Git fetch fehlgeschlagen.",
+        }
+
+    rev_list = subprocess.run(
+        ["git", "rev-list", "--count", f"{branch}..origin/{branch}"],
+        cwd=base_dir,
+        capture_output=True,
+        text=True,
+    )
+    if rev_list.returncode != 0:
+        return {
+            "branch": branch,
+            "error": rev_list.stderr.strip() or rev_list.stdout.strip() or "Git-Status konnte nicht ermittelt werden.",
+        }
+
+    try:
+        behind_count = int(rev_list.stdout.strip())
+    except ValueError:
+        behind_count = 0
+
+    return {
+        "branch": branch,
+        "behind_count": behind_count,
+    }
+
+
+@superuser_required
+def admin_updates(request):
+    update_output = None
+    update_error = None
+    update_branch = None
+
+    if request.method == "POST":
+        update_branch = request.POST.get("branch")
+        if update_branch not in {"main", "dev"}:
+            messages.error(request, "Ungültiger Branch für das Update.")
+            return redirect("admin_updates")
+
+        status = _get_git_status(update_branch)
+        if status.get("error"):
+            messages.error(request, f"Update-Check fehlgeschlagen: {status['error']}")
+            return redirect("admin_updates")
+
+        if status.get("behind_count", 0) == 0:
+            messages.info(request, f"{update_branch} ist bereits aktuell.")
+            return redirect("admin_updates")
+
+        script_path = settings.BASE_DIR / f"update_from_{update_branch}.sh"
+        if not script_path.exists():
+            messages.error(request, f"Update-Skript fehlt: {script_path}")
+            return redirect("admin_updates")
+
+        result = subprocess.run(
+            ["bash", str(script_path)],
+            cwd=settings.BASE_DIR,
+            capture_output=True,
+            text=True,
+        )
+        update_output = (result.stdout or "").strip()
+        update_error = (result.stderr or "").strip()
+        if result.returncode == 0:
+            messages.success(request, f"Update von {update_branch} gestartet.")
+        else:
+            messages.error(request, f"Update von {update_branch} fehlgeschlagen (Exit-Code {result.returncode}).")
+
+    context = {
+        "status_main": _get_git_status("main"),
+        "status_dev": _get_git_status("dev"),
+        "update_output": update_output,
+        "update_error": update_error,
+        "update_branch": update_branch,
+    }
+    return render(request, "inventory/admin_updates.html", context)
 
 
 # ---------------------------------------------------------------------
