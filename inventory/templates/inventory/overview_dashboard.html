@@ -378,11 +378,13 @@
             <td class="text-end">
               <div class="btn-group" role="group">
                 <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' it.id %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Bearbeiten</a>
-                <form method="post" action="{% url 'mark-item' it.id %}" class="d-inline">
-                  {% csrf_token %}
-                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                  <button class="btn btn-sm btn-outline-warning" type="submit">Markieren</button>
-                </form>
+                {% if global_features.show_mark_button %}
+                  <form method="post" action="{% url 'mark-item' it.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button class="btn btn-sm btn-outline-warning" type="submit">Markieren</button>
+                  </form>
+                {% endif %}
 
                 {% if features.require_qr %}
                   {% include 'inventory/modules/qr_actions.html' with item=it %}

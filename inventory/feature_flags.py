@@ -11,6 +11,7 @@ DEFAULT_FEATURE_FLAGS = {
     "show_movement_report": True,
     "show_admin_history": True,
     "show_scheduled_exports": True,
+    "show_mark_button": False,
 }
 
 
@@ -25,6 +26,7 @@ def get_feature_flags() -> dict[str, bool]:
                 "show_movement_report": settings.show_movement_report,
                 "show_admin_history": settings.show_admin_history,
                 "show_scheduled_exports": settings.show_scheduled_exports,
+                "show_mark_button": settings.show_mark_button,
             }
         )
     return flags

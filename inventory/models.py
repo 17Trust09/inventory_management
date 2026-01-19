@@ -108,6 +108,10 @@ class GlobalSettings(models.Model):
         default=True,
         verbose_name="Geplante Exporte anzeigen",
     )
+    show_mark_button = models.BooleanField(
+        default=False,
+        verbose_name="Markieren-Button anzeigen",
+    )
 
     def __str__(self):
         return "Globale Einstellungen"

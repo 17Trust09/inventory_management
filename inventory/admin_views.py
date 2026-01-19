@@ -676,6 +676,7 @@ def admin_feature_toggles(request):
                 "show_movement_report",
                 "show_admin_history",
                 "show_scheduled_exports",
+                "show_mark_button",
             ]
             widgets = {
                 "show_patch_notes": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -683,6 +684,7 @@ def admin_feature_toggles(request):
                 "show_movement_report": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "show_admin_history": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "show_scheduled_exports": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_mark_button": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             }
             labels = {
                 "show_patch_notes": "Patch Notes",
@@ -690,6 +692,7 @@ def admin_feature_toggles(request):
                 "show_movement_report": "Lagerbewegungen",
                 "show_admin_history": "Historie & Rollback (Admin)",
                 "show_scheduled_exports": "Geplante Exporte",
+                "show_mark_button": "Markieren-Button im Dashboard",
             }
 
     if request.method == "POST":
