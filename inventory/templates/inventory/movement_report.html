@@ -11,6 +11,15 @@
   <div class="card mb-4" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
     <div class="card-body">
       <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">Aktion</label>
+          <select class="form-select" name="action">
+            <option value="">Alle</option>
+            {% for value, label in action_choices %}
+              <option value="{{ value }}" {% if selected_action == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
         <div class="col-md-4">
           <label class="form-label">Dashboard</label>
           <select class="form-select" name="overview">
@@ -22,7 +31,7 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label class="form-label">Benutzer</label>
           <select class="form-select" name="user">
             <option value="">Alle</option>
@@ -33,7 +42,7 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label class="form-label">Zeitraum</label>
           <select class="form-select" name="days">
             <option value="">Gesamt</option>
@@ -100,7 +109,7 @@
                 {% if entry.user %}• {{ entry.user.username }}{% endif %}
               </div>
             </div>
-            <span class="badge bg-info text-dark">Lagerbewegung</span>
+            <span class="badge bg-info text-dark">{{ entry.get_action_display }}</span>
           </div>
 
           {% if entry.changes %}

@@ -996,7 +996,8 @@ class MovementReportView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        qs = InventoryHistory.objects.filter(action=InventoryHistory.Action.MOVEMENT).select_related(
+        action = (self.request.GET.get("action") or "").strip()
+        qs = InventoryHistory.objects.select_related(
             "item",
             "user",
             "item__overview",
@@ -1011,6 +1012,8 @@ class MovementReportView(LoginRequiredMixin, TemplateView):
         user_id = (self.request.GET.get("user") or "").strip()
         days = (self.request.GET.get("days") or "").strip()
 
+        if action:
+            qs = qs.filter(action=action)
         if overview_id:
             qs = qs.filter(item__overview_id=overview_id)
         if user_id:
@@ -1058,10 +1061,7 @@ class MovementReportView(LoginRequiredMixin, TemplateView):
         page_obj = paginator.get_page(page_number)
 
         users = (
-            User.objects.filter(
-                inventory_history_entries__action=InventoryHistory.Action.MOVEMENT,
-                inventory_history_entries__item__overview__in=allowed_overviews,
-            )
+            User.objects.filter(inventory_history_entries__item__overview__in=allowed_overviews)
             .distinct()
             .order_by("username")
         )
@@ -1075,6 +1075,8 @@ class MovementReportView(LoginRequiredMixin, TemplateView):
                 "selected_overview": overview_id,
                 "selected_user": user_id,
                 "selected_days": days,
+                "selected_action": action,
+                "action_choices": InventoryHistory.Action.choices,
                 "top_items": top_items,
                 "top_locations": top_locations,
             }

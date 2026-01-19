@@ -1,5 +1,13 @@
 PATCH_NOTES = [
     {
+        "version": "1.0.7",
+        "date": "2026-02-10",
+        "title": "Bewegungs-Report erweitert",
+        "changes": [
+            "Lagerbewegungs-Report zeigt jetzt alle Änderungen mit Filter nach Aktion.",
+        ],
+    },
+    {
         "version": "1.0.6",
         "date": "2026-02-10",
         "title": "Admin-Rollback-Übersicht",
