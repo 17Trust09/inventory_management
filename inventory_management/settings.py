@@ -90,6 +90,7 @@ TEMPLATES = [
                 'django.template.context_processors.media',
                 # NEU: aktive Overviews global verfügbar (für Navbar/Sidebar)
                 'inventory.context_processors.active_overviews',
+                'inventory.context_processors.global_features',
             ],
         },
     },

@@ -31,6 +31,7 @@ from .forms import (
     FeedbackCommentForm,
     ScheduledExportForm,
 )
+from .feature_flags import get_feature_flags
 from .models import (
     InventoryItem,
     InventoryHistory,
@@ -280,7 +281,10 @@ class DashboardSelectorView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         allowed = _allowed_overviews_for_user(self.request.user)
         ctx["overviews"] = list(allowed)
-        ctx["latest_feedback"] = list(Feedback.objects.order_by("-created_at")[:3])
+        if _feature_enabled("show_feedback"):
+            ctx["latest_feedback"] = list(Feedback.objects.order_by("-created_at")[:3])
+        else:
+            ctx["latest_feedback"] = []
         return ctx
 
 
@@ -299,12 +303,22 @@ def dashboards(request):
     return render(request, "inventory/dashboards.html", {"overviews": overviews})
 
 
+def _feature_enabled(flag_name: str) -> bool:
+    return get_feature_flags().get(flag_name, True)
+
+
 class Index(TemplateView):
     template_name = "inventory/index.html"
 
 
 class PatchNotesView(TemplateView):
     template_name = "inventory/patch_notes.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _feature_enabled("show_patch_notes"):
+            messages.error(request, "Patch Notes sind aktuell deaktiviert.")
+            return redirect("dashboards")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -908,6 +922,9 @@ class ScheduledExportView(LoginRequiredMixin, View):
         if not request.user.is_superuser:
             messages.error(request, "Nur Admins können geplante Exporte verwalten.")
             return redirect("dashboards")
+        if not _feature_enabled("show_scheduled_exports"):
+            messages.error(request, "Geplante Exporte sind aktuell deaktiviert.")
+            return redirect("dashboards")
 
         form = ScheduledExportForm()
         schedules = (
@@ -929,6 +946,9 @@ class ScheduledExportView(LoginRequiredMixin, View):
     def post(self, request):
         if not request.user.is_superuser:
             messages.error(request, "Nur Admins können geplante Exporte verwalten.")
+            return redirect("dashboards")
+        if not _feature_enabled("show_scheduled_exports"):
+            messages.error(request, "Geplante Exporte sind aktuell deaktiviert.")
             return redirect("dashboards")
 
         form = ScheduledExportForm(request.POST)
@@ -964,6 +984,9 @@ class ScheduledExportRunView(LoginRequiredMixin, View):
         if not request.user.is_superuser:
             messages.error(request, "Nur Admins können Exporte starten.")
             return redirect("dashboards")
+        if not _feature_enabled("show_scheduled_exports"):
+            messages.error(request, "Geplante Exporte sind aktuell deaktiviert.")
+            return redirect("dashboards")
 
         schedule = get_object_or_404(ScheduledExport, pk=pk, is_active=True)
         run = ExportRun.objects.create(
@@ -993,6 +1016,12 @@ class ScheduledExportRunView(LoginRequiredMixin, View):
 
 class MovementReportView(LoginRequiredMixin, TemplateView):
     template_name = "inventory/movement_report.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _feature_enabled("show_movement_report"):
+            messages.error(request, "Lagerbewegungen sind aktuell deaktiviert.")
+            return redirect("dashboards")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -1644,6 +1673,12 @@ class FeedbackListView(LoginRequiredMixin, ListView):
     context_object_name = "feedback_list"
     paginate_by = 20
 
+    def dispatch(self, request, *args, **kwargs):
+        if not _feature_enabled("show_feedback"):
+            messages.error(request, "Feedback ist aktuell deaktiviert.")
+            return redirect("dashboards")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
         qs = Feedback.objects.select_related("created_by", "assignee").order_by("-created_at")
         status_param = (self.request.GET.get("status") or "").strip().lower()
@@ -1677,6 +1712,12 @@ class FeedbackListView(LoginRequiredMixin, ListView):
 class FeedbackDetailView(LoginRequiredMixin, TemplateView):
     template_name = "inventory/feedback_detail.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        if not _feature_enabled("show_feedback"):
+            messages.error(request, "Feedback ist aktuell deaktiviert.")
+            return redirect("dashboards")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fb = get_object_or_404(
@@ -1702,10 +1743,16 @@ class FeedbackDetailView(LoginRequiredMixin, TemplateView):
 
 class FeedbackCreateView(LoginRequiredMixin, View):
     def get(self, request):
+        if not _feature_enabled("show_feedback"):
+            messages.error(request, "Feedback ist aktuell deaktiviert.")
+            return redirect("dashboards")
         form = FeedbackForm()
         return render(request, "inventory/feedback_form.html", {"form": form})
 
     def post(self, request):
+        if not _feature_enabled("show_feedback"):
+            messages.error(request, "Feedback ist aktuell deaktiviert.")
+            return redirect("dashboards")
         form = FeedbackForm(request.POST)
         if form.is_valid():
             fb = form.save(commit=False)
@@ -1718,6 +1765,9 @@ class FeedbackCreateView(LoginRequiredMixin, View):
 
 class FeedbackVoteView(LoginRequiredMixin, View):
     def post(self, request, pk):
+        if not _feature_enabled("show_feedback"):
+            messages.error(request, "Feedback ist aktuell deaktiviert.")
+            return redirect("dashboards")
         fb = get_object_or_404(Feedback, pk=pk)
         v = (request.GET.get("v") or request.POST.get("v") or "").strip().lower()
         value = 1 if v == "up" else -1 if v == "down" else None
@@ -1744,6 +1794,9 @@ class FeedbackVoteView(LoginRequiredMixin, View):
 
 class FeedbackCommentCreateView(LoginRequiredMixin, View):
     def post(self, request, pk):
+        if not _feature_enabled("show_feedback"):
+            messages.error(request, "Feedback ist aktuell deaktiviert.")
+            return redirect("dashboards")
         fb = get_object_or_404(Feedback, pk=pk)
         form = FeedbackCommentForm(request.POST)
         if form.is_valid():

@@ -41,6 +41,7 @@ from .admin_views import (
     # Global Settings
     GlobalSettingsListView,
     admin_globalsettings_edit,
+    admin_feature_toggles,
 
     # Storage Locations
     StorageLocationListView,
@@ -104,6 +105,7 @@ urlpatterns = [
     # Global Settings
     path('settings/', GlobalSettingsListView.as_view(), name='admin_global_settings'),
     path('settings/<int:pk>/edit/', admin_globalsettings_edit, name='admin_globalsettings_edit'),
+    path('feature-toggles/', admin_feature_toggles, name='admin_feature_toggles'),
 
     # Storage Locations
     path('storage-locations/', StorageLocationListView.as_view(), name='admin_storagelocations'),

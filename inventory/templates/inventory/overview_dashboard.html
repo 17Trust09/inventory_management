@@ -115,10 +115,12 @@
     </div>
 
     <div class="d-flex align-items-center gap-2 flex-wrap">
-      <a class="btn btn-outline-light" href="{% url 'movement-report' %}">
-        Lagerbewegungen
-      </a>
-      {% if request.user.is_superuser %}
+      {% if global_features.show_movement_report %}
+        <a class="btn btn-outline-light" href="{% url 'movement-report' %}">
+          Lagerbewegungen
+        </a>
+      {% endif %}
+      {% if global_features.show_scheduled_exports and request.user.is_superuser %}
         <a class="btn btn-outline-light" href="{% url 'scheduled-exports' %}">
           Geplante Exporte
         </a>

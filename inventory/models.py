@@ -88,6 +88,26 @@ class GlobalSettings(models.Model):
         default="",
         help_text="Remote/Tailscale Basis-URL für NFC-Links, z. B. https://host.tailnet-xyz.ts.net",
     )
+    show_patch_notes = models.BooleanField(
+        default=True,
+        verbose_name="Patch Notes anzeigen",
+    )
+    show_feedback = models.BooleanField(
+        default=True,
+        verbose_name="Feedback-Board anzeigen",
+    )
+    show_movement_report = models.BooleanField(
+        default=True,
+        verbose_name="Lagerbewegungen anzeigen",
+    )
+    show_admin_history = models.BooleanField(
+        default=True,
+        verbose_name="Admin-Historie & Rollback anzeigen",
+    )
+    show_scheduled_exports = models.BooleanField(
+        default=True,
+        verbose_name="Geplante Exporte anzeigen",
+    )
 
     def __str__(self):
         return "Globale Einstellungen"

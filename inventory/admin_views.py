@@ -19,6 +19,7 @@ from barcode.writer import ImageWriter
 import qrcode
 import uuid
 
+from .feature_flags import get_feature_flags
 from .models import (
     InventoryItem,
     InventoryHistory,
@@ -41,9 +42,16 @@ from .forms import StorageLocationForm
 def _is_staff_or_super(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
 
+def _is_superuser(user):
+    return user.is_authenticated and user.is_superuser
+
 def staff_required(view_func):
     """Decorator für FBVs: lässt nur is_staff/is_superuser rein."""
     return user_passes_test(_is_staff_or_super, login_url="login")(view_func)
+
+def superuser_required(view_func):
+    """Decorator für FBVs: lässt nur Superuser rein."""
+    return user_passes_test(_is_superuser, login_url="login")(view_func)
 
 class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Mixin für CBVs: lässt nur is_staff/is_superuser rein."""
@@ -54,6 +62,18 @@ class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         messages.error(self.request, "Kein Zugriff. Bitte als Admin anmelden.")
         return redirect("login")
 
+class SuperuserRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Mixin für CBVs: lässt nur Superuser rein."""
+    def test_func(self):
+        return _is_superuser(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Kein Zugriff. Bitte als Superuser anmelden.")
+        return redirect("login")
+
+
+def _feature_enabled(flag_name: str) -> bool:
+    return get_feature_flags().get(flag_name, True)
 
 # ---------------------------------------------------------------------
 # FORMS
@@ -119,6 +139,9 @@ def admin_tags_overview(request):
 # ---------------------------------------------------------------------
 @staff_required
 def admin_history_list(request):
+    if not _feature_enabled("show_admin_history"):
+        messages.error(request, "Historie & Rollback sind aktuell deaktiviert.")
+        return redirect("admin_dashboard")
     action = (request.GET.get("action") or "").strip()
     user_id = (request.GET.get("user") or "").strip()
     query = (request.GET.get("q") or "").strip()
@@ -149,6 +172,9 @@ def admin_history_list(request):
 
 @staff_required
 def admin_history_rollback(request, pk):
+    if not _feature_enabled("show_admin_history"):
+        messages.error(request, "Historie & Rollback sind aktuell deaktiviert.")
+        return redirect("admin_dashboard")
     if request.method != "post" and request.method != "POST":
         return HttpResponseBadRequest("Ungültige Methode.")
 
@@ -633,6 +659,49 @@ def admin_globalsettings_edit(request, pk):
         form = GSForm(instance=gs)
 
     return render(request, 'inventory/admin_globalsettings_form.html', {'form': form})
+
+
+@superuser_required
+def admin_feature_toggles(request):
+    settings = GlobalSettings.objects.first()
+    if not settings:
+        settings = GlobalSettings.objects.create()
+
+    class FeatureToggleForm(forms.ModelForm):
+        class Meta:
+            model = GlobalSettings
+            fields = [
+                "show_patch_notes",
+                "show_feedback",
+                "show_movement_report",
+                "show_admin_history",
+                "show_scheduled_exports",
+            ]
+            widgets = {
+                "show_patch_notes": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_feedback": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_movement_report": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_admin_history": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_scheduled_exports": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            }
+            labels = {
+                "show_patch_notes": "Patch Notes",
+                "show_feedback": "Feedback-Board",
+                "show_movement_report": "Lagerbewegungen",
+                "show_admin_history": "Historie & Rollback (Admin)",
+                "show_scheduled_exports": "Geplante Exporte",
+            }
+
+    if request.method == "POST":
+        form = FeatureToggleForm(request.POST, instance=settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Feature-Schalter wurden gespeichert.")
+            return redirect("admin_feature_toggles")
+    else:
+        form = FeatureToggleForm(instance=settings)
+
+    return render(request, "inventory/admin_feature_toggles.html", {"form": form})
 
 
 # ---------------------------------------------------------------------
