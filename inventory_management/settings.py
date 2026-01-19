@@ -10,6 +10,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # .env laden
 load_dotenv(BASE_DIR / ".env")
 
+# Optional: Pfad zum Git-Repository für Updates (falls Django-Projekt nicht im Repo liegt)
+UPDATE_REPO_DIR = Path(os.getenv('UPDATE_REPO_DIR', str(BASE_DIR)))
+
 # Home Assistant (nur aus ENV; keine Hardcodes)
 HA_API_TOKEN = os.getenv('HA_API_TOKEN', '')  # Long-Lived Token in .env
 HA_URL = os.getenv('HA_URL', 'http://homeassistant.local:8123')

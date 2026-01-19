@@ -738,7 +738,15 @@ def admin_feature_toggles(request):
 
 
 def _get_git_status(branch: str) -> dict[str, str | int]:
-    base_dir = settings.BASE_DIR
+    base_dir = settings.UPDATE_REPO_DIR
+    if not (base_dir / ".git").exists():
+        return {
+            "branch": branch,
+            "error": (
+                "Kein Git-Repository gefunden. "
+                "Bitte UPDATE_REPO_DIR in der .env setzen."
+            ),
+        }
     fetch = subprocess.run(
         ["git", "fetch", "origin", branch],
         cwd=base_dir,
@@ -775,7 +783,7 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
 
 
 def _get_backup_entries() -> list[dict[str, str]]:
-    backup_root = settings.BASE_DIR / "backup"
+    backup_root = settings.UPDATE_REPO_DIR / "backup"
     if not backup_root.exists():
         return []
     entries = []
@@ -796,7 +804,7 @@ def _get_backup_entries() -> list[dict[str, str]]:
 
 
 def _restore_backup(backup_dir: str) -> tuple[bool, str]:
-    backup_path = settings.BASE_DIR / "backup" / backup_dir
+    backup_path = settings.UPDATE_REPO_DIR / "backup" / backup_dir
     if not backup_path.exists():
         return False, "Backup-Verzeichnis nicht gefunden."
 
@@ -807,8 +815,8 @@ def _restore_backup(backup_dir: str) -> tuple[bool, str]:
     if not media_source.exists():
         return False, "Backup enthält keinen media-Ordner."
 
-    db_target = settings.BASE_DIR / "db.sqlite3"
-    media_target = settings.BASE_DIR / "media"
+    db_target = settings.UPDATE_REPO_DIR / "db.sqlite3"
+    media_target = settings.UPDATE_REPO_DIR / "media"
 
     try:
         shutil.copy2(db_source, db_target)
@@ -858,14 +866,14 @@ def admin_updates(request):
             messages.info(request, f"{update_branch} ist bereits aktuell.")
             return redirect("admin_updates")
 
-        script_path = settings.BASE_DIR / f"update_from_{update_branch}.sh"
+        script_path = settings.UPDATE_REPO_DIR / f"update_from_{update_branch}.sh"
         if not script_path.exists():
             messages.error(request, f"Update-Skript fehlt: {script_path}")
             return redirect("admin_updates")
 
         result = subprocess.run(
             ["bash", str(script_path)],
-            cwd=settings.BASE_DIR,
+            cwd=settings.UPDATE_REPO_DIR,
             capture_output=True,
             text=True,
         )
@@ -885,6 +893,7 @@ def admin_updates(request):
         "backup_entries": _get_backup_entries(),
         "rollback_message": rollback_message,
         "rollback_error": rollback_error,
+        "update_repo_dir": settings.UPDATE_REPO_DIR,
         "hide_admin_back": True,
     }
     return render(request, "inventory/admin_updates.html", context)
