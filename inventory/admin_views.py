@@ -829,7 +829,7 @@ def admin_overview_create(request):
                 'description': forms.Textarea(attrs={'class': 'form-control form-control-lg', 'rows': 3}),
                 'icon_emoji': forms.TextInput(attrs={'class': 'form-control'}),
                 'order': forms.NumberInput(attrs={'class': 'form-control'}),
-                'categories': forms.SelectMultiple(attrs={'class': 'form-select'}),
+                'categories': forms.CheckboxSelectMultiple,
                 'config': forms.Textarea(attrs={'class': 'form-control', 'rows': 6}),
             }
             labels = {'config': 'Erweiterte Konfiguration (JSON)'}
@@ -867,7 +867,7 @@ def admin_overview_edit(request, pk):
                 'description': forms.Textarea(attrs={'class': 'form-control form-control-lg', 'rows': 3}),
                 'icon_emoji': forms.TextInput(attrs={'class': 'form-control'}),
                 'order': forms.NumberInput(attrs={'class': 'form-control'}),
-                'categories': forms.SelectMultiple(attrs={'class': 'form-select'}),
+                'categories': forms.CheckboxSelectMultiple,
                 'config': forms.Textarea(attrs={'class': 'form-control', 'rows': 6}),
             }
             labels = {'config': 'Erweiterte Konfiguration (JSON)'}

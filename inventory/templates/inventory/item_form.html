@@ -133,6 +133,11 @@
         <div class="col-12">
           <label class="form-label">Bild (optional)</label>
           {{ form.image }}
+          {% if form.image_pick %}
+            <label class="form-label mt-2">{{ form.image_pick.label }}</label>
+            {{ form.image_pick }}
+            <div class="form-text text-muted">Wählt ein bereits hochgeladenes Bild aus der Bibliothek.</div>
+          {% endif %}
         </div>
 
         <div class="col-12">

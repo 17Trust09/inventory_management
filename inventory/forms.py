@@ -1,3 +1,5 @@
+import os
+
 from django import forms
 from django.db import connection
 from django.db.utils import OperationalError, ProgrammingError
@@ -47,6 +49,25 @@ def safe_all_tags():
         return ApplicationTag.objects.none()
     except Exception:
         return ApplicationTag.objects.none()
+
+
+def available_item_images():
+    try:
+        if not table_exists(InventoryItem):
+            return []
+        images = (
+            InventoryItem.objects
+            .exclude(image="")
+            .exclude(image__isnull=True)
+            .values_list("image", flat=True)
+            .distinct()
+        )
+        names = sorted({name for name in images if name})
+        return [(name, os.path.basename(name)) for name in names]
+    except (OperationalError, ProgrammingError):
+        return []
+    except Exception:
+        return []
 
 
 # -----------------------------
@@ -168,6 +189,12 @@ class EquipmentItemForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control form-control-lg'}),
         label="Kategorie*"
     )
+    image_pick = forms.ChoiceField(
+        label="Vorhandenes Bild auswählen",
+        required=False,
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-control form-control-lg'}),
+    )
     application_tags = TagNameOnlyMultipleChoiceField(
         label="Tags*",
         queryset=ApplicationTag.objects.none(),
@@ -230,6 +257,9 @@ class EquipmentItemForm(forms.ModelForm):
             self.fields['storage_location'].queryset = StorageLocation.objects.none()
             self.fields['storage_location'].choices = [('', '–')]
 
+        image_choices = available_item_images()
+        self.fields['image_pick'].choices = [('', '–')] + image_choices
+
     def clean_application_tags(self):
         tags = self.cleaned_data.get('application_tags')
         if not tags:
@@ -241,7 +271,14 @@ class EquipmentItemForm(forms.ModelForm):
         Beim Editieren: bereits vorhandene System-Tags am Item NICHT verlieren,
         obwohl sie im Formular nicht sichtbar/auswählbar sind.
         """
-        instance = super().save(commit=commit)
+        instance = super().save(commit=False)
+        selected_image = self.cleaned_data.get("image_pick")
+        if selected_image and not self.files.get("image"):
+            instance.image.name = selected_image
+
+        if commit:
+            instance.save()
+            self.save_m2m()
 
         # existierendes Objekt? -> System-Tags wieder hinzufügen
         if instance.pk:
@@ -279,6 +316,12 @@ class ConsumableItemForm(forms.ModelForm):
         empty_label="–",
         widget=forms.Select(attrs={'class': 'form-control form-control-lg'}),
         label="Lagerort"
+    )
+    image_pick = forms.ChoiceField(
+        label="Vorhandenes Bild auswählen",
+        required=False,
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-control form-control-lg'}),
     )
 
     class Meta:
@@ -326,6 +369,29 @@ class ConsumableItemForm(forms.ModelForm):
             self.fields['storage_location'].queryset = StorageLocation.objects.none()
             self.fields['storage_location'].choices = [('', '–')]
 
+        image_choices = available_item_images()
+        self.fields['image_pick'].choices = [('', '–')] + image_choices
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        selected_image = self.cleaned_data.get("image_pick")
+        if selected_image and not self.files.get("image"):
+            instance.image.name = selected_image
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+
+        if instance.pk:
+            try:
+                before = InventoryItem.objects.get(pk=instance.pk)
+                system_tags = before.application_tags.filter(SYSTEM_TAG_FILTER)
+                if system_tags.exists():
+                    instance.application_tags.add(*system_tags)
+            except InventoryItem.DoesNotExist:
+                pass
+        return instance
+
     def clean_low_quantity(self):
         low = self.cleaned_data.get('low_quantity')
         if low is None or low < 0:
@@ -337,19 +403,6 @@ class ConsumableItemForm(forms.ModelForm):
         if not tags:
             raise forms.ValidationError("Du musst mindestens einen Tag auswählen.")
         return tags
-
-    def save(self, commit=True):
-        instance = super().save(commit=commit)
-        if instance.pk:
-            try:
-                before = InventoryItem.objects.get(pk=instance.pk)
-                system_tags = before.application_tags.filter(SYSTEM_TAG_FILTER)
-                if system_tags.exists():
-                    instance.application_tags.add(*system_tags)
-            except InventoryItem.DoesNotExist:
-                pass
-        return instance
-
 
 class BorrowItemForm(forms.ModelForm):
     return_date = forms.DateField(

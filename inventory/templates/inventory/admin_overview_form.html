@@ -51,34 +51,72 @@
 
         <div class="mb-3">
           <label class="form-label fw-semibold">{{ form.categories.label }}</label>
-          {{ form.categories }}
+          <div class="border rounded p-3" style="border-color:var(--border);">
+            {% if form.categories %}
+              <div class="row g-2">
+                {% for checkbox in form.categories %}
+                  <div class="col-6 col-md-4">
+                    <div class="form-check">
+                      {{ checkbox.tag }}
+                      <label class="form-check-label ms-1" for="{{ checkbox.id_for_label }}">
+                        {{ checkbox.choice_label }}
+                      </label>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-muted small">Keine Kategorien vorhanden.</div>
+            {% endif %}
+          </div>
           <div class="form-text">Optional: nur diese Kategorien anzeigen/filtern</div>
           <div class="text-danger small">{{ form.categories.errors }}</div>
         </div>
 
         <fieldset class="border rounded p-3 mb-3" style="border-color:var(--border);">
           <legend class="float-none w-auto px-2">Anzeigeoptionen</legend>
-          <div class="row g-3">
-            <div class="col-md-4 form-check">
-              {{ form.show_quantity }} <label class="form-check-label ms-1">{{ form.show_quantity.label }}</label>
+          <div class="row row-cols-1 row-cols-md-2 g-3">
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.show_quantity }}
+                <label class="form-check-label ms-1">{{ form.show_quantity.label }}</label>
+              </div>
             </div>
-            <div class="col-md-4 form-check">
-              {{ form.has_locations }} <label class="form-check-label ms-1">{{ form.has_locations.label }}</label>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.has_locations }}
+                <label class="form-check-label ms-1">{{ form.has_locations.label }}</label>
+              </div>
             </div>
-            <div class="col-md-4 form-check">
-              {{ form.has_min_stock }} <label class="form-check-label ms-1">{{ form.has_min_stock.label }}</label>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.has_min_stock }}
+                <label class="form-check-label ms-1">{{ form.has_min_stock.label }}</label>
+              </div>
             </div>
-            <div class="col-md-4 form-check">
-              {{ form.enable_borrow }} <label class="form-check-label ms-1">{{ form.enable_borrow.label }}</label>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.enable_borrow }}
+                <label class="form-check-label ms-1">{{ form.enable_borrow.label }}</label>
+              </div>
             </div>
-            <div class="col-md-4 form-check">
-              {{ form.is_consumable_mode }} <label class="form-check-label ms-1">{{ form.is_consumable_mode.label }}</label>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.is_consumable_mode }}
+                <label class="form-check-label ms-1">{{ form.is_consumable_mode.label }}</label>
+              </div>
             </div>
-            <div class="col-md-4 form-check">
-              {{ form.require_qr }} <label class="form-check-label ms-1">{{ form.require_qr.label }}</label>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.require_qr }}
+                <label class="form-check-label ms-1">{{ form.require_qr.label }}</label>
+              </div>
             </div>
-            <div class="col-md-4 form-check">
-              {{ form.enable_quick_adjust }} <label class="form-check-label ms-1">{{ form.enable_quick_adjust.label }}</label>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.enable_quick_adjust }}
+                <label class="form-check-label ms-1">{{ form.enable_quick_adjust.label }}</label>
+              </div>
             </div>
           </div>
         </fieldset>
