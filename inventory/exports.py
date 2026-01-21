@@ -18,6 +18,8 @@ EXPORT_COLUMNS = [
     ("name", "Name", lambda it: it.name),
     ("type", "Typ", lambda it: it.get_item_type_display()),
     ("quantity", "Bestand", lambda it: it.quantity),
+    ("unit", "Einheit", lambda it: it.get_unit_display() if it.unit else ""),
+    ("variant", "Variante", lambda it: it.variant or ""),
     ("category", "Kategorie", lambda it: it.category.name if it.category else ""),
     ("storage_location", "Lagerort", lambda it: it.storage_location.get_full_path() if it.storage_location else ""),
     ("location_letter", "Ort (Buchstabe)", lambda it: it.location_letter or ""),

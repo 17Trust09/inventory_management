@@ -65,6 +65,12 @@ class UserProfile(models.Model):
         related_name='allowed_users',
         help_text="Leer lassen = kein Zugriff auf Dashboards (explizit auswählen)"
     )
+    favorite_overviews = models.ManyToManyField(
+        'Overview',
+        blank=True,
+        related_name='favorited_by',
+        help_text="Optional: persönliche Favoriten für Schnellzugriff."
+    )
 
     def __str__(self):
         return f"{self.user.username} Profile"
@@ -158,6 +164,19 @@ class GlobalSettings(models.Model):
 
 
 class InventoryItem(models.Model):
+    UNIT_CHOICES = [
+        ("pcs", "Stück"),
+        ("set", "Set"),
+        ("pack", "Packung"),
+        ("box", "Box"),
+        ("m", "Meter"),
+        ("cm", "Zentimeter"),
+        ("mm", "Millimeter"),
+        ("kg", "Kilogramm"),
+        ("g", "Gramm"),
+        ("l", "Liter"),
+        ("ml", "Milliliter"),
+    ]
     NFC_BASE_CHOICES = (
         ("local", "Lokal"),
         ("remote", "Tailscale/Remote"),
@@ -201,6 +220,13 @@ class InventoryItem(models.Model):
     low_quantity = models.IntegerField(default=3, verbose_name="Grundpuffer", db_index=True)
 
     order_link = models.URLField(max_length=500, blank=True, null=True, verbose_name="Bestell-Link")
+    variant = models.CharField(max_length=120, blank=True, verbose_name="Variante")
+    unit = models.CharField(
+        max_length=20,
+        choices=UNIT_CHOICES,
+        default="pcs",
+        verbose_name="Einheit",
+    )
 
     barcode = models.CharField(max_length=50, unique=True, blank=True)
     barcode_text = models.TextField(blank=True, null=True)
@@ -712,6 +738,16 @@ class Overview(models.Model):
     show_tags = models.BooleanField(default=True, verbose_name="Tags anzeigen")
     enable_mark_button = models.BooleanField(default=False, verbose_name="Markieren-Button anzeigen")
     enable_advanced_filters = models.BooleanField(default=True, verbose_name="Erweiterte Suche/Filter")
+    enable_comments = models.BooleanField(
+        default=False,
+        verbose_name="Kommentare/Feedback erlauben",
+        help_text="Ermöglicht eine Kommentar-Aktion direkt aus dem Dashboard.",
+    )
+    show_order_button = models.BooleanField(
+        default=False,
+        verbose_name="Nachbestellen-Button anzeigen",
+        help_text="Zeigt die Nachbestellen-Aktion nur, wenn ein Bestell-Link vorhanden ist.",
+    )
 
     config = models.JSONField(default=dict, blank=True)
 
@@ -741,6 +777,8 @@ class Overview(models.Model):
             "show_tags": self.show_tags,
             "enable_mark_button": self.enable_mark_button,
             "enable_advanced_filters": self.enable_advanced_filters,
+            "enable_comments": self.enable_comments,
+            "show_order_button": self.show_order_button,
         }
 
 

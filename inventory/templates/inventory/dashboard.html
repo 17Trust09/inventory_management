@@ -114,6 +114,9 @@
                         <th scope="row">{{ item.id }}</th>
                         <td>
                             <span style="color: black;">{{ item.name }}</span>
+                            {% if item.variant %}
+                                <div class="small text-muted">Variante: {{ item.variant }}</div>
+                            {% endif %}
                             {% if item.application_tags.all %}
                                 <div class="mt-1">
                                     {% for tag in item.application_tags.all %}
@@ -125,7 +128,7 @@
                             {% endif %}
                         </td>
                         <td class="{% if item.quantity <= item.low_quantity %}text-danger{% else %}text-success{% endif %}">
-                            {{ item.quantity }} (Mindestbestand: {{ item.low_quantity }})
+                            {{ item.quantity }}{% if item.unit %} {{ item.get_unit_display }}{% endif %} (Mindestbestand: {{ item.low_quantity }}{% if item.unit %} {{ item.get_unit_display }}{% endif %})
                         </td>
                         <td>{{ item.category.name }}</td>
                         <td>{{ item.location_letter }}</td>

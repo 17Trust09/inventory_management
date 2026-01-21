@@ -57,10 +57,19 @@
           {{ form.name }}
         </div>
 
+        <div class="col-md-6">
+          <label class="form-label">Variante</label>
+          {{ form.variant }}
+        </div>
+
         {% if features.show_quantity %}
         <div class="col-md-6">
           <label class="form-label">Ist-Bestand{% if form.fields.quantity.required %}*{% endif %}</label>
           {{ form.quantity }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Einheit</label>
+          {{ form.unit }}
         </div>
         {% endif %}
 

@@ -68,6 +68,8 @@ def _get_overview_and_features(request, default_item_type: str):
         enable_borrow=True,
         require_qr=False,
         is_consumable_mode=(default_item_type == "consumable"),
+        enable_comments=False,
+        show_order_button=False,
     )
     if slug:
         try:
@@ -119,6 +121,8 @@ HISTORY_FIELDS = (
     "name",
     "description",
     "quantity",
+    "unit",
+    "variant",
     "category_id",
     "storage_location_id",
     "location_letter",
@@ -137,6 +141,8 @@ HISTORY_LABELS = {
     "name": "Name",
     "description": "Beschreibung",
     "quantity": "Bestand",
+    "unit": "Einheit",
+    "variant": "Variante",
     "category_id": "Kategorie",
     "storage_location_id": "Lagerort",
     "location_letter": "Ort (Buchstabe)",
@@ -164,6 +170,8 @@ def _snapshot_item(item: InventoryItem) -> dict:
         "name": item.name,
         "description": item.description,
         "quantity": item.quantity,
+        "unit": item.unit,
+        "variant": item.variant,
         "category_id": item.category_id,
         "storage_location_id": item.storage_location_id,
         "location_letter": item.location_letter,
@@ -281,7 +289,18 @@ class DashboardSelectorView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         allowed = _allowed_overviews_for_user(self.request.user)
-        ctx["overviews"] = list(allowed)
+        overviews = list(allowed)
+        ctx["overviews"] = overviews
+        if _feature_enabled("show_favorites"):
+            profile = UserProfile.objects.filter(user=self.request.user).first()
+            favorite_ids = set(
+                profile.favorite_overviews.values_list("id", flat=True)
+            ) if profile else set()
+            ctx["favorite_overviews"] = [ov for ov in overviews if ov.id in favorite_ids]
+            ctx["favorite_overview_ids"] = favorite_ids
+        else:
+            ctx["favorite_overviews"] = []
+            ctx["favorite_overview_ids"] = set()
         if _feature_enabled("show_feedback"):
             ctx["latest_feedback"] = list(Feedback.objects.order_by("-created_at")[:3])
         else:
@@ -1620,7 +1639,8 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         features = self.overview.features()
-        qs = self.base_queryset()
+        base_qs = self.base_queryset()
+        qs = base_qs
         if features.get("enable_advanced_filters", True):
             qs = self.apply_filters(qs)
         qs, sort_key, order = self.apply_sort(qs)
@@ -1645,11 +1665,13 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
             .distinct()
         )
         storage_locations.sort(key=lambda loc: loc.get_full_path().lower())
-        favorites = (
-            self.base_queryset()
-            .filter(is_favorite=True)
-            .order_by("name")[:6]
-        )
+        favorites = base_qs.filter(is_favorite=True).order_by("name")[:6]
+        overview_is_favorite = False
+        if _feature_enabled("show_favorites"):
+            profile = UserProfile.objects.filter(user=self.request.user).first()
+            overview_is_favorite = bool(
+                profile and profile.favorite_overviews.filter(pk=self.overview.pk).exists()
+            )
 
         ctx.update(
             {
@@ -1690,6 +1712,7 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
                 ),
                 "export_columns": [(key, label) for key, label, _ in EXPORT_COLUMNS],
                 "favorites": favorites,
+                "overview_is_favorite": overview_is_favorite,
             }
         )
         return ctx
@@ -1713,6 +1736,27 @@ class ToggleFavoriteView(LoginRequiredMixin, View):
             request,
             "Favorit gesetzt." if item.is_favorite else "Favorit entfernt.",
         )
+        return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
+
+
+class ToggleOverviewFavoriteView(LoginRequiredMixin, View):
+    def post(self, request, slug):
+        if not _feature_enabled("show_favorites"):
+            messages.error(request, "Favoriten sind aktuell deaktiviert.")
+            return redirect("dashboards")
+        overview = get_object_or_404(Overview, slug=slug, is_active=True)
+        if not request.user.is_superuser:
+            allowed = _allowed_overviews_for_user(request.user).filter(pk=overview.pk).exists()
+            if not allowed:
+                messages.error(request, "Du hast keinen Zugriff auf dieses Dashboard.")
+                return redirect("dashboards")
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        if profile.favorite_overviews.filter(pk=overview.pk).exists():
+            profile.favorite_overviews.remove(overview)
+            messages.success(request, f"Dashboard „{overview.name}“ aus Favoriten entfernt.")
+        else:
+            profile.favorite_overviews.add(overview)
+            messages.success(request, f"Dashboard „{overview.name}“ als Favorit gespeichert.")
         return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
 
 
@@ -1849,8 +1893,24 @@ class FeedbackCreateView(LoginRequiredMixin, View):
         if not _feature_enabled("show_feedback"):
             messages.error(request, "Feedback ist aktuell deaktiviert.")
             return redirect("dashboards")
-        form = FeedbackForm()
-        return render(request, "inventory/feedback_form.html", {"form": form})
+        overview_hint = None
+        initial = {}
+        dashboard_slug = (request.GET.get("dashboard") or "").strip()
+        if dashboard_slug:
+            overview = Overview.objects.filter(slug=dashboard_slug, is_active=True).first()
+            if overview:
+                allowed = request.user.is_superuser or _allowed_overviews_for_user(request.user).filter(
+                    pk=overview.pk
+                ).exists()
+                if allowed:
+                    overview_hint = overview
+                    initial["title"] = f"Dashboard: {overview.name}"
+        form = FeedbackForm(initial=initial)
+        return render(
+            request,
+            "inventory/feedback_form.html",
+            {"form": form, "overview_hint": overview_hint},
+        )
 
     def post(self, request):
         if not _feature_enabled("show_feedback"):

@@ -21,13 +21,48 @@
     <h1 class="mb-4">Inventarverwaltung</h1>
     <p class="mb-4 text-muted">Bitte wähle eine Übersicht:</p>
 
+    {% if global_features.show_favorites and favorite_overviews %}
+      <div class="card border-secondary shadow-sm mb-4 mx-auto" style="background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:1rem; max-width:860px;">
+        <div class="card-body">
+          <div class="fw-semibold mb-2">⭐ Favoriten & Schnellzugriff</div>
+          <div class="d-flex flex-wrap justify-content-center gap-2">
+            {% for fav in favorite_overviews %}
+              <a href="{% url 'overview-dashboard' fav.slug %}" class="btn btn-sm btn-outline-light">
+                {{ fav.icon_emoji|default:"📊" }} {{ fav.name }}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
     {% if overviews %}
       <div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
         {% for ov in overviews %}
-          <a href="{% url 'overview-dashboard' ov.slug %}"
-             class="btn btn-lg btn-outline-light">
-             {{ ov.icon_emoji|default:"📊" }} {{ ov.name }}
-          </a>
+          <div class="d-flex flex-column align-items-center gap-2">
+            <div class="btn-group" role="group">
+              <a href="{% url 'overview-dashboard' ov.slug %}"
+                 class="btn btn-lg btn-outline-light">
+                 {{ ov.icon_emoji|default:"📊" }} {{ ov.name }}
+              </a>
+              {% if global_features.show_favorites %}
+                <form method="post" action="{% url 'overview-favorite' ov.slug %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button class="btn btn-lg {% if ov.id in favorite_overview_ids %}btn-outline-warning{% else %}btn-outline-secondary{% endif %}" type="submit" aria-label="Favorit umschalten">
+                    {% if ov.id in favorite_overview_ids %}★{% else %}☆{% endif %}
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+            {% if global_features.show_feedback and ov.enable_comments %}
+              <a href="{% url 'feedback-add' %}?dashboard={{ ov.slug }}"
+                 class="btn btn-sm btn-outline-success">
+                Kommentar erstellen
+              </a>
+              <small class="text-muted">Kommentar wird im Feedback-Board gespeichert.</small>
+            {% endif %}
+          </div>
         {% endfor %}
       </div>
     {% else %}
