@@ -26,6 +26,7 @@ from .admin_views import (
     BorrowedItemListView,
     admin_qr_codes_view,
     admin_updates,
+    admin_tailscale_setup,
 
     # User Profiles
     UserProfileListView,
@@ -88,6 +89,7 @@ urlpatterns = [
     path('borrowed-items/', BorrowedItemListView.as_view(), name='admin_borrowed_items'),
     path('qr-codes/', admin_qr_codes_view, name='admin_qr_codes'),
     path('updates/', admin_updates, name='admin_updates'),
+    path('tailscale-setup/', admin_tailscale_setup, name='admin_tailscale_setup'),
     path('history/', admin_history_list, name='admin_history_list'),
     path('history/<int:pk>/rollback/', admin_history_rollback, name='admin_history_rollback'),
 

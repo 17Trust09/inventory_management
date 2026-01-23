@@ -29,6 +29,9 @@ UPDATE_REPO_URL_DEV = os.getenv(
     "https://github.com/17Trust09/inventory_management",
 )
 
+# Tailscale-Setup (für Admin-Wizard)
+TAILSCALE_ADMIN_EMAIL = os.getenv("TAILSCALE_ADMIN_EMAIL", "").strip()
+
 # Optionale HA-Integrationstoggles
 HA_VERIFY_SSL = os.getenv('HA_VERIFY_SSL', 'true').lower() == 'true'
 HA_TIMEOUT = int(os.getenv('HA_TIMEOUT', '6'))

@@ -20,6 +20,7 @@ from barcode.writer import ImageWriter
 import qrcode
 import uuid
 import subprocess
+import json
 import shutil
 
 from .feature_flags import get_feature_flags
@@ -77,6 +78,56 @@ class SuperuserRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 def _feature_enabled(flag_name: str) -> bool:
     return get_feature_flags().get(flag_name, True)
+
+
+def _get_tailscale_status() -> dict[str, str | bool | list[str] | None]:
+    if shutil.which("tailscale") is None:
+        return {
+            "installed": False,
+            "connected": False,
+            "error": "Tailscale ist nicht installiert.",
+            "backend_state": None,
+            "hostname": None,
+            "dns_name": None,
+            "ips": [],
+        }
+
+    result = subprocess.run(
+        ["tailscale", "status", "--json"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return {
+            "installed": True,
+            "connected": False,
+            "error": result.stderr.strip() or result.stdout.strip() or "Tailscale-Status konnte nicht gelesen werden.",
+            "backend_state": None,
+            "hostname": None,
+            "dns_name": None,
+            "ips": [],
+        }
+
+    try:
+        data = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        data = {}
+
+    self_node = data.get("Self", {}) if isinstance(data, dict) else {}
+    backend_state = data.get("BackendState") if isinstance(data, dict) else None
+    ips = self_node.get("TailscaleIPs") or []
+    if not isinstance(ips, list):
+        ips = []
+
+    return {
+        "installed": True,
+        "connected": backend_state == "Running",
+        "error": None,
+        "backend_state": backend_state,
+        "hostname": self_node.get("HostName"),
+        "dns_name": self_node.get("DNSName"),
+        "ips": ips,
+    }
 
 # ---------------------------------------------------------------------
 # FORMS
@@ -927,6 +978,20 @@ def admin_updates(request):
         "hide_admin_back": True,
     }
     return render(request, "inventory/admin_updates.html", context)
+
+
+# ---------------------------------------------------------------------
+# Tailscale Setup Wizard (Admin)
+# ---------------------------------------------------------------------
+@superuser_required
+def admin_tailscale_setup(request):
+    status = _get_tailscale_status()
+    context = {
+        "tailscale_status": status,
+        "tailscale_admin_email": settings.TAILSCALE_ADMIN_EMAIL,
+        "tailscale_admin_url": "https://login.tailscale.com/admin/machines",
+    }
+    return render(request, "inventory/admin_tailscale_setup.html", context)
 
 
 # ---------------------------------------------------------------------
