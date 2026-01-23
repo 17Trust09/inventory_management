@@ -17,14 +17,20 @@ echo "🔄 Starte Update-Prozess vom dev-Branch..."
 # 🔁 Gehe in den Ordner, wo dieses Skript liegt
 cd "$(dirname "$0")"
 
-# 🔧 .env laden (optional) für UPDATE_REPO_URL_DEV
-if [ -f ".env" ]; then
-  set -a
-  source .env
-  set +a
-fi
+# 🔧 .env lesen (optional) für UPDATE_REPO_URL_DEV
+function read_env_value {
+  local key="$1"
+  local value=""
+  if [ -f ".env" ]; then
+    value=$(awk -F= -v k="$key" '$1==k { $1=""; sub(/^=/,""); print; exit }' .env | tr -d '\r')
+    value="${value%\"}"
+    value="${value#\"}"
+  fi
+  echo "$value"
+}
 
-REPO_URL="${UPDATE_REPO_URL_DEV:-https://github.com/17Trust09/inventory_management}"
+REPO_URL="$(read_env_value "UPDATE_REPO_URL_DEV")"
+REPO_URL="${REPO_URL:-https://github.com/17Trust09/inventory_management}"
 
 # 🗂️ Schritt 1: Backup vorbereiten
 backup_dir="backup/$(date +%Y-%m-%d_%H-%M-%S)"
