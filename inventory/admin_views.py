@@ -164,8 +164,11 @@ def dashboard(request):
     Letzte Feedbacks + Quick-Actions.
     """
     latest_feedback = Feedback.objects.select_related("created_by").order_by("-created_at")[:8]
+    tailscale_status = _get_tailscale_status()
+    tailscale_setup_complete = bool(settings.TAILSCALE_ADMIN_EMAIL) and tailscale_status.get("connected")
     return render(request, 'inventory/admin_dashboard.html', {
-        "latest_feedback": latest_feedback
+        "latest_feedback": latest_feedback,
+        "tailscale_setup_complete": tailscale_setup_complete,
     })
 
 
