@@ -138,6 +138,20 @@ class GlobalSettings(models.Model):
         default=True,
         verbose_name="Dokumente/Bilder (Anhänge) erlauben",
     )
+    tailscale_setup_step = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Tailscale-Setup Schritt",
+        help_text="0 = nicht gestartet, 1 = installiert, 2 = verbunden, 3 = geteilt, 4 = bestätigt",
+    )
+    tailscale_setup_complete = models.BooleanField(
+        default=False,
+        verbose_name="Tailscale-Setup abgeschlossen",
+    )
+    tailscale_setup_confirmed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Tailscale-Setup bestätigt am",
+    )
     enable_image_upload = models.BooleanField(
         default=True,
         verbose_name="Bild-Upload erlauben",

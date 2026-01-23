@@ -11,6 +11,27 @@
           Ziel: Dieses Gerät in <strong>deinem</strong> Tailscale-Netzwerk verbinden und anschließend
           <strong>nur dieses Gerät</strong> mit dem Admin teilen.
         </p>
+        <div class="mt-3">
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge {% if tailscale_setup_step >= 1 %}bg-success{% else %}bg-secondary{% endif %}">
+              Schritt 1: Installiert
+            </span>
+            <span class="badge {% if tailscale_setup_step >= 2 %}bg-success{% else %}bg-secondary{% endif %}">
+              Schritt 2: Verbunden
+            </span>
+            <span class="badge {% if tailscale_setup_step >= 3 %}bg-success{% else %}bg-secondary{% endif %}">
+              Schritt 3: Geteilt
+            </span>
+            <span class="badge {% if tailscale_setup_complete %}bg-success{% else %}bg-secondary{% endif %}">
+              Schritt 4: Bestätigt
+            </span>
+          </div>
+          {% if tailscale_setup_confirmed_at %}
+            <div class="text-muted small mt-2">
+              Bestätigt am: {{ tailscale_setup_confirmed_at|date:"d.m.Y H:i" }}
+            </div>
+          {% endif %}
+        </div>
       </div>
 
       <div class="border rounded p-3 mb-4" style="border-color:var(--border);">
@@ -76,6 +97,14 @@
             <a class="btn btn-outline-light btn-sm" href="{{ tailscale_admin_url }}" target="_blank" rel="noopener">
               Tailscale Admin öffnen
             </a>
+            <form method="post" class="mt-2">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="mark_step">
+              <input type="hidden" name="step" value="3">
+              <button class="btn btn-outline-success btn-sm" {% if tailscale_setup_step >= 3 %}disabled{% endif %}>
+                Schritt 3 als erledigt markieren
+              </button>
+            </form>
           </div>
         </div>
 
@@ -88,9 +117,23 @@
             <div class="text-muted small">
               Tipp: Der Admin sieht anschließend nur dieses Gerät und keine weiteren Geräte aus deinem Netzwerk.
             </div>
+            <form method="post" class="mt-2">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="confirm_share">
+              <button class="btn btn-success btn-sm" {% if tailscale_setup_complete %}disabled{% endif %}>
+                Setup bestätigen
+              </button>
+            </form>
           </div>
         </div>
       </div>
+      <form method="post" class="mt-3">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="reset_setup">
+        <button class="btn btn-outline-danger btn-sm">
+          Setup zurücksetzen
+        </button>
+      </form>
     </div>
   </div>
 {% endblock %}

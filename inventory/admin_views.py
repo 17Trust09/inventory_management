@@ -80,6 +80,13 @@ def _feature_enabled(flag_name: str) -> bool:
     return get_feature_flags().get(flag_name, True)
 
 
+def _get_global_settings() -> GlobalSettings:
+    settings_obj = GlobalSettings.objects.first()
+    if not settings_obj:
+        settings_obj = GlobalSettings.objects.create()
+    return settings_obj
+
+
 def _get_tailscale_status() -> dict[str, str | bool | list[str] | None]:
     if shutil.which("tailscale") is None:
         return {
@@ -92,11 +99,23 @@ def _get_tailscale_status() -> dict[str, str | bool | list[str] | None]:
             "ips": [],
         }
 
-    result = subprocess.run(
-        ["tailscale", "status", "--json"],
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            ["tailscale", "status", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "installed": True,
+            "connected": False,
+            "error": "Tailscale-Status hat zu lange gedauert.",
+            "backend_state": None,
+            "hostname": None,
+            "dns_name": None,
+            "ips": [],
+        }
     if result.returncode != 0:
         return {
             "installed": True,
@@ -164,8 +183,8 @@ def dashboard(request):
     Letzte Feedbacks + Quick-Actions.
     """
     latest_feedback = Feedback.objects.select_related("created_by").order_by("-created_at")[:8]
-    tailscale_status = _get_tailscale_status()
-    tailscale_setup_complete = bool(settings.TAILSCALE_ADMIN_EMAIL) and tailscale_status.get("connected")
+    settings_obj = _get_global_settings()
+    tailscale_setup_complete = settings_obj.tailscale_setup_complete
     return render(request, 'inventory/admin_dashboard.html', {
         "latest_feedback": latest_feedback,
         "tailscale_setup_complete": tailscale_setup_complete,
@@ -806,9 +825,52 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
         }
 
     if not (base_dir / ".git").exists():
+        init = subprocess.run(
+            ["git", "init"],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+        if init.returncode != 0:
+            return {
+                "branch": branch,
+                "error": init.stderr.strip() or init.stdout.strip() or "Git-Repository konnte nicht initialisiert werden.",
+            }
+        subprocess.run(
+            ["git", "remote", "add", "origin", repo_url],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+        fetch_init = subprocess.run(
+            ["git", "fetch", "origin", branch],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+        if fetch_init.returncode != 0:
+            return {
+                "branch": branch,
+                "error": fetch_init.stderr.strip() or fetch_init.stdout.strip() or "Git fetch fehlgeschlagen.",
+            }
+        rev_list = subprocess.run(
+            ["git", "rev-list", "--count", f"origin/{branch}"],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+        if rev_list.returncode != 0:
+            return {
+                "branch": branch,
+                "error": rev_list.stderr.strip() or rev_list.stdout.strip() or "Git-Status konnte nicht ermittelt werden.",
+            }
+        try:
+            behind_count = int(rev_list.stdout.strip())
+        except ValueError:
+            behind_count = 0
         return {
             "branch": branch,
-            "error": "Git-Repository nicht initialisiert. Bitte einmal ein Update ausführen.",
+            "behind_count": behind_count,
         }
 
     remote_url = subprocess.run(
@@ -986,13 +1048,77 @@ def admin_updates(request):
 # ---------------------------------------------------------------------
 # Tailscale Setup Wizard (Admin)
 # ---------------------------------------------------------------------
-@superuser_required
+@staff_required
 def admin_tailscale_setup(request):
     status = _get_tailscale_status()
+    settings_obj = _get_global_settings()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "reset_setup":
+            settings_obj.tailscale_setup_step = 0
+            settings_obj.tailscale_setup_complete = False
+            settings_obj.tailscale_setup_confirmed_at = None
+            settings_obj.save(
+                update_fields=[
+                    "tailscale_setup_step",
+                    "tailscale_setup_complete",
+                    "tailscale_setup_confirmed_at",
+                ]
+            )
+            messages.info(request, "Tailscale-Setup wurde zurückgesetzt.")
+            return redirect("admin_tailscale_setup")
+
+        if action == "mark_step":
+            try:
+                step = int(request.POST.get("step", "0"))
+            except ValueError:
+                step = 0
+            if step not in {1, 2, 3}:
+                messages.error(request, "Ungültiger Setup-Schritt.")
+                return redirect("admin_tailscale_setup")
+            if step > settings_obj.tailscale_setup_step:
+                settings_obj.tailscale_setup_step = step
+                settings_obj.save(update_fields=["tailscale_setup_step"])
+                messages.success(request, f"Schritt {step} wurde markiert.")
+            return redirect("admin_tailscale_setup")
+
+        if action == "confirm_share":
+            if not settings.TAILSCALE_ADMIN_EMAIL:
+                messages.error(request, "Admin-E-Mail fehlt. Bitte in der .env konfigurieren.")
+                return redirect("admin_tailscale_setup")
+            if not status.get("connected"):
+                messages.error(request, "Gerät ist nicht mit Tailscale verbunden.")
+                return redirect("admin_tailscale_setup")
+            settings_obj.tailscale_setup_step = max(settings_obj.tailscale_setup_step, 4)
+            settings_obj.tailscale_setup_complete = True
+            settings_obj.tailscale_setup_confirmed_at = timezone.now()
+            settings_obj.save(
+                update_fields=[
+                    "tailscale_setup_step",
+                    "tailscale_setup_complete",
+                    "tailscale_setup_confirmed_at",
+                ]
+            )
+            messages.success(request, "Tailscale-Setup wurde bestätigt.")
+            return redirect("admin_tailscale_setup")
+
+    auto_step = settings_obj.tailscale_setup_step
+    if status.get("installed") and auto_step < 1:
+        auto_step = 1
+    if status.get("connected") and auto_step < 2:
+        auto_step = 2
+    if auto_step != settings_obj.tailscale_setup_step:
+        settings_obj.tailscale_setup_step = auto_step
+        settings_obj.save(update_fields=["tailscale_setup_step"])
+
     context = {
         "tailscale_status": status,
         "tailscale_admin_email": settings.TAILSCALE_ADMIN_EMAIL,
         "tailscale_admin_url": "https://login.tailscale.com/admin/machines",
+        "tailscale_setup_step": settings_obj.tailscale_setup_step,
+        "tailscale_setup_complete": settings_obj.tailscale_setup_complete,
+        "tailscale_setup_confirmed_at": settings_obj.tailscale_setup_confirmed_at,
     }
     return render(request, "inventory/admin_tailscale_setup.html", context)
 
