@@ -20,6 +20,7 @@ from barcode import Code128
 from barcode.writer import ImageWriter
 import qrcode
 import uuid
+import os
 import subprocess
 import json
 import shutil
@@ -1167,6 +1168,8 @@ def admin_updates(request):
 def admin_tailscale_setup(request):
     status = _get_tailscale_status()
     settings_obj = _get_global_settings()
+    command_output = None
+    command_error = None
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -1232,6 +1235,32 @@ def admin_tailscale_setup(request):
             messages.warning(request, "Tailscale-Setup wird vorübergehend ignoriert.")
             return redirect("admin_tailscale_setup")
 
+        if action in {"install_tailscale", "connect_tailscale"}:
+            if os.name != "posix":
+                messages.error(request, "Tailscale-Aktionen sind nur unter Linux verfügbar.")
+                return redirect("admin_tailscale_setup")
+            if action == "install_tailscale":
+                result = subprocess.run(
+                    ["bash", "-c", "curl -fsSL https://tailscale.com/install.sh | sh"],
+                    capture_output=True,
+                    text=True,
+                )
+            else:
+                if shutil.which("tailscale") is None:
+                    messages.error(request, "Tailscale ist nicht installiert.")
+                    return redirect("admin_tailscale_setup")
+                result = subprocess.run(
+                    ["sudo", "tailscale", "up"],
+                    capture_output=True,
+                    text=True,
+                )
+            command_output = (result.stdout or "").strip()
+            command_error = (result.stderr or "").strip()
+            if result.returncode == 0:
+                messages.success(request, "Tailscale-Befehl ausgeführt.")
+            else:
+                messages.error(request, "Tailscale-Befehl fehlgeschlagen.")
+
     auto_step = settings_obj.tailscale_setup_step
     if status.get("installed") and auto_step < 1:
         auto_step = 1
@@ -1249,6 +1278,8 @@ def admin_tailscale_setup(request):
         "tailscale_setup_complete": settings_obj.tailscale_setup_complete,
         "tailscale_setup_ignored": settings_obj.tailscale_setup_ignored,
         "tailscale_setup_confirmed_at": settings_obj.tailscale_setup_confirmed_at,
+        "command_output": command_output,
+        "command_error": command_error,
     }
     return render(request, "inventory/admin_tailscale_setup.html", context)
 
@@ -1309,6 +1340,9 @@ def admin_system_status(request):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             choices = [("", "Standardpfad (Projekt/backup)")]
+            existing = (self.instance.backup_storage_path or "").strip()
+            if existing and existing not in dict(choices):
+                choices.append((existing, f"Aktueller Pfad: {existing}"))
             choices.extend(_get_external_backup_paths())
             self.fields["backup_storage_path"].choices = choices
             self.fields["backup_storage_path"].widget = forms.Select(attrs={"class": "form-select"})

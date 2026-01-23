@@ -69,6 +69,13 @@
               Wenn Tailscale noch nicht installiert ist, führe diesen Befehl im Terminal aus:
             </p>
             <pre class="small text-muted mb-0" style="white-space:pre-wrap;">curl -fsSL https://tailscale.com/install.sh | sh</pre>
+            <form method="post" class="mt-2">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="install_tailscale">
+              <button class="btn btn-outline-light btn-sm">
+                Installation starten (Linux)
+              </button>
+            </form>
           </div>
         </div>
 
@@ -80,6 +87,13 @@
               deinem eigenen Tailscale-Account an.
             </p>
             <pre class="small text-muted mb-0" style="white-space:pre-wrap;">sudo tailscale up</pre>
+            <form method="post" class="mt-2">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="connect_tailscale">
+              <button class="btn btn-outline-light btn-sm">
+                Verbindung starten (Linux)
+              </button>
+            </form>
           </div>
         </div>
 
@@ -150,6 +164,17 @@
             Diese Option markiert das Setup als erledigt, ohne es abzuschließen.
           </div>
         </form>
+      {% endif %}
+      {% if command_error or command_output %}
+        <div class="mt-3">
+          <h6 class="text-uppercase text-muted small mb-2">Letzte Tailscale-Ausgabe</h6>
+          {% if command_error %}
+            <pre class="small text-warning mb-2" style="white-space:pre-wrap;">{{ command_error }}</pre>
+          {% endif %}
+          {% if command_output %}
+            <pre class="small text-muted mb-0" style="white-space:pre-wrap;">{{ command_output }}</pre>
+          {% endif %}
+        </div>
       {% endif %}
     </div>
   </div>

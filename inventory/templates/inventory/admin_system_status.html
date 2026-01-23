@@ -14,6 +14,7 @@
             <li>Tailscale: {% if tailscale_status.connected %}Verbunden{% else %}Nicht verbunden{% endif %}</li>
             <li>Letztes Backup: {{ settings_obj.last_backup_at|date:"d.m.Y H:i" | default:"—" }}</li>
             <li>Backup-Pfad: {{ backup_root }}</li>
+            <li>Wartungsnachricht: {{ settings_obj.maintenance_message|default:"—" }}</li>
           </ul>
           <form method="post">
             {% csrf_token %}
