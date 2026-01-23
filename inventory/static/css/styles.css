@@ -129,3 +129,12 @@ a:hover {
 .list-group-item:hover {
   background-color: rgba(255,255,255,0.04);
 }
+
+/* ========= Aktionen im Dashboard kompakt ========= */
+.action-menu-compact {
+  font-size: 0.8rem;
+}
+.action-menu-compact .btn {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+}

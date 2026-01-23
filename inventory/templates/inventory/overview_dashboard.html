@@ -462,12 +462,7 @@
                   Mehr
                 </button>
               </div>
-            </td>
-          </tr>
-
-          <tr class="collapse" id="actionRow{{ it.id }}">
-            <td colspan="99" class="p-0">
-              <div class="p-3">
+              <div class="collapse action-menu action-menu-compact mt-2" id="actionRow{{ it.id }}">
                 <div class="d-flex flex-column gap-2">
                   {% if global_features.show_favorites %}
                     <form method="post" action="{% url 'toggle-favorite' it.id %}">
