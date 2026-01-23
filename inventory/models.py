@@ -147,6 +147,10 @@ class GlobalSettings(models.Model):
         default=False,
         verbose_name="Tailscale-Setup abgeschlossen",
     )
+    tailscale_setup_ignored = models.BooleanField(
+        default=False,
+        verbose_name="Tailscale-Setup ignoriert",
+    )
     tailscale_setup_confirmed_at = models.DateTimeField(
         null=True,
         blank=True,

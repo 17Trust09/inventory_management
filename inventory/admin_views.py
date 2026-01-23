@@ -184,7 +184,7 @@ def dashboard(request):
     """
     latest_feedback = Feedback.objects.select_related("created_by").order_by("-created_at")[:8]
     settings_obj = _get_global_settings()
-    tailscale_setup_complete = settings_obj.tailscale_setup_complete
+    tailscale_setup_complete = settings_obj.tailscale_setup_complete or settings_obj.tailscale_setup_ignored
     return render(request, 'inventory/admin_dashboard.html', {
         "latest_feedback": latest_feedback,
         "tailscale_setup_complete": tailscale_setup_complete,
@@ -1058,11 +1058,13 @@ def admin_tailscale_setup(request):
         if action == "reset_setup":
             settings_obj.tailscale_setup_step = 0
             settings_obj.tailscale_setup_complete = False
+            settings_obj.tailscale_setup_ignored = False
             settings_obj.tailscale_setup_confirmed_at = None
             settings_obj.save(
                 update_fields=[
                     "tailscale_setup_step",
                     "tailscale_setup_complete",
+                    "tailscale_setup_ignored",
                     "tailscale_setup_confirmed_at",
                 ]
             )
@@ -1092,15 +1094,27 @@ def admin_tailscale_setup(request):
                 return redirect("admin_tailscale_setup")
             settings_obj.tailscale_setup_step = max(settings_obj.tailscale_setup_step, 4)
             settings_obj.tailscale_setup_complete = True
+            settings_obj.tailscale_setup_ignored = False
             settings_obj.tailscale_setup_confirmed_at = timezone.now()
             settings_obj.save(
                 update_fields=[
                     "tailscale_setup_step",
                     "tailscale_setup_complete",
+                    "tailscale_setup_ignored",
                     "tailscale_setup_confirmed_at",
                 ]
             )
             messages.success(request, "Tailscale-Setup wurde bestätigt.")
+            return redirect("admin_tailscale_setup")
+
+        if action == "ignore_setup":
+            if not request.user.is_superuser:
+                messages.error(request, "Nur Superuser können das Setup ignorieren.")
+                return redirect("admin_tailscale_setup")
+            settings_obj.tailscale_setup_complete = False
+            settings_obj.tailscale_setup_ignored = True
+            settings_obj.save(update_fields=["tailscale_setup_complete", "tailscale_setup_ignored"])
+            messages.warning(request, "Tailscale-Setup wird vorübergehend ignoriert.")
             return redirect("admin_tailscale_setup")
 
     auto_step = settings_obj.tailscale_setup_step
@@ -1118,6 +1132,7 @@ def admin_tailscale_setup(request):
         "tailscale_admin_url": "https://login.tailscale.com/admin/machines",
         "tailscale_setup_step": settings_obj.tailscale_setup_step,
         "tailscale_setup_complete": settings_obj.tailscale_setup_complete,
+        "tailscale_setup_ignored": settings_obj.tailscale_setup_ignored,
         "tailscale_setup_confirmed_at": settings_obj.tailscale_setup_confirmed_at,
     }
     return render(request, "inventory/admin_tailscale_setup.html", context)

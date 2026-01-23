@@ -25,6 +25,11 @@
             <span class="badge {% if tailscale_setup_complete %}bg-success{% else %}bg-secondary{% endif %}">
               Schritt 4: Bestätigt
             </span>
+            {% if tailscale_setup_ignored %}
+              <span class="badge bg-warning text-dark">
+                Ignoriert
+              </span>
+            {% endif %}
           </div>
           {% if tailscale_setup_confirmed_at %}
             <div class="text-muted small mt-2">
@@ -134,6 +139,18 @@
           Setup zurücksetzen
         </button>
       </form>
+      {% if request.user.is_superuser %}
+        <form method="post" class="mt-2">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="ignore_setup">
+          <button class="btn btn-outline-warning btn-sm">
+            Setup ignorieren (nur Superuser)
+          </button>
+          <div class="text-muted small mt-1">
+            Diese Option markiert das Setup als erledigt, ohne es abzuschließen.
+          </div>
+        </form>
+      {% endif %}
     </div>
   </div>
 {% endblock %}
