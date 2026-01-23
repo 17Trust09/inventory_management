@@ -458,74 +458,62 @@
             <td class="text-end">
               <div class="d-flex justify-content-end gap-2 flex-wrap">
                 <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' it.id %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Bearbeiten</a>
-                <div class="dropdown">
-                  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    Mehr
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
-                    {% if global_features.show_favorites %}
-                      <li>
-                        <form method="post" action="{% url 'toggle-favorite' it.id %}">
-                          {% csrf_token %}
-                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                          <button class="dropdown-item" type="submit">
-                            {% if it.is_favorite %}★ Favorit entfernen{% else %}☆ Favorit hinzufügen{% endif %}
-                          </button>
-                        </form>
-                      </li>
-                    {% endif %}
-                    {% if global_features.show_mark_button and features.enable_mark_button %}
-                      <li>
-                        <form method="post" action="{% url 'mark-item' it.id %}">
-                          {% csrf_token %}
-                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                          <button class="dropdown-item" type="submit">Markieren</button>
-                        </form>
-                      </li>
-                    {% endif %}
-                    {% if features.require_qr and global_features.enable_qr_actions %}
-                      <li>
-                        {% if it.qr_exists %}
-                          <a class="dropdown-item" href="{{ it.qr_url }}" target="_blank" rel="noopener">QR anzeigen</a>
-                        {% else %}
-                          <span class="dropdown-item text-muted">QR anzeigen</span>
-                        {% endif %}
-                      </li>
-                      <li>
-                        {% if it.qr_exists %}
-                          <a class="dropdown-item" href="{{ it.qr_url }}" download>QR herunterladen</a>
-                        {% else %}
-                          <span class="dropdown-item text-muted">QR herunterladen</span>
-                        {% endif %}
-                      </li>
-                      <li>
-                        <form method="post" action="{% url 'regenerate-qr' it.id %}">
-                          {% csrf_token %}
-                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                          <button class="dropdown-item" type="submit">QR neu generieren</button>
-                        </form>
-                      </li>
-                    {% endif %}
-                    {% if features.enable_borrow %}
-                      <li>
-                        <a class="dropdown-item" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
-                      </li>
-                    {% endif %}
-                    {% if features.enable_comments %}
-                      <li>
-                        <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#commentModal{{ it.id }}">
-                          Kommentieren
-                        </button>
-                      </li>
-                    {% endif %}
-                    {% if features.show_order_button and it.order_link %}
-                      <li>
-                        <a class="dropdown-item" href="{{ it.order_link }}" target="_blank" rel="noopener">
-                          Nachbestellen
-                        </a>
-                      </li>
-                    {% endif %}
-                  </ul>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#actionRow{{ it.id }}" aria-expanded="false" aria-controls="actionRow{{ it.id }}">
+                  Mehr
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="collapse" id="actionRow{{ it.id }}">
+            <td colspan="99" class="p-0">
+              <div class="p-3">
+                <div class="d-flex flex-column gap-2">
+                  {% if global_features.show_favorites %}
+                    <form method="post" action="{% url 'toggle-favorite' it.id %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button class="btn btn-sm btn-outline-secondary w-100 text-start" type="submit">
+                        {% if it.is_favorite %}★ Favorit entfernen{% else %}☆ Favorit hinzufügen{% endif %}
+                      </button>
+                    </form>
+                  {% endif %}
+                  {% if global_features.show_mark_button and features.enable_mark_button %}
+                    <form method="post" action="{% url 'mark-item' it.id %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button class="btn btn-sm btn-outline-warning w-100 text-start" type="submit">Markieren</button>
+                    </form>
+                  {% endif %}
+                  {% if features.require_qr and global_features.enable_qr_actions %}
+                    <div class="d-flex flex-column gap-2">
+                      {% if it.qr_exists %}
+                        <a class="btn btn-sm btn-outline-light w-100 text-start" href="{{ it.qr_url }}" target="_blank" rel="noopener">QR anzeigen</a>
+                        <a class="btn btn-sm btn-outline-light w-100 text-start" href="{{ it.qr_url }}" download>QR herunterladen</a>
+                      {% else %}
+                        <button class="btn btn-sm btn-outline-light w-100 text-start" type="button" disabled>QR anzeigen</button>
+                        <button class="btn btn-sm btn-outline-light w-100 text-start" type="button" disabled>QR herunterladen</button>
+                      {% endif %}
+                      <form method="post" action="{% url 'regenerate-qr' it.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="btn btn-sm btn-outline-light w-100 text-start" type="submit">QR neu generieren</button>
+                      </form>
+                    </div>
+                  {% endif %}
+                  {% if features.enable_borrow %}
+                    <a class="btn btn-sm btn-outline-light w-100 text-start" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
+                  {% endif %}
+                  {% if features.enable_comments %}
+                    <button class="btn btn-sm btn-outline-info w-100 text-start" type="button" data-bs-toggle="modal" data-bs-target="#commentModal{{ it.id }}">
+                      Kommentieren
+                    </button>
+                  {% endif %}
+                  {% if features.show_order_button and it.order_link %}
+                    <a class="btn btn-sm btn-outline-success w-100 text-start" href="{{ it.order_link }}" target="_blank" rel="noopener">
+                      Nachbestellen
+                    </a>
+                  {% endif %}
                 </div>
               </div>
             </td>
