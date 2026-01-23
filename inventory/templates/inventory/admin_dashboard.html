@@ -140,7 +140,8 @@
     </div>
   {% endif %}
 
-  {% if (request.user.is_superuser or tailscale_setup_complete) and global_features.show_feedback %}
+  {% if request.user.is_superuser or tailscale_setup_complete %}
+    {% if global_features.show_feedback %}
     <!-- Feedback-Box -->
     <div class="row g-4 mt-1">
       <div class="col-12">
@@ -223,6 +224,7 @@
         </div>
       </div>
     </div>
+    {% endif %}
   {% endif %}
 
 </div>
