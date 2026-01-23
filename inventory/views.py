@@ -1550,7 +1550,7 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
         )
         comment_prefetch = Prefetch(
             "comments",
-            queryset=ItemComment.objects.select_related("author").order_by("-created_at"),
+            queryset=ItemComment.objects.select_related("author").order_by("-updated_at", "-created_at"),
             to_attr="prefetched_comments",
         )
 
@@ -2020,12 +2020,27 @@ class ItemCommentCreateView(LoginRequiredMixin, View):
                 messages.error(request, "Kein Zugriff auf diesen Artikel.")
                 return redirect("dashboards")
 
+        action = (request.POST.get("action") or "").strip().lower()
+        existing_comment = ItemComment.objects.filter(item=item).order_by("-updated_at", "-created_at").first()
+        if action == "delete":
+            if existing_comment:
+                existing_comment.delete()
+                messages.success(request, "Kommentar gelöscht.")
+            else:
+                messages.info(request, "Kein Kommentar vorhanden.")
+            return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
+
         form = ItemCommentForm(request.POST)
         if form.is_valid():
-            comment = form.save(commit=False)
-            comment.item = item
-            comment.author = request.user
-            comment.save()
+            if existing_comment:
+                existing_comment.text = form.cleaned_data["text"]
+                existing_comment.author = request.user
+                existing_comment.save(update_fields=["text", "author", "updated_at"])
+            else:
+                comment = form.save(commit=False)
+                comment.item = item
+                comment.author = request.user
+                comment.save()
             messages.success(request, "Kommentar gespeichert.")
         else:
             messages.error(request, "Kommentar konnte nicht gespeichert werden.")

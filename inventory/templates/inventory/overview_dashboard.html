@@ -146,7 +146,7 @@
   {% endif %}
   {% if features.enable_comments %}
     <p class="text-muted small">
-      Kommentare können direkt an den einzelnen Artikeln erfasst werden.
+      Kommentare können direkt an den einzelnen Artikeln erfasst, bearbeitet oder gelöscht werden.
     </p>
   {% endif %}
 
@@ -509,26 +509,23 @@
                       {% csrf_token %}
                       <input type="hidden" name="next" value="{{ request.get_full_path }}">
                       <div class="mb-3">
-                        <textarea name="text" class="form-control" rows="3" placeholder="Kommentar hinzufügen..." required></textarea>
+                        <textarea name="text" class="form-control" rows="4" placeholder="Kommentar hinzufügen..." required>{% if it.prefetched_comments %}{{ it.prefetched_comments.0.text }}{% endif %}</textarea>
+                        {% if it.prefetched_comments %}
+                          <div class="form-text text-muted">
+                            Zuletzt aktualisiert von {{ it.prefetched_comments.0.author.username }} am {{ it.prefetched_comments.0.updated_at|date:"d.m.Y H:i" }}.
+                          </div>
+                        {% endif %}
                       </div>
-                      <button class="btn btn-outline-primary btn-sm">Speichern</button>
+                      <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary btn-sm">Speichern</button>
+                        {% if it.prefetched_comments %}
+                          <button class="btn btn-outline-danger btn-sm" name="action" value="delete" type="submit">Löschen</button>
+                        {% endif %}
+                      </div>
                     </form>
-                    <hr>
-                    <div>
-                      <div class="text-muted small mb-2">Letzte Kommentare</div>
-                      {% if it.prefetched_comments %}
-                        <ul class="list-unstyled small">
-                          {% for comment in it.prefetched_comments|slice:":5" %}
-                            <li class="mb-2">
-                              <div class="fw-semibold">{{ comment.author.username }} <span class="text-muted">• {{ comment.created_at|date:"d.m.Y H:i" }}</span></div>
-                              <div>{{ comment.text|linebreaks }}</div>
-                            </li>
-                          {% endfor %}
-                        </ul>
-                      {% else %}
-                        <div class="text-muted small">Noch keine Kommentare.</div>
-                      {% endif %}
-                    </div>
+                    {% if not it.prefetched_comments %}
+                      <div class="text-muted small mt-3">Noch kein Kommentar vorhanden.</div>
+                    {% endif %}
                   </div>
                 </div>
               </div>

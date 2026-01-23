@@ -891,9 +891,10 @@ class ItemComment(models.Model):
     )
     text = models.TextField(verbose_name="Kommentar")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Erstellt am")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Aktualisiert am")
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["-updated_at", "-created_at"]
         indexes = [
             models.Index(fields=["item", "-created_at"]),
         ]
