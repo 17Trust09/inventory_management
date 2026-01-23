@@ -16,7 +16,15 @@ echo "🔄 Starte Update-Prozess vom main-Branch..."
 
 # 🔁 Gehe in den Ordner, wo dieses Skript liegt
 cd "$(dirname "$0")"
-REPO_URL="https://github.com/17Trust09/inventory_management"
+
+# 🔧 .env laden (optional) für UPDATE_REPO_URL_MAIN
+if [ -f ".env" ]; then
+  set -a
+  source .env
+  set +a
+fi
+
+REPO_URL="${UPDATE_REPO_URL_MAIN:-https://github.com/17Trust09/inventory_management}"
 
 # 🗂️ Schritt 1: Backup vorbereiten
 backup_dir="backup/$(date +%Y-%m-%d_%H-%M-%S)"

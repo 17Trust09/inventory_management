@@ -742,6 +742,42 @@ def admin_feature_toggles(request):
 
 def _get_git_status(branch: str) -> dict[str, str | int]:
     base_dir = settings.BASE_DIR
+    repo_url = (
+        settings.UPDATE_REPO_URL_MAIN if branch == "main" else settings.UPDATE_REPO_URL_DEV
+    ).strip()
+    if not repo_url:
+        return {
+            "branch": branch,
+            "error": "Update-Repository ist nicht konfiguriert.",
+        }
+
+    if not (base_dir / ".git").exists():
+        return {
+            "branch": branch,
+            "error": "Git-Repository nicht initialisiert. Bitte einmal ein Update ausführen.",
+        }
+
+    remote_url = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=base_dir,
+        capture_output=True,
+        text=True,
+    )
+    if remote_url.returncode != 0:
+        subprocess.run(
+            ["git", "remote", "add", "origin", repo_url],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+    elif remote_url.stdout.strip() != repo_url:
+        subprocess.run(
+            ["git", "remote", "set-url", "origin", repo_url],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+
     fetch = subprocess.run(
         ["git", "fetch", "origin", branch],
         cwd=base_dir,

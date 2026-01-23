@@ -19,6 +19,16 @@ HA_URL = os.getenv('HA_URL', 'http://homeassistant.local:8123')
 # INVENTORY_BASE_URL in .env setzen, z.B. http://raspi.tailnet-xyz.ts.net:8000
 INVENTORY_BASE_URL = os.getenv('INVENTORY_BASE_URL', '')
 
+# Git-Update-Repositories (optional). Wenn leer, wird der Standard-Repo genutzt.
+UPDATE_REPO_URL_MAIN = os.getenv(
+    "UPDATE_REPO_URL_MAIN",
+    "https://github.com/17Trust09/inventory_management",
+)
+UPDATE_REPO_URL_DEV = os.getenv(
+    "UPDATE_REPO_URL_DEV",
+    "https://github.com/17Trust09/inventory_management",
+)
+
 # Optionale HA-Integrationstoggles
 HA_VERIFY_SSL = os.getenv('HA_VERIFY_SSL', 'true').lower() == 'true'
 HA_TIMEOUT = int(os.getenv('HA_TIMEOUT', '6'))
