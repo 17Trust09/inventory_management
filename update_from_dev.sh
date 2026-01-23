@@ -16,6 +16,7 @@ echo "🔄 Starte Update-Prozess vom dev-Branch..."
 
 # 🔁 Gehe in den Ordner, wo dieses Skript liegt
 cd "$(dirname "$0")"
+REPO_URL="https://github.com/17Trust09/inventory_management"
 
 # 🗂️ Schritt 1: Backup vorbereiten
 backup_dir="backup/$(date +%Y-%m-%d_%H-%M-%S)"
@@ -40,7 +41,19 @@ progress_bar 4 && echo " ✅"
 
 # 🌱 Schritt 5: Git Pull vom dev-Branch
 echo -n "⬇️ [5/7] Git Pull vom dev-Branch... "
-git checkout dev && git pull origin dev &> /dev/null
+if [ ! -d ".git" ]; then
+  echo -e "\nℹ️ Git-Repo nicht gefunden – initialisiere Repository..."
+  git init &> /dev/null
+  git remote add origin "$REPO_URL" &> /dev/null || git remote set-url origin "$REPO_URL"
+  git fetch origin dev &> /dev/null
+  git checkout -b dev &> /dev/null
+  git reset --hard origin/dev &> /dev/null
+else
+  git remote get-url origin &> /dev/null || git remote add origin "$REPO_URL"
+  git remote set-url origin "$REPO_URL" &> /dev/null
+  git checkout dev &> /dev/null || git checkout -b dev &> /dev/null
+  git pull origin dev &> /dev/null
+fi
 # 🔐 Stelle sicher, dass beide Update-Skripte ausführbar bleiben
 sudo chmod +x update_from_dev.sh
 sudo chmod +x update_from_main.sh

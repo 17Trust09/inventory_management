@@ -1811,6 +1811,30 @@ class ItemAttachmentUploadView(LoginRequiredMixin, View):
         return redirect("edit-item", pk=item_id)
 
 
+class ItemAttachmentDeleteView(LoginRequiredMixin, View):
+    def post(self, request, attachment_id):
+        if not get_feature_flags().get("enable_attachments", True):
+            messages.error(request, "Anhänge sind aktuell deaktiviert.")
+            return redirect("dashboards")
+
+        attachment = get_object_or_404(ItemAttachment, pk=attachment_id)
+        item = attachment.item
+
+        if not request.user.is_superuser:
+            allowed = _allowed_overviews_for_user(request.user)
+            if not allowed.filter(pk=item.overview_id).exists():
+                messages.error(request, "Kein Zugriff auf diesen Artikel.")
+                return redirect("dashboards")
+
+        file_path = attachment.file.path if attachment.file else None
+        attachment.delete()
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
+
+        messages.success(request, "Datei wurde gelöscht.")
+        return redirect("edit-item", pk=item.id)
+
+
 # ============================================================================
 # Feedback – Liste, Detail, Erstellen, Votes, Kommentare (nur Login nötig)
 # ============================================================================

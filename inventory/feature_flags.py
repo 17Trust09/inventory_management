@@ -21,6 +21,7 @@ DEFAULT_FEATURE_FLAGS = {
     "enable_image_library": True,
     "enable_qr_actions": True,
     "enable_nfc_fields": True,
+    "enable_unit_fields": True,
 }
 
 
@@ -45,6 +46,7 @@ def get_feature_flags() -> dict[str, bool]:
                 "enable_image_library": settings.enable_image_library,
                 "enable_qr_actions": settings.enable_qr_actions,
                 "enable_nfc_fields": settings.enable_nfc_fields,
+                "enable_unit_fields": settings.enable_unit_fields,
             }
         )
     return flags

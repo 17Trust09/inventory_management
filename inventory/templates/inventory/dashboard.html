@@ -128,7 +128,14 @@
                             {% endif %}
                         </td>
                         <td class="{% if item.quantity <= item.low_quantity %}text-danger{% else %}text-success{% endif %}">
-                            {{ item.quantity }}{% if item.unit %} {{ item.get_unit_display }}{% endif %} (Mindestbestand: {{ item.low_quantity }}{% if item.unit %} {{ item.get_unit_display }}{% endif %})
+                            {{ item.quantity }}
+                            {% if global_features.enable_unit_fields and item.unit %}
+                              {{ item.get_unit_display }}
+                            {% endif %}
+                            (Mindestbestand: {{ item.low_quantity }}
+                            {% if global_features.enable_unit_fields and item.unit %}
+                              {{ item.get_unit_display }}
+                            {% endif %})
                         </td>
                         <td>{{ item.category.name }}</td>
                         <td>{{ item.location_letter }}</td>

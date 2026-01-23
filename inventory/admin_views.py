@@ -689,6 +689,7 @@ def admin_feature_toggles(request):
                 "enable_image_library",
                 "enable_qr_actions",
                 "enable_nfc_fields",
+                "enable_unit_fields",
             ]
             widgets = {
                 "show_patch_notes": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -706,6 +707,7 @@ def admin_feature_toggles(request):
                 "enable_image_library": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "enable_qr_actions": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "enable_nfc_fields": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_unit_fields": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             }
             labels = {
                 "show_patch_notes": "Patch Notes",
@@ -723,6 +725,7 @@ def admin_feature_toggles(request):
                 "enable_image_library": "Bild-Bibliothek",
                 "enable_qr_actions": "QR-Aktionen",
                 "enable_nfc_fields": "NFC-Felder",
+                "enable_unit_fields": "Einheit anzeigen",
             }
 
     if request.method == "POST":

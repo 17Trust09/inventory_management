@@ -29,6 +29,7 @@ urlpatterns = [
     path('item/<int:item_id>/mark/', views.MarkItemAPI.as_view(), name='mark-item'),
     path('item/<int:item_id>/favorite/', views.ToggleFavoriteView.as_view(), name='toggle-favorite'),
     path('item/<int:item_id>/attachments/', views.ItemAttachmentUploadView.as_view(), name='item-attachment-upload'),
+    path('item/attachments/<int:attachment_id>/delete/', views.ItemAttachmentDeleteView.as_view(), name='item-attachment-delete'),
     path('items/bulk-action/', views.BulkItemActionView.as_view(), name='bulk-item-action'),
     path('item/<int:item_id>/adjust-quantity/', views.QuickAdjustQuantityView.as_view(), name='adjust-quantity'),
     path('nfc/<str:token>/', views.NFCItemRedirectView.as_view(), name='nfc-redirect'),

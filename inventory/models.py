@@ -154,6 +154,10 @@ class GlobalSettings(models.Model):
         default=True,
         verbose_name="NFC-Felder anzeigen",
     )
+    enable_unit_fields = models.BooleanField(
+        default=True,
+        verbose_name="Einheit anzeigen",
+    )
 
     def __str__(self):
         return "Globale Einstellungen"

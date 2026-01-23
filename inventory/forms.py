@@ -212,12 +212,11 @@ class EquipmentItemForm(forms.ModelForm):
     class Meta:
         model = InventoryItem
         fields = [
-            'name', 'variant', 'quantity', 'unit', 'category', 'storage_location',
+            'name', 'quantity', 'unit', 'category', 'storage_location',
             'order_link', 'nfc_token', 'nfc_base_choice', 'application_tags', 'image', 'maintenance_date',
         ]
         labels = {
             'name': 'Name*',
-            'variant': 'Variante',
             'quantity': 'Ist-Bestand*',
             'unit': 'Einheit',
             'storage_location': 'Lagerort',
@@ -329,12 +328,11 @@ class ConsumableItemForm(forms.ModelForm):
     class Meta:
         model = InventoryItem
         fields = [
-            'name', 'variant', 'quantity', 'unit', 'category', 'storage_location',
+            'name', 'quantity', 'unit', 'category', 'storage_location',
             'low_quantity', 'order_link', 'nfc_token', 'nfc_base_choice', 'application_tags', 'image', 'maintenance_date',
         ]
         labels = {
             'name': 'Name*',
-            'variant': 'Variante',
             'quantity': 'Ist-Bestand*',
             'unit': 'Einheit',
             'storage_location': 'Lagerort',

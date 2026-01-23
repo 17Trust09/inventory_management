@@ -16,6 +16,7 @@ echo "🔄 Starte Update-Prozess vom main-Branch..."
 
 # 🔁 Gehe in den Ordner, wo dieses Skript liegt
 cd "$(dirname "$0")"
+REPO_URL="https://github.com/17Trust09/inventory_management"
 
 # 🗂️ Schritt 1: Backup vorbereiten
 backup_dir="backup/$(date +%Y-%m-%d_%H-%M-%S)"
@@ -40,7 +41,19 @@ progress_bar 4 && echo " ✅"
 
 # 🌱 Schritt 5: Git Pull vom main-Branch
 echo -n "⬇️ [5/7] Git Pull vom main-Branch... "
-git checkout main && git pull origin main &> /dev/null
+if [ ! -d ".git" ]; then
+  echo -e "\nℹ️ Git-Repo nicht gefunden – initialisiere Repository..."
+  git init &> /dev/null
+  git remote add origin "$REPO_URL" &> /dev/null || git remote set-url origin "$REPO_URL"
+  git fetch origin main &> /dev/null
+  git checkout -b main &> /dev/null
+  git reset --hard origin/main &> /dev/null
+else
+  git remote get-url origin &> /dev/null || git remote add origin "$REPO_URL"
+  git remote set-url origin "$REPO_URL" &> /dev/null
+  git checkout main &> /dev/null || git checkout -b main &> /dev/null
+  git pull origin main &> /dev/null
+fi
 sudo chmod +x update_from_dev.sh
 sudo chmod +x update_from_main.sh
 progress_bar 5 && echo " ✅"

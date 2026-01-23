@@ -410,7 +410,7 @@
                     <span class="fw-semibold js-quantity-value" data-item-id="{{ it.id }}">
                       {{ it.quantity|default:"–" }}
                     </span>
-                    {% if it.unit %}
+                    {% if global_features.enable_unit_fields and it.unit %}
                       <span class="text-muted small">{{ it.get_unit_display }}</span>
                     {% endif %}
                     <form method="post"
@@ -426,14 +426,20 @@
                     </form>
                   </div>
                 {% else %}
-                  {{ it.quantity|default:"–" }}{% if it.unit %} {{ it.get_unit_display }}{% endif %}
+                  {{ it.quantity|default:"–" }}
+                  {% if global_features.enable_unit_fields and it.unit %}
+                    {{ it.get_unit_display }}
+                  {% endif %}
                 {% endif %}
               </td>
             {% endif %}
 
             {% if features.has_min_stock %}
               <td class="text-end">
-                {{ it.low_quantity|default:"–" }}{% if it.unit %} {{ it.get_unit_display }}{% endif %}
+                {{ it.low_quantity|default:"–" }}
+                {% if global_features.enable_unit_fields and it.unit %}
+                  {{ it.get_unit_display }}
+                {% endif %}
               </td>
             {% endif %}
 
