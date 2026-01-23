@@ -134,6 +134,18 @@ a:hover {
 .action-menu-compact {
   font-size: 0.8rem;
 }
+.action-menu-compact .action-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-end;
+}
+.action-menu-compact .action-list li {
+  width: 100%;
+}
 .action-menu-compact .action-link {
   display: inline-flex;
   align-items: center;

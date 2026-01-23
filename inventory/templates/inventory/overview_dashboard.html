@@ -463,53 +463,71 @@
                 </button>
               </div>
               <div class="collapse action-menu action-menu-compact mt-2" id="actionRow{{ it.id }}">
-                <div class="d-flex flex-column gap-2">
+                <ul class="action-list">
                   {% if global_features.show_favorites %}
-                    <form method="post" action="{% url 'toggle-favorite' it.id %}">
-                      {% csrf_token %}
-                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                      <button class="action-link text-start" type="submit">
-                        {% if it.is_favorite %}★ Favorit entfernen{% else %}☆ Favorit hinzufügen{% endif %}
-                      </button>
-                    </form>
+                    <li>
+                      <form method="post" action="{% url 'toggle-favorite' it.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="action-link" type="submit">
+                          {% if it.is_favorite %}★ Favorit entfernen{% else %}☆ Favorit hinzufügen{% endif %}
+                        </button>
+                      </form>
+                    </li>
                   {% endif %}
                   {% if global_features.show_mark_button and features.enable_mark_button %}
-                    <form method="post" action="{% url 'mark-item' it.id %}">
-                      {% csrf_token %}
-                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                      <button class="action-link text-warning text-start" type="submit">Markieren</button>
-                    </form>
+                    <li>
+                      <form method="post" action="{% url 'mark-item' it.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="action-link text-warning" type="submit">Markieren</button>
+                      </form>
+                    </li>
                   {% endif %}
                   {% if features.require_qr and global_features.enable_qr_actions %}
-                    <div class="d-flex flex-column gap-2">
-                      {% if it.qr_exists %}
-                        <a class="action-link text-start" href="{{ it.qr_url }}" target="_blank" rel="noopener">QR anzeigen</a>
-                        <a class="action-link text-start" href="{{ it.qr_url }}" download>QR herunterladen</a>
-                      {% else %}
-                        <button class="action-link text-start" type="button" disabled>QR anzeigen</button>
-                        <button class="action-link text-start" type="button" disabled>QR herunterladen</button>
-                      {% endif %}
+                    {% if it.qr_exists %}
+                      <li>
+                        <a class="action-link" href="{{ it.qr_url }}" target="_blank" rel="noopener">QR anzeigen</a>
+                      </li>
+                      <li>
+                        <a class="action-link" href="{{ it.qr_url }}" download>QR herunterladen</a>
+                      </li>
+                    {% else %}
+                      <li>
+                        <button class="action-link" type="button" disabled>QR anzeigen</button>
+                      </li>
+                      <li>
+                        <button class="action-link" type="button" disabled>QR herunterladen</button>
+                      </li>
+                    {% endif %}
+                    <li>
                       <form method="post" action="{% url 'regenerate-qr' it.id %}">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <button class="action-link text-start" type="submit">QR neu generieren</button>
+                        <button class="action-link" type="submit">QR neu generieren</button>
                       </form>
-                    </div>
+                    </li>
                   {% endif %}
                   {% if features.enable_borrow %}
-                    <a class="action-link text-start" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
+                    <li>
+                      <a class="action-link" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
+                    </li>
                   {% endif %}
                   {% if features.enable_comments %}
-                    <button class="action-link text-info text-start" type="button" data-bs-toggle="modal" data-bs-target="#commentModal{{ it.id }}">
-                      Kommentieren
-                    </button>
+                    <li>
+                      <button class="action-link text-info" type="button" data-bs-toggle="modal" data-bs-target="#commentModal{{ it.id }}">
+                        Kommentieren
+                      </button>
+                    </li>
                   {% endif %}
                   {% if features.show_order_button and it.order_link %}
-                    <a class="action-link text-success text-start" href="{{ it.order_link }}" target="_blank" rel="noopener">
-                      Nachbestellen
-                    </a>
+                    <li>
+                      <a class="action-link text-success" href="{{ it.order_link }}" target="_blank" rel="noopener">
+                        Nachbestellen
+                      </a>
+                    </li>
                   {% endif %}
-                </div>
+                </ul>
               </div>
             </td>
           </tr>
