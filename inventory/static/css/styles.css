@@ -134,7 +134,25 @@ a:hover {
 .action-menu-compact {
   font-size: 0.8rem;
 }
-.action-menu-compact .btn {
+.action-menu-compact .action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
   font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
+  color: inherit;
+}
+.action-menu-compact .action-link:hover,
+.action-menu-compact .action-link:focus {
+  text-decoration-thickness: 2px;
+}
+.action-menu-compact .action-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  text-decoration: none;
 }
