@@ -15,6 +15,7 @@ from .models import (
     StorageLocation,
     Feedback,
     FeedbackComment,
+    ItemComment,
     ScheduledExport,
 )
 
@@ -505,6 +506,21 @@ class FeedbackCommentForm(forms.ModelForm):
         for n in visible:
             f = self.fields[n]
             f.widget = forms.Textarea(attrs={"class": "form-control", "rows": 4})
+
+
+class ItemCommentForm(forms.ModelForm):
+    class Meta:
+        model = ItemComment
+        fields = ["text"]
+        widgets = {
+            "text": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Kommentar hinzufügen...",
+                }
+            ),
+        }
 
 
 class ScheduledExportForm(forms.ModelForm):

@@ -32,6 +32,7 @@ urlpatterns = [
     path('item/attachments/<int:attachment_id>/delete/', views.ItemAttachmentDeleteView.as_view(), name='item-attachment-delete'),
     path('items/bulk-action/', views.BulkItemActionView.as_view(), name='bulk-item-action'),
     path('item/<int:item_id>/adjust-quantity/', views.QuickAdjustQuantityView.as_view(), name='adjust-quantity'),
+    path('item/<int:item_id>/comment/', views.ItemCommentCreateView.as_view(), name='item-comment-add'),
     path('nfc/<str:token>/', views.NFCItemRedirectView.as_view(), name='nfc-redirect'),
     path('nfc/location/<str:token>/', views.NFCStorageLocationView.as_view(), name='nfc-location-redirect'),
 

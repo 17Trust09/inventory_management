@@ -55,12 +55,8 @@
                 </form>
               {% endif %}
             </div>
-            {% if global_features.show_feedback and ov.enable_comments %}
-              <a href="{% url 'feedback-add' %}?dashboard={{ ov.slug }}"
-                 class="btn btn-sm btn-outline-success">
-                Kommentar erstellen
-              </a>
-              <small class="text-muted">Kommentar wird im Feedback-Board gespeichert.</small>
+            {% if ov.enable_comments %}
+              <small class="text-muted">Kommentare können im Dashboard an Artikeln erfasst werden.</small>
             {% endif %}
           </div>
         {% endfor %}

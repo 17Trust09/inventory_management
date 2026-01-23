@@ -124,11 +124,6 @@
           </button>
         </form>
       {% endif %}
-      {% if global_features.show_feedback and features.enable_comments %}
-        <a class="btn btn-outline-success" href="{% url 'feedback-add' %}?dashboard={{ overview.slug }}">
-          Kommentar erstellen
-        </a>
-      {% endif %}
       {% if global_features.show_movement_report %}
         <a class="btn btn-outline-light" href="{% url 'movement-report' %}">
           Lagerbewegungen
@@ -149,9 +144,9 @@
   {% if overview.description %}
     <p class="text-muted">{{ overview.description }}</p>
   {% endif %}
-  {% if global_features.show_feedback and features.enable_comments %}
+  {% if features.enable_comments %}
     <p class="text-muted small">
-      Kommentare für dieses Dashboard werden im Feedback-Board gesammelt.
+      Kommentare können direkt an den einzelnen Artikeln erfasst werden.
     </p>
   {% endif %}
 
@@ -487,6 +482,11 @@
                 {% if features.enable_borrow %}
                   <a class="btn btn-sm btn-outline-light" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
                 {% endif %}
+                {% if features.enable_comments %}
+                  <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="modal" data-bs-target="#commentModal{{ it.id }}">
+                    Kommentieren
+                  </button>
+                {% endif %}
                 {% if features.show_order_button and it.order_link %}
                   <a class="btn btn-sm btn-outline-success" href="{{ it.order_link }}" target="_blank" rel="noopener">
                     Nachbestellen
@@ -495,6 +495,45 @@
               </div>
             </td>
           </tr>
+
+          {% if features.enable_comments %}
+            <div class="modal fade" id="commentModal{{ it.id }}" tabindex="-1" aria-labelledby="commentModalLabel{{ it.id }}" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content bg-dark text-light">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="commentModalLabel{{ it.id }}">Kommentar zu {{ it.name }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <form method="post" action="{% url 'item-comment-add' it.id %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <div class="mb-3">
+                        <textarea name="text" class="form-control" rows="3" placeholder="Kommentar hinzufügen..." required></textarea>
+                      </div>
+                      <button class="btn btn-outline-primary btn-sm">Speichern</button>
+                    </form>
+                    <hr>
+                    <div>
+                      <div class="text-muted small mb-2">Letzte Kommentare</div>
+                      {% if it.prefetched_comments %}
+                        <ul class="list-unstyled small">
+                          {% for comment in it.prefetched_comments|slice:":5" %}
+                            <li class="mb-2">
+                              <div class="fw-semibold">{{ comment.author.username }} <span class="text-muted">• {{ comment.created_at|date:"d.m.Y H:i" }}</span></div>
+                              <div>{{ comment.text|linebreaks }}</div>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% else %}
+                        <div class="text-muted small">Noch keine Kommentare.</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
 
           {% if features.enable_borrow %}
             <tr>

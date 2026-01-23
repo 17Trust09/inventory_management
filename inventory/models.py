@@ -876,6 +876,32 @@ class ItemAttachment(models.Model):
         return f"{self.item.name}: {label}"
 
 
+class ItemComment(models.Model):
+    item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        verbose_name="Artikel",
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="item_comments",
+        verbose_name="Autor",
+    )
+    text = models.TextField(verbose_name="Kommentar")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Erstellt am")
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["item", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.item.name} ({self.author.username})"
+
+
 # -------------------------------------------------------------------
 # NEU: Feedback-Modelle (lokales Feedback-Board mit Votes & Kommentaren)
 # -------------------------------------------------------------------

@@ -29,6 +29,7 @@ from .forms import (
     BorrowItemForm,
     FeedbackForm,
     FeedbackCommentForm,
+    ItemCommentForm,
     ScheduledExportForm,
 )
 from .feature_flags import get_feature_flags
@@ -36,6 +37,7 @@ from .models import (
     InventoryItem,
     InventoryHistory,
     ItemAttachment,
+    ItemComment,
     Category,
     UserProfile,
     BorrowedItem,
@@ -1546,12 +1548,21 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
             queryset=BorrowedItem.objects.filter(returned=False),
             to_attr="prefetched_open_borrowings",
         )
+        comment_prefetch = Prefetch(
+            "comments",
+            queryset=ItemComment.objects.select_related("author").order_by("-created_at"),
+            to_attr="prefetched_comments",
+        )
+
+        prefetches = ["application_tags", open_borrowings]
+        if self.overview.enable_comments:
+            prefetches.append(comment_prefetch)
 
         qs = (
             InventoryItem.objects
             .filter(overview=self.overview)  # 🔑 HIER ist der Fix
             .select_related("category", "storage_location", "user")
-            .prefetch_related("application_tags", open_borrowings)
+            .prefetch_related(*prefetches)
             .annotate(
                 borrowed_open=Sum(
                     "borrowings__quantity_borrowed",
@@ -1995,6 +2006,31 @@ class FeedbackCommentCreateView(LoginRequiredMixin, View):
         else:
             messages.error(request, "Kommentar konnte nicht gespeichert werden.")
         return redirect("feedback-detail", pk=pk)
+
+
+class ItemCommentCreateView(LoginRequiredMixin, View):
+    def post(self, request, item_id):
+        item = get_object_or_404(InventoryItem, pk=item_id)
+        if not item.overview or not item.overview.enable_comments:
+            messages.error(request, "Kommentare sind für dieses Dashboard deaktiviert.")
+            return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
+        if not request.user.is_superuser:
+            allowed = _allowed_overviews_for_user(request.user).filter(pk=item.overview_id).exists()
+            if not allowed:
+                messages.error(request, "Kein Zugriff auf diesen Artikel.")
+                return redirect("dashboards")
+
+        form = ItemCommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.item = item
+            comment.author = request.user
+            comment.save()
+            messages.success(request, "Kommentar gespeichert.")
+        else:
+            messages.error(request, "Kommentar konnte nicht gespeichert werden.")
+
+        return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
 
 # --------------------------------------------------------
 # Login: Benutzer ist deaktiviert -> klare Fehlermeldung
