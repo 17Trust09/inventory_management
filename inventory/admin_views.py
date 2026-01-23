@@ -757,6 +757,7 @@ def admin_feature_toggles(request):
                 "show_scheduled_exports",
                 "show_mark_button",
                 "show_favorites",
+                "show_system_settings",
                 "enable_bulk_actions",
                 "enable_item_move",
                 "enable_item_history",
@@ -766,12 +767,6 @@ def admin_feature_toggles(request):
                 "enable_qr_actions",
                 "enable_nfc_fields",
                 "enable_unit_fields",
-                "maintenance_mode_enabled",
-                "auto_maintenance_on_update",
-                "backup_storage_path",
-                "backup_retention_count",
-                "backup_interval_days",
-                "role_plan_notes",
             ]
             widgets = {
                 "show_patch_notes": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -781,6 +776,7 @@ def admin_feature_toggles(request):
                 "show_scheduled_exports": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "show_mark_button": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "show_favorites": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_system_settings": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "enable_bulk_actions": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "enable_item_move": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "enable_item_history": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -790,12 +786,6 @@ def admin_feature_toggles(request):
                 "enable_qr_actions": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "enable_nfc_fields": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "enable_unit_fields": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-                "maintenance_mode_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-                "auto_maintenance_on_update": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-                "backup_storage_path": forms.TextInput(attrs={"class": "form-control"}),
-                "backup_retention_count": forms.NumberInput(attrs={"class": "form-control"}),
-                "backup_interval_days": forms.NumberInput(attrs={"class": "form-control"}),
-                "role_plan_notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             }
             labels = {
                 "show_patch_notes": "Patch Notes",
@@ -805,6 +795,7 @@ def admin_feature_toggles(request):
                 "show_scheduled_exports": "Geplante Exporte",
                 "show_mark_button": "Markieren-Button im Dashboard",
                 "show_favorites": "Favoriten & Schnellzugriff",
+                "show_system_settings": "System-Einstellungen anzeigen",
                 "enable_bulk_actions": "Bulk-Aktionen",
                 "enable_item_move": "Item in anderes Dashboard verschieben",
                 "enable_item_history": "Verlauf & Timeline im Item-Edit",
@@ -814,12 +805,6 @@ def admin_feature_toggles(request):
                 "enable_qr_actions": "QR-Aktionen",
                 "enable_nfc_fields": "NFC-Felder",
                 "enable_unit_fields": "Einheit anzeigen",
-                "maintenance_mode_enabled": "Wartungsmodus aktiv",
-                "auto_maintenance_on_update": "Wartungsmodus bei Updates automatisch aktivieren",
-                "backup_storage_path": "Backup-Speicherort",
-                "backup_retention_count": "Backups behalten (Anzahl)",
-                "backup_interval_days": "Backup-Intervall (Tage)",
-                "role_plan_notes": "Rollen-Plan (Notizen)",
             }
 
     if request.method == "POST":
@@ -1292,6 +1277,7 @@ def admin_system_status(request):
     settings_obj = _get_global_settings()
     tailscale_status = _get_tailscale_status()
     backup_entries = _get_backup_entries()
+    show_system_settings = _feature_enabled("show_system_settings")
 
     try:
         connection.ensure_connection()
@@ -1304,9 +1290,15 @@ def admin_system_status(request):
     disk_free_gb = round(disk.free / (1024 ** 3), 2)
 
     class SystemSettingsForm(forms.ModelForm):
-        backup_storage_path = forms.ChoiceField(
+        backup_storage_path = forms.CharField(
             required=False,
             label="Backup-Speicherort",
+            widget=forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "list": "backup-path-options",
+                }
+            ),
         )
 
         class Meta:
@@ -1337,15 +1329,13 @@ def admin_system_status(request):
                 "role_plan_notes": "Rollen-Plan (Notizen)",
             }
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            choices = [("", "Standardpfad (Projekt/backup)")]
-            existing = (self.instance.backup_storage_path or "").strip()
-            if existing and existing not in dict(choices):
-                choices.append((existing, f"Aktueller Pfad: {existing}"))
-            choices.extend(_get_external_backup_paths())
-            self.fields["backup_storage_path"].choices = choices
-            self.fields["backup_storage_path"].widget = forms.Select(attrs={"class": "form-select"})
+    backup_path_options = [
+        ("", "Standardpfad (Projekt/backup)"),
+    ]
+    existing_path = (settings_obj.backup_storage_path or "").strip()
+    if existing_path and existing_path not in dict(backup_path_options):
+        backup_path_options.append((existing_path, f"Aktueller Pfad: {existing_path}"))
+    backup_path_options.extend(_get_external_backup_paths())
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -1360,14 +1350,27 @@ def admin_system_status(request):
                 messages.error(request, message)
             return redirect("admin_system_status")
 
-        form = SystemSettingsForm(request.POST, instance=settings_obj)
-        if form.is_valid():
-            settings_obj.role_plan_updated_at = timezone.now()
-            form.save()
-            messages.success(request, "System-Einstellungen gespeichert.")
-            return redirect("admin_system_status")
+        if show_system_settings:
+            form = SystemSettingsForm(request.POST, instance=settings_obj)
+            if form.is_valid():
+                backup_path = (form.cleaned_data.get("backup_storage_path") or "").strip()
+                if backup_path:
+                    try:
+                        Path(backup_path).mkdir(parents=True, exist_ok=True)
+                    except OSError as exc:
+                        form.add_error(
+                            "backup_storage_path",
+                            f"Backup-Ordner konnte nicht erstellt werden: {exc}",
+                        )
+                if not form.errors:
+                    settings_obj.role_plan_updated_at = timezone.now()
+                    form.save()
+                    messages.success(request, "System-Einstellungen gespeichert.")
+                    return redirect("admin_system_status")
+        else:
+            form = None
     else:
-        form = SystemSettingsForm(instance=settings_obj)
+        form = SystemSettingsForm(instance=settings_obj) if show_system_settings else None
 
     context = {
         "form": form,
@@ -1379,6 +1382,8 @@ def admin_system_status(request):
         "settings_obj": settings_obj,
         "backup_root": _get_backup_root(settings_obj)[0],
         "hide_admin_back": True,
+        "show_system_settings": show_system_settings,
+        "backup_path_options": backup_path_options,
     }
     return render(request, "inventory/admin_system_status.html", context)
 

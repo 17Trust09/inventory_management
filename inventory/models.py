@@ -122,6 +122,10 @@ class GlobalSettings(models.Model):
         default=True,
         verbose_name="Favoriten & Schnellzugriff anzeigen",
     )
+    show_system_settings = models.BooleanField(
+        default=True,
+        verbose_name="System-Einstellungen anzeigen",
+    )
     enable_bulk_actions = models.BooleanField(
         default=True,
         verbose_name="Bulk-Aktionen erlauben",
