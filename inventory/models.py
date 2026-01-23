@@ -165,6 +165,17 @@ class GlobalSettings(models.Model):
         default="",
         verbose_name="Wartungsnachricht",
     )
+    auto_maintenance_on_update = models.BooleanField(
+        default=True,
+        verbose_name="Wartungsmodus bei Updates automatisch aktivieren",
+    )
+    backup_storage_path = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name="Backup-Speicherort",
+        help_text="Leer = Standardpfad im Projekt.",
+    )
     backup_retention_count = models.PositiveSmallIntegerField(
         default=10,
         verbose_name="Backup-Aufbewahrung (Anzahl)",
@@ -179,6 +190,16 @@ class GlobalSettings(models.Model):
         null=True,
         blank=True,
         verbose_name="Letztes Backup am",
+    )
+    role_plan_notes = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Rollen-Plan (Notizen)",
+    )
+    role_plan_updated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Rollen-Plan aktualisiert am",
     )
     enable_image_upload = models.BooleanField(
         default=True,

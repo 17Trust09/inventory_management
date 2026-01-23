@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 from . import views
 from .views import CustomAuthForm
 # API-Views
-from .api import FeedbackSummaryAPI, HAStatusAPI
+from .api import FeedbackSummaryAPI, HAStatusAPI, SystemHealthAPI
 
 urlpatterns = [
     # 1) Frontend-Views
@@ -85,6 +85,7 @@ urlpatterns = [
 
     # 6) Health / HA-Status
     path('api/health/ha/', HAStatusAPI.as_view(), name='ha-health'),
+    path('api/health/system/', SystemHealthAPI.as_view(), name='system-health'),
 
     path("item/<int:pk>/move/",views.MoveItemToOverviewView.as_view(),name="move-item-to-overview",),
 

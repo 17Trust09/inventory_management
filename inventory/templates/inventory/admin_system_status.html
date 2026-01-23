@@ -13,6 +13,7 @@
             <li>Festplatte: {{ disk_free_gb }} GB frei / {{ disk_total_gb }} GB gesamt</li>
             <li>Tailscale: {% if tailscale_status.connected %}Verbunden{% else %}Nicht verbunden{% endif %}</li>
             <li>Letztes Backup: {{ settings_obj.last_backup_at|date:"d.m.Y H:i" | default:"—" }}</li>
+            <li>Backup-Pfad: {{ backup_root }}</li>
           </ul>
           <form method="post">
             {% csrf_token %}
@@ -39,6 +40,17 @@
               <label class="form-label" for="{{ form.maintenance_message.id_for_label }}">Wartungsnachricht</label>
               {{ form.maintenance_message }}
             </div>
+            <div class="form-check form-switch mb-3">
+              {{ form.auto_maintenance_on_update }}
+              <label class="form-check-label" for="{{ form.auto_maintenance_on_update.id_for_label }}">
+                Wartungsmodus bei Updates automatisch aktivieren
+              </label>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.backup_storage_path.id_for_label }}">Backup-Speicherort</label>
+              {{ form.backup_storage_path }}
+              <div class="form-text text-muted">Externe Datenträger werden automatisch erkannt.</div>
+            </div>
             <div class="mb-3">
               <label class="form-label" for="{{ form.backup_retention_count.id_for_label }}">Backups behalten (Anzahl)</label>
               {{ form.backup_retention_count }}
@@ -47,6 +59,10 @@
               <label class="form-label" for="{{ form.backup_interval_days.id_for_label }}">Backup-Intervall (Tage)</label>
               {{ form.backup_interval_days }}
               <div class="form-text text-muted">0 deaktiviert automatische Backups.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.role_plan_notes.id_for_label }}">Rollen-Plan (Notizen)</label>
+              {{ form.role_plan_notes }}
             </div>
             <button class="btn btn-outline-light">Speichern</button>
           </form>

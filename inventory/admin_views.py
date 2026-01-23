@@ -23,6 +23,7 @@ import uuid
 import subprocess
 import json
 import shutil
+from pathlib import Path
 
 from .feature_flags import get_feature_flags
 from .models import (
@@ -765,8 +766,11 @@ def admin_feature_toggles(request):
                 "enable_nfc_fields",
                 "enable_unit_fields",
                 "maintenance_mode_enabled",
+                "auto_maintenance_on_update",
+                "backup_storage_path",
                 "backup_retention_count",
                 "backup_interval_days",
+                "role_plan_notes",
             ]
             widgets = {
                 "show_patch_notes": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -786,8 +790,11 @@ def admin_feature_toggles(request):
                 "enable_nfc_fields": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "enable_unit_fields": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "maintenance_mode_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "auto_maintenance_on_update": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "backup_storage_path": forms.TextInput(attrs={"class": "form-control"}),
                 "backup_retention_count": forms.NumberInput(attrs={"class": "form-control"}),
                 "backup_interval_days": forms.NumberInput(attrs={"class": "form-control"}),
+                "role_plan_notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             }
             labels = {
                 "show_patch_notes": "Patch Notes",
@@ -807,8 +814,11 @@ def admin_feature_toggles(request):
                 "enable_nfc_fields": "NFC-Felder",
                 "enable_unit_fields": "Einheit anzeigen",
                 "maintenance_mode_enabled": "Wartungsmodus aktiv",
+                "auto_maintenance_on_update": "Wartungsmodus bei Updates automatisch aktivieren",
+                "backup_storage_path": "Backup-Speicherort",
                 "backup_retention_count": "Backups behalten (Anzahl)",
                 "backup_interval_days": "Backup-Intervall (Tage)",
+                "role_plan_notes": "Rollen-Plan (Notizen)",
             }
 
     if request.method == "POST":
@@ -939,8 +949,34 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
     }
 
 
+def _get_backup_root(settings_obj: GlobalSettings | None = None) -> tuple[Path, str | None]:
+    if settings_obj is None:
+        settings_obj = _get_global_settings()
+    configured = (settings_obj.backup_storage_path or "").strip()
+    if configured:
+        backup_root = Path(configured)
+        if not backup_root.exists():
+            return backup_root, "Backup-Speicherort existiert nicht."
+        return backup_root, None
+    return settings.BASE_DIR / "backup", None
+
+
+def _get_external_backup_paths() -> list[tuple[str, str]]:
+    candidates = []
+    for base in (Path("/mnt"), Path("/media"), Path("/run/media")):
+        if base.exists():
+            for entry in base.iterdir():
+                if entry.is_dir():
+                    candidates.append(entry)
+    choices = []
+    for path in candidates:
+        label = str(path)
+        choices.append((str(path), label))
+    return choices
+
+
 def _get_backup_entries() -> list[dict[str, str]]:
-    backup_root = settings.BASE_DIR / "backup"
+    backup_root, _ = _get_backup_root()
     if not backup_root.exists():
         return []
     entries = []
@@ -961,7 +997,10 @@ def _get_backup_entries() -> list[dict[str, str]]:
 
 
 def _create_backup() -> tuple[bool, str]:
-    backup_root = settings.BASE_DIR / "backup"
+    settings_obj = _get_global_settings()
+    backup_root, error = _get_backup_root(settings_obj)
+    if error:
+        return False, error
     backup_root.mkdir(parents=True, exist_ok=True)
     backup_dir = backup_root / timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -979,7 +1018,6 @@ def _create_backup() -> tuple[bool, str]:
     except OSError as exc:
         return False, f"Backup fehlgeschlagen: {exc}"
 
-    settings_obj = _get_global_settings()
     settings_obj.last_backup_at = timezone.now()
     settings_obj.save(update_fields=["last_backup_at"])
     return True, f"Backup erstellt: {backup_dir.name}"
@@ -988,7 +1026,7 @@ def _create_backup() -> tuple[bool, str]:
 def _prune_backups(keep_count: int) -> int:
     if keep_count <= 0:
         return 0
-    backup_root = settings.BASE_DIR / "backup"
+    backup_root, _ = _get_backup_root()
     if not backup_root.exists():
         return 0
     entries = [item for item in sorted(backup_root.iterdir(), reverse=True) if item.is_dir()]
@@ -1003,7 +1041,10 @@ def _prune_backups(keep_count: int) -> int:
 
 
 def _restore_backup(backup_dir: str) -> tuple[bool, str]:
-    backup_path = settings.BASE_DIR / "backup" / backup_dir
+    backup_root, error = _get_backup_root()
+    if error:
+        return False, error
+    backup_path = backup_root / backup_dir
     if not backup_path.exists():
         return False, "Backup-Verzeichnis nicht gefunden."
 
@@ -1056,13 +1097,24 @@ def admin_updates(request):
             messages.error(request, "Ungültiger Branch für das Update.")
             return redirect("admin_updates")
 
+        settings_obj = _get_global_settings()
+        auto_maintenance = settings_obj.auto_maintenance_on_update and not settings_obj.maintenance_mode_enabled
+        if auto_maintenance:
+            settings_obj.maintenance_mode_enabled = True
+            if not settings_obj.maintenance_message:
+                settings_obj.maintenance_message = "Update läuft. Bitte später erneut versuchen."
+            settings_obj.save(update_fields=["maintenance_mode_enabled", "maintenance_message"])
+
         backup_ok, backup_message = _create_backup()
         if backup_ok:
             messages.success(request, backup_message)
         else:
             messages.error(request, f"Backup fehlgeschlagen: {backup_message}")
+            if auto_maintenance:
+                settings_obj.maintenance_mode_enabled = False
+                settings_obj.save(update_fields=["maintenance_mode_enabled"])
             return redirect("admin_updates")
-        _prune_backups(_get_global_settings().backup_retention_count)
+        _prune_backups(settings_obj.backup_retention_count)
 
         status = _get_git_status(update_branch)
         if status.get("error"):
@@ -1090,6 +1142,9 @@ def admin_updates(request):
             messages.success(request, f"Update von {update_branch} gestartet.")
         else:
             messages.error(request, f"Update von {update_branch} fehlgeschlagen (Exit-Code {result.returncode}).")
+            if auto_maintenance:
+                settings_obj.maintenance_mode_enabled = False
+                settings_obj.save(update_fields=["maintenance_mode_enabled"])
 
     context = {
         "status_main": _get_git_status("main"),
@@ -1218,26 +1273,45 @@ def admin_system_status(request):
     disk_free_gb = round(disk.free / (1024 ** 3), 2)
 
     class SystemSettingsForm(forms.ModelForm):
+        backup_storage_path = forms.ChoiceField(
+            required=False,
+            label="Backup-Speicherort",
+        )
+
         class Meta:
             model = GlobalSettings
             fields = [
                 "maintenance_mode_enabled",
                 "maintenance_message",
+                "auto_maintenance_on_update",
+                "backup_storage_path",
                 "backup_retention_count",
                 "backup_interval_days",
+                "role_plan_notes",
             ]
             widgets = {
                 "maintenance_mode_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "maintenance_message": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+                "auto_maintenance_on_update": forms.CheckboxInput(attrs={"class": "form-check-input"}),
                 "backup_retention_count": forms.NumberInput(attrs={"class": "form-control"}),
                 "backup_interval_days": forms.NumberInput(attrs={"class": "form-control"}),
+                "role_plan_notes": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             }
             labels = {
                 "maintenance_mode_enabled": "Wartungsmodus aktiv",
                 "maintenance_message": "Wartungsnachricht",
+                "auto_maintenance_on_update": "Wartungsmodus bei Updates automatisch aktivieren",
                 "backup_retention_count": "Backups behalten (Anzahl)",
                 "backup_interval_days": "Backup-Intervall (Tage)",
+                "role_plan_notes": "Rollen-Plan (Notizen)",
             }
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            choices = [("", "Standardpfad (Projekt/backup)")]
+            choices.extend(_get_external_backup_paths())
+            self.fields["backup_storage_path"].choices = choices
+            self.fields["backup_storage_path"].widget = forms.Select(attrs={"class": "form-select"})
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -1254,6 +1328,7 @@ def admin_system_status(request):
 
         form = SystemSettingsForm(request.POST, instance=settings_obj)
         if form.is_valid():
+            settings_obj.role_plan_updated_at = timezone.now()
             form.save()
             messages.success(request, "System-Einstellungen gespeichert.")
             return redirect("admin_system_status")
@@ -1268,6 +1343,7 @@ def admin_system_status(request):
         "disk_total_gb": disk_total_gb,
         "disk_free_gb": disk_free_gb,
         "settings_obj": settings_obj,
+        "backup_root": _get_backup_root(settings_obj)[0],
         "hide_admin_back": True,
     }
     return render(request, "inventory/admin_system_status.html", context)

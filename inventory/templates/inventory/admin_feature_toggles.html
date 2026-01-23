@@ -52,8 +52,11 @@
             <div class="fw-semibold">System &amp; Backups</div>
             <ul class="mb-0">
               <li>Wartungsmodus</li>
+              <li>Automatisch Wartung bei Updates</li>
+              <li>Backup-Speicherort</li>
               <li>Backup-Aufbewahrung</li>
               <li>Backup-Intervall</li>
+              <li>Rollen-Plan (Notizen)</li>
             </ul>
           </div>
         </div>
@@ -102,6 +105,11 @@
             <div class="border rounded p-3 h-100" style="border-color:var(--border);">
               <div class="fw-semibold mb-2">System &amp; Backups</div>
               <div class="form-check form-switch mb-2">{{ form.maintenance_mode_enabled }} <label class="form-check-label" for="{{ form.maintenance_mode_enabled.id_for_label }}">{{ form.maintenance_mode_enabled.label }}</label></div>
+              <div class="form-check form-switch mb-2">{{ form.auto_maintenance_on_update }} <label class="form-check-label" for="{{ form.auto_maintenance_on_update.id_for_label }}">{{ form.auto_maintenance_on_update.label }}</label></div>
+              <div class="mb-2">
+                <label class="form-label" for="{{ form.backup_storage_path.id_for_label }}">{{ form.backup_storage_path.label }}</label>
+                {{ form.backup_storage_path }}
+              </div>
               <div class="mb-2">
                 <label class="form-label" for="{{ form.backup_retention_count.id_for_label }}">{{ form.backup_retention_count.label }}</label>
                 {{ form.backup_retention_count }}
@@ -110,6 +118,10 @@
                 <label class="form-label" for="{{ form.backup_interval_days.id_for_label }}">{{ form.backup_interval_days.label }}</label>
                 {{ form.backup_interval_days }}
                 <div class="form-text text-muted">0 deaktiviert automatische Backups.</div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label" for="{{ form.role_plan_notes.id_for_label }}">{{ form.role_plan_notes.label }}</label>
+                {{ form.role_plan_notes }}
               </div>
             </div>
           </div>
