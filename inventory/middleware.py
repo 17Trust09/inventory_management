@@ -44,6 +44,9 @@ class MaintenanceModeMiddleware:
     def __call__(self, request: HttpRequest):
         from .models import GlobalSettings  # Lokaler Import, um App-Loading sauber zu halten.
 
+        if request.path in {"/login/", "/logout/"}:
+            return self.get_response(request)
+
         if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
             return self.get_response(request)
 
