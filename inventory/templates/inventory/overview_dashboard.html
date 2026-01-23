@@ -456,42 +456,77 @@
             {% endif %}
 
             <td class="text-end">
-              <div class="btn-group" role="group">
+              <div class="d-flex justify-content-end gap-2 flex-wrap">
                 <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' it.id %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Bearbeiten</a>
-                {% if global_features.show_favorites %}
-                  <form method="post" action="{% url 'toggle-favorite' it.id %}" class="d-inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <button class="btn btn-sm {% if it.is_favorite %}btn-outline-warning{% else %}btn-outline-secondary{% endif %}" type="submit">
-                      {% if it.is_favorite %}★ Favorit{% else %}☆ Favorit{% endif %}
-                    </button>
-                  </form>
-                {% endif %}
-                {% if global_features.show_mark_button and features.enable_mark_button %}
-                  <form method="post" action="{% url 'mark-item' it.id %}" class="d-inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <button class="btn btn-sm btn-outline-warning" type="submit">Markieren</button>
-                  </form>
-                {% endif %}
-
-                {% if features.require_qr and global_features.enable_qr_actions %}
-                  {% include 'inventory/modules/qr_actions.html' with item=it %}
-                {% endif %}
-
-                {% if features.enable_borrow %}
-                  <a class="btn btn-sm btn-outline-light" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
-                {% endif %}
-                {% if features.enable_comments %}
-                  <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="modal" data-bs-target="#commentModal{{ it.id }}">
-                    Kommentieren
+                <div class="dropdown">
+                  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Mehr
                   </button>
-                {% endif %}
-                {% if features.show_order_button and it.order_link %}
-                  <a class="btn btn-sm btn-outline-success" href="{{ it.order_link }}" target="_blank" rel="noopener">
-                    Nachbestellen
-                  </a>
-                {% endif %}
+                  <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                    {% if global_features.show_favorites %}
+                      <li>
+                        <form method="post" action="{% url 'toggle-favorite' it.id %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                          <button class="dropdown-item" type="submit">
+                            {% if it.is_favorite %}★ Favorit entfernen{% else %}☆ Favorit hinzufügen{% endif %}
+                          </button>
+                        </form>
+                      </li>
+                    {% endif %}
+                    {% if global_features.show_mark_button and features.enable_mark_button %}
+                      <li>
+                        <form method="post" action="{% url 'mark-item' it.id %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                          <button class="dropdown-item" type="submit">Markieren</button>
+                        </form>
+                      </li>
+                    {% endif %}
+                    {% if features.require_qr and global_features.enable_qr_actions %}
+                      <li>
+                        {% if it.qr_exists %}
+                          <a class="dropdown-item" href="{{ it.qr_url }}" target="_blank" rel="noopener">QR anzeigen</a>
+                        {% else %}
+                          <span class="dropdown-item text-muted">QR anzeigen</span>
+                        {% endif %}
+                      </li>
+                      <li>
+                        {% if it.qr_exists %}
+                          <a class="dropdown-item" href="{{ it.qr_url }}" download>QR herunterladen</a>
+                        {% else %}
+                          <span class="dropdown-item text-muted">QR herunterladen</span>
+                        {% endif %}
+                      </li>
+                      <li>
+                        <form method="post" action="{% url 'regenerate-qr' it.id %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                          <button class="dropdown-item" type="submit">QR neu generieren</button>
+                        </form>
+                      </li>
+                    {% endif %}
+                    {% if features.enable_borrow %}
+                      <li>
+                        <a class="dropdown-item" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
+                      </li>
+                    {% endif %}
+                    {% if features.enable_comments %}
+                      <li>
+                        <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#commentModal{{ it.id }}">
+                          Kommentieren
+                        </button>
+                      </li>
+                    {% endif %}
+                    {% if features.show_order_button and it.order_link %}
+                      <li>
+                        <a class="dropdown-item" href="{{ it.order_link }}" target="_blank" rel="noopener">
+                          Nachbestellen
+                        </a>
+                      </li>
+                    {% endif %}
+                  </ul>
+                </div>
               </div>
             </td>
           </tr>
