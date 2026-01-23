@@ -9,6 +9,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django import forms
 from django.http import JsonResponse, HttpResponseBadRequest
+from django.db import connection
 from django.utils import timezone
 
 # NEU: wir brauchen den User für die Bearbeitungs-/Löschmaske
@@ -950,6 +951,48 @@ def _get_backup_entries() -> list[dict[str, str]]:
     return entries
 
 
+def _create_backup() -> tuple[bool, str]:
+    backup_root = settings.BASE_DIR / "backup"
+    backup_root.mkdir(parents=True, exist_ok=True)
+    backup_dir = backup_root / timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    db_source = settings.BASE_DIR / "db.sqlite3"
+    media_source = settings.BASE_DIR / "media"
+    if not db_source.exists():
+        return False, "db.sqlite3 nicht gefunden."
+    if not media_source.exists():
+        return False, "media-Ordner nicht gefunden."
+
+    try:
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(db_source, backup_dir / "db.sqlite3")
+        shutil.copytree(media_source, backup_dir / "media")
+    except OSError as exc:
+        return False, f"Backup fehlgeschlagen: {exc}"
+
+    settings_obj = _get_global_settings()
+    settings_obj.last_backup_at = timezone.now()
+    settings_obj.save(update_fields=["last_backup_at"])
+    return True, f"Backup erstellt: {backup_dir.name}"
+
+
+def _prune_backups(keep_count: int) -> int:
+    if keep_count <= 0:
+        return 0
+    backup_root = settings.BASE_DIR / "backup"
+    if not backup_root.exists():
+        return 0
+    entries = [item for item in sorted(backup_root.iterdir(), reverse=True) if item.is_dir()]
+    removed = 0
+    for item in entries[keep_count:]:
+        try:
+            shutil.rmtree(item)
+            removed += 1
+        except OSError:
+            continue
+    return removed
+
+
 def _restore_backup(backup_dir: str) -> tuple[bool, str]:
     backup_path = settings.BASE_DIR / "backup" / backup_dir
     if not backup_path.exists():
@@ -1003,6 +1046,14 @@ def admin_updates(request):
         if update_branch not in {"main", "dev"}:
             messages.error(request, "Ungültiger Branch für das Update.")
             return redirect("admin_updates")
+
+        backup_ok, backup_message = _create_backup()
+        if backup_ok:
+            messages.success(request, backup_message)
+        else:
+            messages.error(request, f"Backup fehlgeschlagen: {backup_message}")
+            return redirect("admin_updates")
+        _prune_backups(_get_global_settings().backup_retention_count)
 
         status = _get_git_status(update_branch)
         if status.get("error"):
@@ -1136,6 +1187,81 @@ def admin_tailscale_setup(request):
         "tailscale_setup_confirmed_at": settings_obj.tailscale_setup_confirmed_at,
     }
     return render(request, "inventory/admin_tailscale_setup.html", context)
+
+
+# ---------------------------------------------------------------------
+# Systemstatus & Wartung (Admin)
+# ---------------------------------------------------------------------
+@superuser_required
+def admin_system_status(request):
+    settings_obj = _get_global_settings()
+    tailscale_status = _get_tailscale_status()
+    backup_entries = _get_backup_entries()
+
+    try:
+        connection.ensure_connection()
+        db_status = "OK"
+    except Exception:
+        db_status = "Fehler"
+
+    disk = shutil.disk_usage(settings.BASE_DIR)
+    disk_total_gb = round(disk.total / (1024 ** 3), 2)
+    disk_free_gb = round(disk.free / (1024 ** 3), 2)
+
+    class SystemSettingsForm(forms.ModelForm):
+        class Meta:
+            model = GlobalSettings
+            fields = [
+                "maintenance_mode_enabled",
+                "maintenance_message",
+                "backup_retention_count",
+                "backup_interval_days",
+            ]
+            widgets = {
+                "maintenance_mode_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "maintenance_message": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+                "backup_retention_count": forms.NumberInput(attrs={"class": "form-control"}),
+                "backup_interval_days": forms.NumberInput(attrs={"class": "form-control"}),
+            }
+            labels = {
+                "maintenance_mode_enabled": "Wartungsmodus aktiv",
+                "maintenance_message": "Wartungsnachricht",
+                "backup_retention_count": "Backups behalten (Anzahl)",
+                "backup_interval_days": "Backup-Intervall (Tage)",
+            }
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "create_backup":
+            ok, message = _create_backup()
+            if ok:
+                messages.success(request, message)
+                pruned = _prune_backups(settings_obj.backup_retention_count)
+                if pruned:
+                    messages.info(request, f"{pruned} alte Backups gelöscht.")
+            else:
+                messages.error(request, message)
+            return redirect("admin_system_status")
+
+        form = SystemSettingsForm(request.POST, instance=settings_obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "System-Einstellungen gespeichert.")
+            return redirect("admin_system_status")
+    else:
+        form = SystemSettingsForm(instance=settings_obj)
+
+    context = {
+        "form": form,
+        "tailscale_status": tailscale_status,
+        "backup_entries": backup_entries,
+        "db_status": db_status,
+        "disk_total_gb": disk_total_gb,
+        "disk_free_gb": disk_free_gb,
+        "settings_obj": settings_obj,
+        "hide_admin_back": True,
+    }
+    return render(request, "inventory/admin_system_status.html", context)
 
 
 # ---------------------------------------------------------------------

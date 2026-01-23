@@ -27,6 +27,7 @@ from .admin_views import (
     admin_qr_codes_view,
     admin_updates,
     admin_tailscale_setup,
+    admin_system_status,
 
     # User Profiles
     UserProfileListView,
@@ -90,6 +91,7 @@ urlpatterns = [
     path('qr-codes/', admin_qr_codes_view, name='admin_qr_codes'),
     path('updates/', admin_updates, name='admin_updates'),
     path('tailscale-setup/', admin_tailscale_setup, name='admin_tailscale_setup'),
+    path('system-status/', admin_system_status, name='admin_system_status'),
     path('history/', admin_history_list, name='admin_history_list'),
     path('history/<int:pk>/rollback/', admin_history_rollback, name='admin_history_rollback'),
 

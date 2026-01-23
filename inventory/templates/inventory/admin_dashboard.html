@@ -53,6 +53,11 @@
                 <i class="bi bi-shield-lock me-2"></i> Tailscale-Setup
               </a>
             </li>
+            <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
+              <a class="text-decoration-none" href="{% url 'admin_system_status' %}">
+                <i class="bi bi-activity me-2"></i> Systemstatus
+              </a>
+            </li>
           {% elif tailscale_setup_complete %}
             <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
               <a class="text-decoration-none" href="{% url 'admin_tailscale_setup' %}">

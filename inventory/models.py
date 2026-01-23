@@ -156,6 +156,30 @@ class GlobalSettings(models.Model):
         blank=True,
         verbose_name="Tailscale-Setup bestätigt am",
     )
+    maintenance_mode_enabled = models.BooleanField(
+        default=False,
+        verbose_name="Wartungsmodus aktiv",
+    )
+    maintenance_message = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Wartungsnachricht",
+    )
+    backup_retention_count = models.PositiveSmallIntegerField(
+        default=10,
+        verbose_name="Backup-Aufbewahrung (Anzahl)",
+        help_text="Wie viele Backups im backup-Ordner behalten werden sollen.",
+    )
+    backup_interval_days = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Backup-Intervall (Tage)",
+        help_text="0 deaktiviert automatische Backups.",
+    )
+    last_backup_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Letztes Backup am",
+    )
     enable_image_upload = models.BooleanField(
         default=True,
         verbose_name="Bild-Upload erlauben",

@@ -81,6 +81,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'inventory.middleware.MaintenanceModeMiddleware',
     # NEU: macht aktuelle Request global (ThreadLocal) verfügbar → dynamische Deeplinks
     'inventory.middleware.ThreadLocalMiddleware',
 ]
