@@ -329,7 +329,10 @@
       {% endif %}
 
       <div class="mt-4">
-        <button class="btn btn-primary">Speichern</button>
+        <button class="btn btn-primary"
+                {% if similar_items %}name="force_save" value="1"{% endif %}>
+          Speichern
+        </button>
         <a class="btn btn-outline-secondary ms-2"
            href="{{ next|default:'#' }}"
            onclick="if(this.getAttribute('href')==='#'){ window.location='{% url 'dashboards' %}'; }">

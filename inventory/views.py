@@ -1,6 +1,7 @@
 import csv
 import os
 import uuid
+import re
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from collections import defaultdict, Counter
@@ -196,6 +197,37 @@ def _format_bool(value):
     if value is False:
         return "Nein"
     return "–"
+
+
+def _find_similar_items(
+    name: str,
+    description: str | None = None,
+    *,
+    overview: Overview | None = None,
+    item_type: str | None = None,
+    exclude_id: int | None = None,
+    limit: int = 5,
+):
+    cleaned_name = " ".join((name or "").split()).strip()
+    if not cleaned_name:
+        return InventoryItem.objects.none()
+
+    tokens = [token for token in re.split(r"\W+", cleaned_name.lower()) if len(token) >= 3]
+    query = Q(name__icontains=cleaned_name)
+    cleaned_description = " ".join((description or "").split()).strip()
+    if cleaned_description:
+        query |= Q(description__icontains=cleaned_description)
+    for token in tokens:
+        query |= Q(name__icontains=token)
+
+    similar = InventoryItem.objects.filter(query)
+    if item_type:
+        similar = similar.filter(item_type=item_type)
+    if overview:
+        similar = similar.filter(overview=overview)
+    if exclude_id:
+        similar = similar.exclude(id=exclude_id)
+    return similar.distinct().order_by("name")[:limit]
 
 
 def _format_date(value):
@@ -631,6 +663,27 @@ class AddEquipmentItem(LoginRequiredMixin, View):
         form = EquipmentItemForm(request.POST, request.FILES, user=request.user)
 
         if form.is_valid():
+            if not request.POST.get("force_save"):
+                similar_items = _find_similar_items(
+                    form.cleaned_data.get("name"),
+                    form.cleaned_data.get("description"),
+                    overview=ov,
+                    item_type="equipment",
+                )
+                if similar_items:
+                    return render(
+                        request,
+                        "inventory/item_form.html",
+                        {
+                            "form": form,
+                            "features": features,
+                            "overview": ov,
+                            "item_type": "equipment",
+                            "o": slug,
+                            "similar_items": similar_items,
+                            "next": request.POST.get("next", ""),
+                        },
+                    )
             item = form.save(commit=False)
             item.user = request.user
             item.item_type = "equipment"
@@ -662,6 +715,8 @@ class AddEquipmentItem(LoginRequiredMixin, View):
                 "overview": ov,
                 "item_type": "equipment",
                 "o": slug,
+                "similar_items": [],
+                "next": request.POST.get("next", ""),
             },
         )
 
@@ -688,6 +743,27 @@ class AddConsumableItem(LoginRequiredMixin, View):
         form = ConsumableItemForm(request.POST, request.FILES, user=request.user)
 
         if form.is_valid():
+            if not request.POST.get("force_save"):
+                similar_items = _find_similar_items(
+                    form.cleaned_data.get("name"),
+                    form.cleaned_data.get("description"),
+                    overview=ov,
+                    item_type="consumable",
+                )
+                if similar_items:
+                    return render(
+                        request,
+                        "inventory/item_form.html",
+                        {
+                            "form": form,
+                            "features": features,
+                            "overview": ov,
+                            "item_type": "consumable",
+                            "o": slug,
+                            "similar_items": similar_items,
+                            "next": request.POST.get("next", ""),
+                        },
+                    )
             item = form.save(commit=False)
             item.user = request.user
             item.item_type = "consumable"
@@ -719,6 +795,8 @@ class AddConsumableItem(LoginRequiredMixin, View):
                 "overview": ov,
                 "item_type": "consumable",
                 "o": slug,
+                "similar_items": [],
+                "next": request.POST.get("next", ""),
             },
         )
 

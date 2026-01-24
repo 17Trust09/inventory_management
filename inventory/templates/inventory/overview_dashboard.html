@@ -587,6 +587,12 @@
                                     Rückgabe bis:
                                     {% if br.return_date %}{{ br.return_date|date:"d.m.Y" }}{% else %}–{% endif %}
                                   </li>
+                                  {% if br.is_overdue %}
+                                    <li class="text-danger">
+                                      <i class="bi bi-exclamation-triangle"></i>
+                                      Leihfrist abgelaufen
+                                    </li>
+                                  {% endif %}
                                   <li><i class="bi bi-chat-left-text"></i> {{ br.comment|default:"–" }}</li>
                                 </ul>
                                 <form method="post" action="{% url 'return-item' br.id %}">
