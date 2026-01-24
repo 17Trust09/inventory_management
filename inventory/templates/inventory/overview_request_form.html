@@ -1,0 +1,57 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 720px;">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="m-0">Neues Dashboard anfragen</h2>
+    <a href="{% url 'dashboards' %}" class="btn btn-outline-light">Zurück</a>
+  </div>
+
+  <div class="alert alert-info">
+    Deine Anfrage wird gespeichert und muss von einem Admin freigegeben werden,
+    bevor das Dashboard sichtbar ist.
+  </div>
+
+  <form method="post" class="card p-4" style="background:var(--surface); border:1px solid var(--border); border-radius:1rem;">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-warning">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+    <div class="mb-3">
+      {{ form.name.label_tag }}
+      {{ form.name }}
+      {% if form.name.errors %}
+        <div class="text-warning small">{{ form.name.errors|striptags }}</div>
+      {% endif %}
+    </div>
+    <div class="mb-3">
+      {{ form.description.label_tag }}
+      {{ form.description }}
+      {% if form.description.errors %}
+        <div class="text-warning small">{{ form.description.errors|striptags }}</div>
+      {% endif %}
+    </div>
+    <div class="mb-3">
+      {{ form.icon_emoji.label_tag }}
+      {{ form.icon_emoji }}
+      <div class="form-text text-muted">z. B. 📦, 🧰, 🛠️</div>
+      {% if form.icon_emoji.errors %}
+        <div class="text-warning small">{{ form.icon_emoji.errors|striptags }}</div>
+      {% endif %}
+    </div>
+    <div class="form-check mb-4">
+      {{ form.has_locations }}
+      {{ form.has_locations.label_tag }}
+      {% if form.has_locations.errors %}
+        <div class="text-warning small">{{ form.has_locations.errors|striptags }}</div>
+      {% endif %}
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary">Anfrage senden</button>
+      <a href="{% url 'dashboards' %}" class="btn btn-outline-secondary">Abbrechen</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

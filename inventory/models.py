@@ -126,6 +126,10 @@ class GlobalSettings(models.Model):
         default=True,
         verbose_name="System-Einstellungen anzeigen",
     )
+    enable_user_overview_requests = models.BooleanField(
+        default=False,
+        verbose_name="Dashboard-Anfragen durch Benutzer erlauben",
+    )
     enable_bulk_actions = models.BooleanField(
         default=True,
         verbose_name="Bulk-Aktionen erlauben",
@@ -794,6 +798,14 @@ class Overview(models.Model):
     icon_emoji = models.CharField(max_length=16, blank=True, help_text="Emoji oder Icon (z. B. 🛠️)")
     order = models.PositiveIntegerField(default=0, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
+    requested_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="requested_overviews",
+        verbose_name="Angefragt von",
+    )
 
     visible_for_groups = models.ManyToManyField(Group, blank=True, help_text="Leer = für alle sichtbar.")
     categories = models.ManyToManyField('Category', blank=True, help_text="Optional: Filter auf Kategorien.")

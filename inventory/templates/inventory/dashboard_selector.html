@@ -20,6 +20,11 @@
   <div class="text-center">
     <h1 class="mb-4">Inventarverwaltung</h1>
     <p class="mb-4 text-muted">Bitte wähle eine Übersicht:</p>
+    {% if global_features.enable_user_overview_requests %}
+      <a href="{% url 'overview-request-add' %}" class="btn btn-outline-light btn-sm mb-4">
+        <i class="bi bi-plus-circle"></i> Neues Dashboard anfragen
+      </a>
+    {% endif %}
 
     {% if global_features.show_favorites and favorite_overviews %}
       <div class="card border-secondary shadow-sm mb-4 mx-auto" style="background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:1rem; max-width:860px;">

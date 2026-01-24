@@ -138,6 +138,11 @@
          href="{{ add_url }}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">
         + Artikel hinzufügen
       </a>
+      {% if global_features.enable_user_overview_requests %}
+        <a class="btn btn-outline-light" href="{% url 'overview-request-add' %}">
+          + Neues Dashboard
+        </a>
+      {% endif %}
     </div>
   </div>
 

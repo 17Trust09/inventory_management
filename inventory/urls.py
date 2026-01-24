@@ -67,6 +67,7 @@ urlpatterns = [
 
     # 3) Modulares Dashboard (Overview)
     path('dashboards/', views.DashboardSelectorView.as_view(), name='dashboards'),
+    path('overview/add/', views.OverviewRequestCreateView.as_view(), name='overview-request-add'),
     path('dashboards/<slug:slug>/', views.OverviewDashboardView.as_view(), name='overview-dashboard'),
     path('dashboards/<slug:slug>/favorite/', views.ToggleOverviewFavoriteView.as_view(), name='overview-favorite'),
     path('dashboards/<slug:slug>/export/<str:export_format>/', views.OverviewExportView.as_view(), name='overview-export'),

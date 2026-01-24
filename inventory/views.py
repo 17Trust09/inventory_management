@@ -15,6 +15,7 @@ from django.contrib import messages
 from django.db.models import Q, F, Sum, Prefetch
 from django.conf import settings
 from django.utils import timezone
+from django.utils.text import slugify
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User, Group
@@ -285,6 +286,62 @@ def _create_history_entry(
 # ---------------------------------------------------------------------------
 # /dashboards/ – zeigt NUR erlaubte aktive Overviews
 # ---------------------------------------------------------------------------
+class OverviewRequestForm(forms.ModelForm):
+    class Meta:
+        model = Overview
+        fields = ["name", "description", "icon_emoji", "has_locations"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control form-control-lg"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "icon_emoji": forms.TextInput(attrs={"class": "form-control"}),
+            "has_locations": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+        labels = {
+            "name": "Dashboard-Name",
+            "description": "Beschreibung (optional)",
+            "icon_emoji": "Icon/Emoji (optional)",
+            "has_locations": "Lagerorte verwenden",
+        }
+
+
+class OverviewRequestCreateView(LoginRequiredMixin, View):
+    template_name = "inventory/overview_request_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _feature_enabled("enable_user_overview_requests"):
+            messages.error(request, "Dashboard-Anfragen sind aktuell deaktiviert.")
+            return redirect("dashboards")
+        return super().dispatch(request, *args, **kwargs)
+
+    def _build_unique_slug(self, name: str) -> str:
+        base = slugify(name) or "dashboard"
+        slug = base
+        index = 1
+        while Overview.objects.filter(slug=slug).exists():
+            slug = f"{base}-{index}"
+            index += 1
+        return slug
+
+    def get(self, request):
+        form = OverviewRequestForm()
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request):
+        form = OverviewRequestForm(request.POST)
+        if form.is_valid():
+            overview = form.save(commit=False)
+            overview.slug = self._build_unique_slug(overview.name)
+            overview.is_active = False
+            overview.requested_by = request.user
+            overview.save()
+            messages.success(
+                request,
+                "Dashboard-Anfrage gespeichert. Ein Admin muss sie freigeben.",
+            )
+            return redirect("dashboards")
+        return render(request, self.template_name, {"form": form})
+
+
 class DashboardSelectorView(LoginRequiredMixin, TemplateView):
     template_name = "inventory/dashboard_selector.html"
 
