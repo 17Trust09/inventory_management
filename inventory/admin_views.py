@@ -1604,6 +1604,9 @@ def admin_overview_approve(request, pk):
     overview = get_object_or_404(Overview, pk=pk, is_active=False)
     overview.is_active = True
     overview.save(update_fields=["is_active"])
+    if overview.requested_by:
+        profile, _ = UserProfile.objects.get_or_create(user=overview.requested_by)
+        profile.allowed_overviews.add(overview)
     messages.success(request, "Dashboard wurde freigegeben.")
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "admin_overviews"
     return redirect(next_url)
