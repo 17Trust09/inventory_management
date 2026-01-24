@@ -289,19 +289,57 @@ def _create_history_entry(
 class OverviewRequestForm(forms.ModelForm):
     class Meta:
         model = Overview
-        fields = ["name", "description", "icon_emoji", "has_locations"]
+        fields = [
+            "name",
+            "slug",
+            "description",
+            "icon_emoji",
+            "order",
+            "is_active",
+            "categories",
+            "show_quantity",
+            "has_locations",
+            "has_min_stock",
+            "enable_borrow",
+            "is_consumable_mode",
+            "require_qr",
+            "enable_quick_adjust",
+            "show_images",
+            "show_tags",
+            "enable_mark_button",
+            "enable_advanced_filters",
+            "enable_comments",
+            "show_order_button",
+            "config",
+        ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control form-control-lg"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "slug": forms.TextInput(attrs={"class": "form-control form-control-lg"}),
+            "description": forms.Textarea(attrs={"class": "form-control form-control-lg", "rows": 3}),
             "icon_emoji": forms.TextInput(attrs={"class": "form-control"}),
-            "has_locations": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "order": forms.NumberInput(attrs={"class": "form-control"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "categories": forms.CheckboxSelectMultiple,
+            "config": forms.Textarea(attrs={"class": "form-control", "rows": 6}),
         }
         labels = {
-            "name": "Dashboard-Name",
-            "description": "Beschreibung (optional)",
-            "icon_emoji": "Icon/Emoji (optional)",
-            "has_locations": "Lagerorte verwenden",
+            "config": "Erweiterte Konfiguration (JSON)",
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["slug"].required = False
+        self.fields["is_active"].disabled = True
+
+    def clean_slug(self) -> str:
+        raw = self.cleaned_data.get("slug") or self.cleaned_data.get("name") or ""
+        slug = slugify(raw) or "dashboard"
+        if Overview.objects.filter(slug=slug).exists():
+            raise forms.ValidationError("Slug ist bereits vergeben.")
+        return slug
+
+    def clean_is_active(self) -> bool:
+        return False
 
 
 class OverviewRequestCreateView(LoginRequiredMixin, View):
@@ -313,15 +351,6 @@ class OverviewRequestCreateView(LoginRequiredMixin, View):
             return redirect("dashboards")
         return super().dispatch(request, *args, **kwargs)
 
-    def _build_unique_slug(self, name: str) -> str:
-        base = slugify(name) or "dashboard"
-        slug = base
-        index = 1
-        while Overview.objects.filter(slug=slug).exists():
-            slug = f"{base}-{index}"
-            index += 1
-        return slug
-
     def get(self, request):
         form = OverviewRequestForm()
         return render(request, self.template_name, {"form": form})
@@ -330,10 +359,10 @@ class OverviewRequestCreateView(LoginRequiredMixin, View):
         form = OverviewRequestForm(request.POST)
         if form.is_valid():
             overview = form.save(commit=False)
-            overview.slug = self._build_unique_slug(overview.name)
             overview.is_active = False
             overview.requested_by = request.user
             overview.save()
+            form.save_m2m()
             messages.success(
                 request,
                 "Dashboard-Anfrage gespeichert. Ein Admin muss sie freigeben.",
