@@ -132,15 +132,15 @@ a:hover {
 
 /* ========= Aktionen im Dashboard kompakt ========= */
 .action-menu-compact {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 .action-menu-panel {
-  background: rgba(17, 17, 17, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0.6rem;
-  padding: 0.6rem 0.75rem;
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
-  max-width: 320px;
+  background: rgba(16, 16, 16, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+  max-width: 260px;
   margin-left: auto;
 }
 .action-menu-compact .action-list {
@@ -159,24 +159,30 @@ a:hover {
   align-items: center;
   gap: 0.35rem;
   width: 100%;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 0.4rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0.35rem;
   text-decoration: none;
-  font-size: 0.75rem;
-  color: inherit;
+  font-size: 0.7rem;
+  color: var(--text);
   justify-content: center;
   text-align: center;
 }
 .action-menu-compact .action-link:hover,
 .action-menu-compact .action-link:focus {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--text);
 }
 .action-menu-compact .action-link:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background: transparent;
   border-color: transparent;
+}
+.action-menu-compact .action-link.text-warning,
+.action-menu-compact .action-link.text-info,
+.action-menu-compact .action-link.text-success {
+  color: var(--text);
 }
