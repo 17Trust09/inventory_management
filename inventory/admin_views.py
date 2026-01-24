@@ -192,7 +192,11 @@ def dashboard(request):
         .order_by("-id")[:8]
     )
     settings_obj = _get_global_settings()
-    tailscale_setup_complete = settings_obj.tailscale_setup_complete or settings_obj.tailscale_setup_ignored
+    tailscale_setup_complete = (
+        settings_obj.tailscale_setup_complete
+        or settings_obj.tailscale_setup_ignored
+        or settings_obj.tailscale_setup_step >= 4
+    )
     return render(request, 'inventory/admin_dashboard.html', {
         "latest_feedback": latest_feedback,
         "pending_overviews": pending_overviews,
@@ -1264,6 +1268,12 @@ def admin_tailscale_setup(request):
     if auto_step != settings_obj.tailscale_setup_step:
         settings_obj.tailscale_setup_step = auto_step
         settings_obj.save(update_fields=["tailscale_setup_step"])
+
+    if settings_obj.tailscale_setup_step >= 4 and not settings_obj.tailscale_setup_complete and not settings_obj.tailscale_setup_ignored:
+        settings_obj.tailscale_setup_complete = True
+        if not settings_obj.tailscale_setup_confirmed_at:
+            settings_obj.tailscale_setup_confirmed_at = timezone.now()
+        settings_obj.save(update_fields=["tailscale_setup_complete", "tailscale_setup_confirmed_at"])
 
     context = {
         "tailscale_status": status,
