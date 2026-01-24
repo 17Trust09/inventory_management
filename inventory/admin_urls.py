@@ -58,6 +58,7 @@ from .admin_views import (
     admin_overview_create,
     admin_overview_edit,
     admin_overview_delete,
+    admin_overview_approve,
 
     # Feedback Quick-Action
     admin_feedback_set_status,
@@ -125,6 +126,7 @@ urlpatterns = [
     path('overview/add/', admin_overview_create, name='admin_overview_add'),
     path('overview/<int:pk>/edit/', admin_overview_edit, name='admin_overview_edit'),
     path('overview/<int:pk>/delete/', admin_overview_delete, name='admin_overview_delete'),
+    path('overview/<int:pk>/approve/', admin_overview_approve, name='admin_overview_approve'),
 
     # Feedback Quick-Action (Status setzen)
     path('feedback/<int:pk>/set-status/', admin_feedback_set_status, name='admin_feedback_set_status'),

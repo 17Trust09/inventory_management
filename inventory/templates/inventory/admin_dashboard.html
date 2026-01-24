@@ -225,6 +225,69 @@
       </div>
     </div>
     {% endif %}
+    {% if global_features.enable_user_overview_requests %}
+    <!-- Dashboard-Anfragen -->
+    <div class="row g-4 mt-3">
+      <div class="col-12">
+        <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+          <div class="card-header d-flex justify-content-between align-items-center fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+            <span>
+              🧾 Dashboard-Anfragen
+              {% if pending_overview_count %}
+                <span class="badge bg-warning text-dark ms-2">{{ pending_overview_count }}</span>
+              {% endif %}
+            </span>
+            <a href="{% url 'admin_overviews' %}" class="btn btn-sm btn-primary">Zur Dashboard-Übersicht</a>
+          </div>
+          <div class="card-body p-0">
+            {% if pending_overviews %}
+              <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle" style="background:var(--surface); color:var(--text);">
+                  <thead style="background:var(--surface-2); color:var(--text);">
+                    <tr>
+                      <th>Name</th>
+                      <th class="d-none d-md-table-cell">Angefragt von</th>
+                      <th>Status</th>
+                      <th class="text-end">Aktionen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for ov in pending_overviews %}
+                      <tr>
+                        <td class="fw-semibold">{{ ov.name }}</td>
+                        <td class="d-none d-md-table-cell">
+                          {% if ov.requested_by %}
+                            {{ ov.requested_by.username }}
+                          {% else %}
+                            <span class="text-muted">–</span>
+                          {% endif %}
+                        </td>
+                        <td>
+                          <span class="badge bg-warning text-dark">Ausstehend</span>
+                        </td>
+                        <td class="text-end">
+                          <div class="btn-group btn-group-sm" role="group" aria-label="Dashboard freigeben">
+                            <form method="post" action="{% url 'admin_overview_approve' ov.id %}" class="d-inline">
+                              {% csrf_token %}
+                              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                              <button type="submit" class="btn btn-outline-success">Freigeben</button>
+                            </form>
+                            <a href="{% url 'admin_overview_edit' ov.id %}" class="btn btn-outline-secondary">Bearbeiten</a>
+                          </div>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="p-3 text-muted">Keine offenen Dashboard-Anfragen.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
   {% endif %}
 
 </div>

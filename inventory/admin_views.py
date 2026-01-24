@@ -186,10 +186,17 @@ def dashboard(request):
     Letzte Feedbacks + Quick-Actions.
     """
     latest_feedback = Feedback.objects.select_related("created_by").order_by("-created_at")[:8]
+    pending_overview_qs = Overview.objects.filter(is_active=False, requested_by__isnull=False)
+    pending_overviews = (
+        pending_overview_qs.select_related("requested_by")
+        .order_by("-id")[:8]
+    )
     settings_obj = _get_global_settings()
     tailscale_setup_complete = settings_obj.tailscale_setup_complete or settings_obj.tailscale_setup_ignored
     return render(request, 'inventory/admin_dashboard.html', {
         "latest_feedback": latest_feedback,
+        "pending_overviews": pending_overviews,
+        "pending_overview_count": pending_overview_qs.count(),
         "tailscale_setup_complete": tailscale_setup_complete,
     })
 
@@ -1578,6 +1585,18 @@ def admin_overview_delete(request, pk):
         messages.success(request, "Dashboard (Overview) gelöscht.")
         return redirect('admin_overviews')
     return render(request, 'inventory/admin_overview_confirm_delete.html', {'overview': ov})
+
+
+@staff_required
+def admin_overview_approve(request, pk):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Ungültige Methode.")
+    overview = get_object_or_404(Overview, pk=pk, is_active=False)
+    overview.is_active = True
+    overview.save(update_fields=["is_active"])
+    messages.success(request, "Dashboard wurde freigegeben.")
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "admin_overviews"
+    return redirect(next_url)
 
 
 # ---------------------------------------------------------------------
