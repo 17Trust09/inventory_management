@@ -311,7 +311,7 @@
           <th class="text-end">Aktion</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="actionAccordion">
         {% for it in items %}
           <tr>
             {% if global_features.enable_bulk_actions %}
@@ -458,11 +458,13 @@
             <td class="text-end">
               <div class="d-flex justify-content-end gap-2 flex-wrap">
                 <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' it.id %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Bearbeiten</a>
-                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#actionRow{{ it.id }}" aria-expanded="false" aria-controls="actionRow{{ it.id }}">
+                <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="collapse" data-bs-target="#actionRow{{ it.id }}" aria-expanded="false" aria-controls="actionRow{{ it.id }}">
                   Mehr
                 </button>
               </div>
-              <div class="collapse action-menu action-menu-compact action-menu-panel mt-2" id="actionRow{{ it.id }}">
+              <div class="collapse action-menu action-menu-compact action-menu-panel mt-2"
+                   id="actionRow{{ it.id }}"
+                   data-bs-parent="#actionAccordion">
                 <ul class="action-list">
                   {% if global_features.show_favorites %}
                     <li>
