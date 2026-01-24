@@ -913,7 +913,7 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
         }
 
     rev_list = subprocess.run(
-        ["git", "rev-list", "--count", f"{branch}..origin/{branch}"],
+        ["git", "rev-list", "--count", f"HEAD..origin/{branch}"],
         cwd=base_dir,
         capture_output=True,
         text=True,
