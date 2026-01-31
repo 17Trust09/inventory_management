@@ -319,39 +319,53 @@
             <td class="text-end">
               <div class="btn-group" role="group">
                 <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' it.id %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Bearbeiten</a>
-                <div class="btn-group dropup" role="group">
-                  <button type="button" class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    Mehr
-                  </button>
-                  <div class="dropdown-menu dropdown-menu-end">
-                    <form method="post" action="{% url 'mark-item' it.id %}" class="m-0">
-                      {% csrf_token %}
-                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                      <button class="dropdown-item" type="submit">Markieren</button>
-                    </form>
+                <button type="button"
+                        class="btn btn-sm btn-outline-light"
+                        data-bs-toggle="modal"
+                        data-bs-target="#actionsModal{{ it.id }}">
+                  Mehr
+                </button>
+              </div>
 
-                    {% if features.require_qr %}
-                      {% if it.qr_exists %}
-                        <a href="{{ it.qr_url }}" target="_blank" rel="noopener" class="dropdown-item">QR</a>
-                        <a href="{{ it.qr_url }}" download class="dropdown-item">DL</a>
-                      {% else %}
-                        <span class="dropdown-item disabled" aria-disabled="true">QR</span>
-                        <span class="dropdown-item disabled" aria-disabled="true">DL</span>
-                      {% endif %}
+              <div class="modal fade" id="actionsModal{{ it.id }}" tabindex="-1" aria-labelledby="actionsModalLabel{{ it.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                  <div class="modal-content bg-dark text-light">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="actionsModalLabel{{ it.id }}">Aktionen</h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="d-grid gap-2">
+                        <form method="post" action="{% url 'mark-item' it.id %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                          <button class="btn btn-outline-warning w-100" type="submit">Markieren</button>
+                        </form>
 
-                      <form method="post" action="{% url 'regenerate-qr' it.id %}" class="m-0">
-                        {% csrf_token %}
-                        {% if overview.slug %}
-                          <input type="hidden" name="o" value="{{ overview.slug }}">
+                        {% if features.require_qr %}
+                          {% if it.qr_exists %}
+                            <a href="{{ it.qr_url }}" target="_blank" rel="noopener" class="btn btn-outline-light">QR</a>
+                            <a href="{{ it.qr_url }}" download class="btn btn-outline-light">DL</a>
+                          {% else %}
+                            <span class="btn btn-outline-light disabled" aria-disabled="true">QR</span>
+                            <span class="btn btn-outline-light disabled" aria-disabled="true">DL</span>
+                          {% endif %}
+
+                          <form method="post" action="{% url 'regenerate-qr' it.id %}">
+                            {% csrf_token %}
+                            {% if overview.slug %}
+                              <input type="hidden" name="o" value="{{ overview.slug }}">
+                            {% endif %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="btn btn-outline-light w-100">QR neu</button>
+                          </form>
                         {% endif %}
-                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <button type="submit" class="dropdown-item">QR neu</button>
-                      </form>
-                    {% endif %}
 
-                    {% if features.enable_borrow %}
-                      <a class="dropdown-item" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
-                    {% endif %}
+                        {% if features.enable_borrow %}
+                          <a class="btn btn-outline-light" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
+                        {% endif %}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
