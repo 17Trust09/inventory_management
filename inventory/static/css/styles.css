@@ -124,8 +124,7 @@ a:hover {
   vertical-align: middle;
 }
 .table-responsive-actions {
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: visible;
 }
 .list-group-item {
   transition: background-color .15s ease;
