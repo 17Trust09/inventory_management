@@ -76,7 +76,7 @@
       line-height: 1;
     }
 
-    .btn-group a:not(.btn),
+    .btn-group > a:not(.btn),
     .btn-group .btn-link {
       display: inline-block;
       padding: .25rem .5rem;
@@ -87,19 +87,32 @@
       background: transparent;
       line-height: 1.25;
     }
-    .btn-group a:not(.btn):hover,
+    .btn-group > a:not(.btn):hover,
     .btn-group .btn-link:hover {
       background-color: rgba(255,255,255,.08);
       color: #ffffff;
       text-decoration: none;
     }
     .btn-group .btn + a:not(.btn),
-    .btn-group a:not(.btn) + .btn,
-    .btn-group a:not(.btn) + a:not(.btn),
+    .btn-group > a:not(.btn) + .btn,
+    .btn-group > a:not(.btn) + a:not(.btn),
     .btn-group .btn-link + .btn,
     .btn-group .btn + .btn-link,
     .btn-group .btn-link + .btn-link {
       margin-left: .25rem;
+    }
+
+    .dropdown-menu {
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+    .dropdown-item {
+      color: var(--text);
+    }
+    .dropdown-item:hover,
+    .dropdown-item:focus {
+      background-color: rgba(255,255,255,.08);
+      color: var(--text);
     }
   </style>
 
@@ -319,19 +332,30 @@
             <td class="text-end">
               <div class="btn-group" role="group">
                 <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' it.id %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Bearbeiten</a>
-                <form method="post" action="{% url 'mark-item' it.id %}" class="d-inline">
-                  {% csrf_token %}
-                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                  <button class="btn btn-sm btn-outline-warning" type="submit">Markieren</button>
-                </form>
+                <div class="btn-group" role="group">
+                  <button class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    Mehr
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <form method="post" action="{% url 'mark-item' it.id %}" class="m-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="dropdown-item" type="submit">Markieren</button>
+                      </form>
+                    </li>
 
-                {% if features.require_qr %}
-                  {% include 'inventory/modules/qr_actions.html' with item=it %}
-                {% endif %}
+                    {% if features.require_qr %}
+                      {% include 'inventory/modules/qr_actions_dropdown.html' with item=it %}
+                    {% endif %}
 
-                {% if features.enable_borrow %}
-                  <a class="btn btn-sm btn-outline-light" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
-                {% endif %}
+                    {% if features.enable_borrow %}
+                      <li>
+                        <a class="dropdown-item" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
+                      </li>
+                    {% endif %}
+                  </ul>
+                </div>
               </div>
             </td>
           </tr>
