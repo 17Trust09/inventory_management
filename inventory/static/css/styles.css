@@ -125,13 +125,12 @@ a:hover {
 }
 .table-responsive-actions {
   overflow: visible !important;
-  padding-bottom: 8rem;
   position: relative;
 }
 .table-responsive-actions .dropdown-menu {
   z-index: 1080;
-  max-height: none;
-  overflow: visible;
+  max-height: none !important;
+  overflow: visible !important;
 }
 .list-group-item {
   transition: background-color .15s ease;
