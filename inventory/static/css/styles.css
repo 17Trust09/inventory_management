@@ -130,6 +130,8 @@ a:hover {
 }
 .table-responsive-actions .dropdown-menu {
   z-index: 1080;
+  max-height: none;
+  overflow: visible;
 }
 .list-group-item {
   transition: background-color .15s ease;
