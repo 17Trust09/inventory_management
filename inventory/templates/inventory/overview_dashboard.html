@@ -198,11 +198,11 @@
 
   <p class="text-muted small mt-2">
     <strong>Aktionen:</strong>
-    „Bearbeiten“ – Artikel öffnen; „Verleihen“ – Ausleihe erfassen; „QR“ – QR anzeigen; „DL“ – QR herunterladen; „QR neu“ – QR-Code neu generieren.
+    „Bearbeiten“ – Artikel öffnen; unter „Mehr“ findest du „Verleihen“ (Ausleihe erfassen), „QR“ (anzeigen), „DL“ (herunterladen) und „QR neu“ (Code neu generieren).
   </p>
 
   <!-- Tabelle -->
-  <div class="table-responsive">
+  <div class="table-responsive table-responsive-actions">
     <table class="table table-striped align-middle table-darkish">
       <thead>
         <tr>
@@ -319,19 +319,41 @@
             <td class="text-end">
               <div class="btn-group" role="group">
                 <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' it.id %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Bearbeiten</a>
-                <form method="post" action="{% url 'mark-item' it.id %}" class="d-inline">
-                  {% csrf_token %}
-                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                  <button class="btn btn-sm btn-outline-warning" type="submit">Markieren</button>
-                </form>
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    Mehr
+                  </button>
+                  <div class="dropdown-menu dropdown-menu-end">
+                    <form method="post" action="{% url 'mark-item' it.id %}" class="m-0">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button class="dropdown-item" type="submit">Markieren</button>
+                    </form>
 
-                {% if features.require_qr %}
-                  {% include 'inventory/modules/qr_actions.html' with item=it %}
-                {% endif %}
+                    {% if features.require_qr %}
+                      {% if it.qr_exists %}
+                        <a href="{{ it.qr_url }}" target="_blank" rel="noopener" class="dropdown-item">QR</a>
+                        <a href="{{ it.qr_url }}" download class="dropdown-item">DL</a>
+                      {% else %}
+                        <span class="dropdown-item disabled" aria-disabled="true">QR</span>
+                        <span class="dropdown-item disabled" aria-disabled="true">DL</span>
+                      {% endif %}
 
-                {% if features.enable_borrow %}
-                  <a class="btn btn-sm btn-outline-light" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
-                {% endif %}
+                      <form method="post" action="{% url 'regenerate-qr' it.id %}" class="m-0">
+                        {% csrf_token %}
+                        {% if overview.slug %}
+                          <input type="hidden" name="o" value="{{ overview.slug }}">
+                        {% endif %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="dropdown-item">QR neu</button>
+                      </form>
+                    {% endif %}
+
+                    {% if features.enable_borrow %}
+                      <a class="dropdown-item" href="{% url 'borrow-item' it.id %}?next={{ request.get_full_path|urlencode }}">Verleihen</a>
+                    {% endif %}
+                  </div>
+                </div>
               </div>
             </td>
           </tr>

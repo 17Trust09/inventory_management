@@ -123,6 +123,10 @@ a:hover {
 .table td, .table th {
   vertical-align: middle;
 }
+.table-responsive-actions {
+  overflow-x: auto;
+  overflow-y: visible;
+}
 .list-group-item {
   transition: background-color .15s ease;
 }
