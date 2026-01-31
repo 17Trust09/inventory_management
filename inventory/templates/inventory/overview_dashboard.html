@@ -222,7 +222,8 @@
 
   <p class="text-muted small mt-2">
     <strong>Aktionen:</strong>
-    „Bearbeiten“ – Artikel öffnen; „Verleihen“ – Ausleihe erfassen; „QR“ – QR anzeigen; „DL“ – QR herunterladen; „QR neu“ – QR-Code neu generieren.
+    „Bearbeiten“ – Artikel öffnen; „Favorit“ – Schnellzugriff setzen/entfernen; „Kommentieren“ – Kommentar erfassen;
+    „Verleihen“ – Ausleihe erfassen; „QR“ – QR anzeigen; „DL“ – QR herunterladen; „QR neu“ – QR-Code neu generieren.
   </p>
 
   <!-- Tabelle -->
@@ -356,6 +357,26 @@
                       </form>
                     </li>
 
+                    {% if show_favorites %}
+                      <li>
+                        <form method="post" action="{% url 'toggle-favorite' it.id %}" class="m-0">
+                          {% csrf_token %}
+                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                          <button class="dropdown-item" type="submit">
+                            {% if it.is_favorite %}Favorit entfernen{% else %}Favorit hinzufügen{% endif %}
+                          </button>
+                        </form>
+                      </li>
+                    {% endif %}
+
+                    {% if features.enable_comments %}
+                      <li>
+                        <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#commentModal{{ it.id }}">
+                          Kommentieren
+                        </button>
+                      </li>
+                    {% endif %}
+
                     {% if features.require_qr %}
                       {% include 'inventory/modules/qr_actions_dropdown.html' with item=it %}
                     {% endif %}
@@ -417,6 +438,36 @@
       </tbody>
     </table>
   </div>
+
+  {% if features.enable_comments %}
+    {% for it in items %}
+      <div class="modal fade" id="commentModal{{ it.id }}" tabindex="-1" aria-labelledby="commentModalLabel{{ it.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+              <h5 class="modal-title" id="commentModalLabel{{ it.id }}">Kommentar für {{ it.name }}</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form method="post" action="{% url 'item-comment-add' it.id %}" class="m-0">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                {% with existing_comment=it.prefetched_comments.0 %}
+                  <textarea class="form-control" name="text" rows="4" placeholder="Kommentar hinzufügen...">{% if existing_comment %}{{ existing_comment.text }}{% endif %}</textarea>
+                  <div class="d-flex justify-content-between mt-3">
+                    <button type="submit" class="btn btn-outline-light">Kommentar speichern</button>
+                    {% if existing_comment %}
+                      <button type="submit" class="btn btn-outline-danger" name="action" value="delete">Kommentar löschen</button>
+                    {% endif %}
+                  </div>
+                {% endwith %}
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
 
   <!-- Pagination -->
   <nav aria-label="Paginierung" class="mt-3">

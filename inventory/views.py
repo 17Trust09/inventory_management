@@ -1842,7 +1842,8 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
         storage_locations.sort(key=lambda loc: loc.get_full_path().lower())
         favorites = base_qs.filter(is_favorite=True).order_by("name")[:6]
         overview_is_favorite = False
-        if _feature_enabled("show_favorites"):
+        show_favorites = _feature_enabled("show_favorites")
+        if show_favorites:
             profile = UserProfile.objects.filter(user=self.request.user).first()
             overview_is_favorite = bool(
                 profile and profile.favorite_overviews.filter(pk=self.overview.pk).exists()
@@ -1888,6 +1889,7 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
                 "export_columns": [(key, label) for key, label, _ in EXPORT_COLUMNS],
                 "favorites": favorites,
                 "overview_is_favorite": overview_is_favorite,
+                "show_favorites": show_favorites,
             }
         )
         return ctx
