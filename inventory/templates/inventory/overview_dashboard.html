@@ -42,7 +42,7 @@
       color: var(--text);
       border: 1px solid var(--border);
       border-radius: 1rem;
-      overflow: hidden;
+      overflow: visible;
     }
     .table-darkish thead tr{
       background: var(--surface-2);
@@ -113,6 +113,16 @@
     .dropdown-item:focus {
       background-color: rgba(255,255,255,.08);
       color: var(--text);
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+      overflow-y: visible;
+    }
+
+    .action-col {
+      min-width: 200px;
+      white-space: nowrap;
     }
   </style>
 
@@ -239,7 +249,7 @@
             <th class="text-end"><a class="text-decoration-none" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=borrowed&order={{ next_order.borrowed }}">Verliehen</a></th>
           {% endif %}
 
-          <th class="text-end">Aktion</th>
+          <th class="text-end action-col">Aktion</th>
         </tr>
       </thead>
       <tbody>
@@ -329,7 +339,7 @@
               </td>
             {% endif %}
 
-            <td class="text-end">
+            <td class="text-end action-col">
               <div class="btn-group" role="group">
                 <a class="btn btn-sm btn-outline-light" href="{% url 'edit-item' it.id %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Bearbeiten</a>
                 <div class="btn-group" role="group">
