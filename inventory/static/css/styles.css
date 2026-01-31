@@ -124,7 +124,12 @@ a:hover {
   vertical-align: middle;
 }
 .table-responsive-actions {
-  overflow: visible;
+  overflow: visible !important;
+  padding-bottom: 8rem;
+  position: relative;
+}
+.table-responsive-actions .dropdown-menu {
+  z-index: 1080;
 }
 .list-group-item {
   transition: background-color .15s ease;
