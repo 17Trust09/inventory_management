@@ -848,6 +848,11 @@ def admin_feature_toggles(request):
 
 
 def _get_git_status(branch: str) -> dict[str, str | int]:
+    if shutil.which("git") is None:
+        return {
+            "branch": branch,
+            "error": "Git ist nicht installiert oder nicht im PATH verfügbar.",
+        }
     base_dir = settings.BASE_DIR
     repo_url = (
         settings.UPDATE_REPO_URL_MAIN if branch == "main" else settings.UPDATE_REPO_URL_DEV
@@ -940,17 +945,36 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
             "error": fetch.stderr.strip() or fetch.stdout.strip() or "Git fetch fehlgeschlagen.",
         }
 
-    rev_list = subprocess.run(
-        ["git", "rev-list", "--count", f"HEAD..origin/{branch}"],
+    head_check = subprocess.run(
+        ["git", "rev-parse", "--verify", "HEAD"],
         cwd=base_dir,
         capture_output=True,
         text=True,
     )
-    if rev_list.returncode != 0:
-        return {
-            "branch": branch,
-            "error": rev_list.stderr.strip() or rev_list.stdout.strip() or "Git-Status konnte nicht ermittelt werden.",
-        }
+    if head_check.returncode != 0:
+        rev_list = subprocess.run(
+            ["git", "rev-list", "--count", f"origin/{branch}"],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+        if rev_list.returncode != 0:
+            return {
+                "branch": branch,
+                "error": rev_list.stderr.strip() or rev_list.stdout.strip() or "Git-Status konnte nicht ermittelt werden.",
+            }
+    else:
+        rev_list = subprocess.run(
+            ["git", "rev-list", "--count", f"HEAD..origin/{branch}"],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+        if rev_list.returncode != 0:
+            return {
+                "branch": branch,
+                "error": rev_list.stderr.strip() or rev_list.stdout.strip() or "Git-Status konnte nicht ermittelt werden.",
+            }
 
     try:
         behind_count = int(rev_list.stdout.strip())
