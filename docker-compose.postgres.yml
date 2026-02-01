@@ -6,8 +6,10 @@ services:
       POSTGRES_DB: inventorydb
       POSTGRES_USER: inventory
       POSTGRES_PASSWORD: inventory
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+    # Expose ports only if you need to access Postgres from outside Docker.
+    # Otherwise, keep the port closed to avoid host port conflicts.
+    # ports:
+    #   - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 volumes:

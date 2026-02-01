@@ -51,8 +51,10 @@ DJANGO_SETTINGS_MODULE=inventory_management.settings_postgres
 Die App ist danach unter `http://<unraid-ip>:8111` erreichbar.
 
 Wenn beim Start ein Fehler wie `bind: address already in use` erscheint, ist der
-gewählte `POSTGRES_PORT` bereits belegt. In dem Fall einen freien Port in `.env`
-setzen (z. B. `POSTGRES_PORT=5434`) und `Compose Up` erneut starten.
+gewählte `POSTGRES_PORT` bereits belegt. In dem Fall entweder einen freien Port in
+`.env` setzen (z. B. `POSTGRES_PORT=5434`) **oder** die Portfreigabe im
+`docker-compose.postgres.yml` komplett deaktivieren (empfohlen, wenn du nur intern
+auf Postgres zugreifst).
 
 ## 4) Update-Mechanik (1‑Klick Update in Unraid)
 
