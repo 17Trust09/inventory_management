@@ -848,6 +848,11 @@ def admin_feature_toggles(request):
 
 
 def _get_git_status(branch: str) -> dict[str, str | int]:
+    if shutil.which("git") is None:
+        return {
+            "branch": branch,
+            "error": "Git ist nicht installiert oder nicht im PATH verfügbar.",
+        }
     base_dir = settings.BASE_DIR
     repo_url = (
         settings.UPDATE_REPO_URL_MAIN if branch == "main" else settings.UPDATE_REPO_URL_DEV
