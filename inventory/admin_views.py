@@ -91,7 +91,21 @@ def _get_global_settings() -> GlobalSettings:
 
 
 def _get_tailscale_status() -> dict[str, str | bool | list[str] | None]:
-    if shutil.which("tailscale") is None:
+    tailscale_path = shutil.which(
+        "tailscale",
+        path=":".join(
+            [
+                os.getenv("PATH", ""),
+                "/usr/local/sbin",
+                "/usr/local/bin",
+                "/usr/sbin",
+                "/usr/bin",
+                "/sbin",
+                "/bin",
+            ]
+        ),
+    )
+    if tailscale_path is None:
         return {
             "installed": False,
             "connected": False,
@@ -104,7 +118,7 @@ def _get_tailscale_status() -> dict[str, str | bool | list[str] | None]:
 
     try:
         result = subprocess.run(
-            ["tailscale", "status", "--json"],
+            [tailscale_path, "status", "--json"],
             capture_output=True,
             text=True,
             timeout=5,
