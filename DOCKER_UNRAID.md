@@ -12,6 +12,7 @@ Im Repository liegen:
 - `Dockerfile` (baut die Django-App)
 - `docker/entrypoint.sh` (führt Migrationen + Collectstatic aus)
 - `docker-compose.yml` (App + Postgres)
+- `docker-compose.external-db.yml` (nur App, nutzt externes Postgres)
 
 ## 2) Beispiel `.env`
 
@@ -59,7 +60,7 @@ auf Postgres zugreifst).
 Wenn du **bereits eine eigene Postgres-Instanz** (z. B. einen anderen Docker-Container)
 auf dem Host laufen hast, nutze diese statt der integrierten DB:
 
-- Verwende `docker-compose.yml` (App + interne DB ohne Portfreigabe), **oder**
+- Verwende `docker-compose.external-db.yml` (nur App) **oder**
 - entferne den `db`-Service aus deiner Compose-Datei und setze in `.env`:
   - `POSTGRES_HOST=<IP des vorhandenen Postgres-Containers>`
   - `POSTGRES_PORT=<dessen Port>`

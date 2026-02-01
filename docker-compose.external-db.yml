@@ -1,0 +1,18 @@
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8111:8000"
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: inventory_management.settings_postgres
+      DJANGO_COLLECTSTATIC: ${DJANGO_COLLECTSTATIC:-true}
+    volumes:
+      - media:/app/media
+      - static:/app/staticfiles
+
+volumes:
+  media:
+  static:
