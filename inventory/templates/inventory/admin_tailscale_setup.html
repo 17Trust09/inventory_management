@@ -131,7 +131,8 @@
           <div class="border rounded p-3 h-100" style="border-color:var(--border);">
             <div class="fw-semibold mb-2">Schritt 4: Verbindung testen</div>
             <p class="text-muted small mb-2">
-              Wenn der Admin das Gerät teilen kann, ist alles korrekt. Aktualisiere diese Seite, um den Status zu prüfen.
+              Wenn der Admin das Gerät teilen kann, ist alles korrekt. Solange das Gerät noch nicht verbunden ist,
+              aktualisiert sich diese Seite automatisch, bis der Status auf <strong>Verbunden</strong> steht.
             </p>
             <div class="text-muted small">
               Tipp: Der Admin sieht anschließend nur dieses Gerät und keine weiteren Geräte aus deinem Netzwerk.
@@ -175,6 +176,13 @@
             <pre class="small text-muted mb-0" style="white-space:pre-wrap;">{{ command_output }}</pre>
           {% endif %}
         </div>
+      {% endif %}
+      {% if not tailscale_status.connected %}
+        <script>
+          window.setTimeout(function () {
+            window.location.reload();
+          }, 5000);
+        </script>
       {% endif %}
     </div>
   </div>

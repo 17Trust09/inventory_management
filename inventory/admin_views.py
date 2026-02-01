@@ -1279,11 +1279,13 @@ def admin_tailscale_setup(request):
         auto_step = 1
     if status.get("connected") and auto_step < 2:
         auto_step = 2
+    if status.get("connected") and auto_step < 4:
+        auto_step = 4
     if auto_step != settings_obj.tailscale_setup_step:
         settings_obj.tailscale_setup_step = auto_step
         settings_obj.save(update_fields=["tailscale_setup_step"])
 
-    if settings_obj.tailscale_setup_step >= 4 and not settings_obj.tailscale_setup_complete and not settings_obj.tailscale_setup_ignored:
+    if status.get("connected") and not settings_obj.tailscale_setup_complete and not settings_obj.tailscale_setup_ignored:
         settings_obj.tailscale_setup_complete = True
         if not settings_obj.tailscale_setup_confirmed_at:
             settings_obj.tailscale_setup_confirmed_at = timezone.now()
