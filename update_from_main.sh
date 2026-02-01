@@ -21,6 +21,17 @@ function maybe_sudo {
   fi
 }
 
+function require_command {
+  local cmd="$1"
+  if ! command -v "$cmd" &> /dev/null; then
+    echo "❌ Fehler: '$cmd' ist nicht installiert oder nicht im PATH verfügbar."
+    echo "➡️ Bitte installieren (z. B. 'apt install git' oder 'yum install git')"
+    echo "➡️ Stelle sicher, dass '$cmd' im PATH liegt. Die .env enthält nur die Repo-URL,"
+    echo "   nicht den Pfad zur Git-Binary."
+    exit 1
+  fi
+}
+
 # 📊 Funktion: Fortschrittsanzeige
 function progress_bar {
   local step=$1
@@ -79,6 +90,7 @@ progress_bar 4 && echo " ✅"
 
 # 🌱 Schritt 5: Git Pull vom main-Branch
 echo -n "⬇️ [5/7] Git Pull vom main-Branch... "
+require_command git
 if [ ! -d ".git" ]; then
   echo -e "\nℹ️ Git-Repo nicht gefunden – initialisiere Repository..."
   run_step "Git init" git init
