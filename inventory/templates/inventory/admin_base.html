@@ -10,7 +10,7 @@
     <main class="col-12 px-4 py-4" style="min-height:100vh; background-color:#2b2d30;">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">{% block admin_title %}Admin{% endblock %}</h2>
-        {% if request.resolver_match and request.resolver_match.url_name != 'admin_dashboard' %}
+        {% if request.resolver_match and request.resolver_match.url_name != 'admin_dashboard' and not hide_admin_back %}
           <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-light">
             <i class="bi bi-house-door-fill"></i> Zurück zum Admin
           </a>

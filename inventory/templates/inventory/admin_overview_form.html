@@ -51,31 +51,126 @@
 
         <div class="mb-3">
           <label class="form-label fw-semibold">{{ form.categories.label }}</label>
-          {{ form.categories }}
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <input class="form-control form-control-sm flex-grow-1"
+                   id="category-filter"
+                   placeholder="Kategorien filtern…"
+                   type="search">
+            <button class="btn btn-outline-light btn-sm" type="button" id="category-select-all">
+              Alle auswählen
+            </button>
+            <button class="btn btn-outline-light btn-sm" type="button" id="category-select-none">
+              Keine auswählen
+            </button>
+          </div>
+          <div class="border rounded p-3" style="border-color:var(--border);">
+            {% if form.categories %}
+              <div class="row g-2">
+                {% for checkbox in form.categories %}
+                  <div class="col-6 col-md-4">
+                    <div class="form-check category-option" data-label="{{ checkbox.choice_label|lower }}">
+                      {{ checkbox.tag }}
+                      <label class="form-check-label ms-1" for="{{ checkbox.id_for_label }}">
+                        {{ checkbox.choice_label }}
+                      </label>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-muted small">Keine Kategorien vorhanden.</div>
+            {% endif %}
+          </div>
           <div class="form-text">Optional: nur diese Kategorien anzeigen/filtern</div>
           <div class="text-danger small">{{ form.categories.errors }}</div>
         </div>
 
         <fieldset class="border rounded p-3 mb-3" style="border-color:var(--border);">
           <legend class="float-none w-auto px-2">Anzeigeoptionen</legend>
-          <div class="row g-3">
-            <div class="col-md-4 form-check">
-              {{ form.show_quantity }} <label class="form-check-label ms-1">{{ form.show_quantity.label }}</label>
+          <div class="row row-cols-1 row-cols-md-2 g-3">
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.show_quantity }}
+                <label class="form-check-label ms-1">{{ form.show_quantity.label }}</label>
+              </div>
             </div>
-            <div class="col-md-4 form-check">
-              {{ form.has_locations }} <label class="form-check-label ms-1">{{ form.has_locations.label }}</label>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.has_locations }}
+                <label class="form-check-label ms-1">{{ form.has_locations.label }}</label>
+              </div>
             </div>
-            <div class="col-md-4 form-check">
-              {{ form.has_min_stock }} <label class="form-check-label ms-1">{{ form.has_min_stock.label }}</label>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.has_min_stock }}
+                <label class="form-check-label ms-1">{{ form.has_min_stock.label }}</label>
+              </div>
             </div>
-            <div class="col-md-4 form-check">
-              {{ form.enable_borrow }} <label class="form-check-label ms-1">{{ form.enable_borrow.label }}</label>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.enable_borrow }}
+                <label class="form-check-label ms-1">{{ form.enable_borrow.label }}</label>
+              </div>
             </div>
-            <div class="col-md-4 form-check">
-              {{ form.is_consumable_mode }} <label class="form-check-label ms-1">{{ form.is_consumable_mode.label }}</label>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.is_consumable_mode }}
+                <label class="form-check-label ms-1">{{ form.is_consumable_mode.label }}</label>
+              </div>
             </div>
-            <div class="col-md-4 form-check">
-              {{ form.require_qr }} <label class="form-check-label ms-1">{{ form.require_qr.label }}</label>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.require_qr }}
+                <label class="form-check-label ms-1">{{ form.require_qr.label }}</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.enable_quick_adjust }}
+                <label class="form-check-label ms-1">{{ form.enable_quick_adjust.label }}</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.show_images }}
+                <label class="form-check-label ms-1">{{ form.show_images.label }}</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.show_tags }}
+                <label class="form-check-label ms-1">{{ form.show_tags.label }}</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.enable_mark_button }}
+                <label class="form-check-label ms-1">{{ form.enable_mark_button.label }}</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.enable_advanced_filters }}
+                <label class="form-check-label ms-1">{{ form.enable_advanced_filters.label }}</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.enable_comments }}
+                <label class="form-check-label ms-1">{{ form.enable_comments.label }}</label>
+                <div class="text-muted small mt-1">
+                  Erlaubt eine Kommentar-Aktion direkt im Dashboard (landet im Feedback-Board).
+                </div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+                {{ form.show_order_button }}
+                <label class="form-check-label ms-1">{{ form.show_order_button.label }}</label>
+                <div class="text-muted small mt-1">
+                  Zeigt „Nachbestellen“ nur, wenn im Item ein Bestell-Link hinterlegt ist.
+                </div>
+              </div>
             </div>
           </div>
         </fieldset>
@@ -99,4 +194,35 @@
     </form>
   </div>
 </div>
+<script>
+  (() => {
+    const filter = document.getElementById("category-filter");
+    const selectAll = document.getElementById("category-select-all");
+    const selectNone = document.getElementById("category-select-none");
+    const options = Array.from(document.querySelectorAll(".category-option"));
+    const isVisible = (option) => !option.closest(".col-6")?.classList.contains("d-none");
+
+    filter?.addEventListener("input", () => {
+      const term = filter.value.trim().toLowerCase();
+      options.forEach((option) => {
+        const match = option.dataset.label.includes(term);
+        option.closest(".col-6")?.classList.toggle("d-none", !match);
+      });
+    });
+
+    selectAll?.addEventListener("click", () => {
+      options.filter(isVisible).forEach((option) => {
+        const checkbox = option.querySelector("input[type='checkbox']");
+        if (checkbox) checkbox.checked = true;
+      });
+    });
+
+    selectNone?.addEventListener("click", () => {
+      options.filter(isVisible).forEach((option) => {
+        const checkbox = option.querySelector("input[type='checkbox']");
+        if (checkbox) checkbox.checked = false;
+      });
+    });
+  })();
+</script>
 {% endblock %}

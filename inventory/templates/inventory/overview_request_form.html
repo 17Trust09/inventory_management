@@ -1,0 +1,243 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="m-0">Neues Dashboard anfragen</h2>
+    <a href="{% url 'dashboards' %}" class="btn btn-outline-light">Zurück</a>
+  </div>
+
+  <div class="alert alert-info">
+    Deine Anfrage wird gespeichert und muss von einem Admin freigegeben werden,
+    bevor das Dashboard sichtbar ist.
+  </div>
+
+  <form method="post" class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    {% csrf_token %}
+    <div class="card-body">
+      {{ form.non_field_errors }}
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ form.name.label }}</label>
+        {{ form.name }}
+        <div class="text-danger small">{{ form.name.errors }}</div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-7 mb-3">
+          <label class="form-label fw-semibold">{{ form.slug.label }}</label>
+          {{ form.slug }}
+          <div class="form-text">Optional – wird automatisch erzeugt, wenn leer.</div>
+          <div class="text-danger small">{{ form.slug.errors }}</div>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label fw-semibold">{{ form.icon_emoji.label }}</label>
+          {{ form.icon_emoji }}
+          <div class="form-text">z.&nbsp;B. 🔧, 🧴, 📦 …</div>
+          <div class="text-danger small">{{ form.icon_emoji.errors }}</div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ form.description.label }}</label>
+        {{ form.description }}
+        <div class="text-danger small">{{ form.description.errors }}</div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold">{{ form.order.label }}</label>
+          {{ form.order }}
+          <div class="text-danger small">{{ form.order.errors }}</div>
+        </div>
+        <div class="col-md-4 mb-3 form-check mt-4">
+          {{ form.is_active }}
+          <label class="form-check-label ms-1">{{ form.is_active.label }}</label>
+          <div class="form-text">Wird erst nach Admin-Freigabe aktiv.</div>
+          <div class="text-danger small">{{ form.is_active.errors }}</div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ form.categories.label }}</label>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <input class="form-control form-control-sm flex-grow-1"
+                 id="category-filter"
+                 placeholder="Kategorien filtern…"
+                 type="search">
+          <button class="btn btn-outline-light btn-sm" type="button" id="category-select-all">
+            Alle auswählen
+          </button>
+          <button class="btn btn-outline-light btn-sm" type="button" id="category-select-none">
+            Keine auswählen
+          </button>
+        </div>
+        <div class="border rounded p-3" style="border-color:var(--border);">
+          {% if form.categories %}
+            <div class="row g-2">
+              {% for checkbox in form.categories %}
+                <div class="col-6 col-md-4">
+                  <div class="form-check category-option" data-label="{{ checkbox.choice_label|lower }}">
+                    {{ checkbox.tag }}
+                    <label class="form-check-label ms-1" for="{{ checkbox.id_for_label }}">
+                      {{ checkbox.choice_label }}
+                    </label>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-muted small">Keine Kategorien vorhanden.</div>
+          {% endif %}
+        </div>
+        <div class="form-text">Optional: nur diese Kategorien anzeigen/filtern</div>
+        <div class="text-danger small">{{ form.categories.errors }}</div>
+      </div>
+
+      <fieldset class="border rounded p-3 mb-3" style="border-color:var(--border);">
+        <legend class="float-none w-auto px-2">Anzeigeoptionen</legend>
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.show_quantity }}
+              <label class="form-check-label ms-1">{{ form.show_quantity.label }}</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.has_locations }}
+              <label class="form-check-label ms-1">{{ form.has_locations.label }}</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.has_min_stock }}
+              <label class="form-check-label ms-1">{{ form.has_min_stock.label }}</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.enable_borrow }}
+              <label class="form-check-label ms-1">{{ form.enable_borrow.label }}</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.is_consumable_mode }}
+              <label class="form-check-label ms-1">{{ form.is_consumable_mode.label }}</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.require_qr }}
+              <label class="form-check-label ms-1">{{ form.require_qr.label }}</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.enable_quick_adjust }}
+              <label class="form-check-label ms-1">{{ form.enable_quick_adjust.label }}</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.show_images }}
+              <label class="form-check-label ms-1">{{ form.show_images.label }}</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.show_tags }}
+              <label class="form-check-label ms-1">{{ form.show_tags.label }}</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.enable_mark_button }}
+              <label class="form-check-label ms-1">{{ form.enable_mark_button.label }}</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.enable_advanced_filters }}
+              <label class="form-check-label ms-1">{{ form.enable_advanced_filters.label }}</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.enable_comments }}
+              <label class="form-check-label ms-1">{{ form.enable_comments.label }}</label>
+              <div class="text-muted small mt-1">
+                Erlaubt eine Kommentar-Aktion direkt im Dashboard (landet im Feedback-Board).
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
+              {{ form.show_order_button }}
+              <label class="form-check-label ms-1">{{ form.show_order_button.label }}</label>
+              <div class="text-muted small mt-1">
+                Zeigt „Nachbestellen“ nur, wenn im Item ein Bestell-Link hinterlegt ist.
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ form.config.label }}</label>
+        {{ form.config }}
+        <div class="form-text">Optionales JSON für individuelle Karten/Widgets.</div>
+        <div class="text-danger small">{{ form.config.errors }}</div>
+      </div>
+    </div>
+
+    <div class="card-footer d-flex justify-content-end" style="background:var(--surface-2); border-top:1px solid var(--border);">
+      <a href="{% url 'dashboards' %}" class="btn btn-outline-light me-2">Abbrechen</a>
+      <button type="submit" class="btn btn-primary">Anfrage senden</button>
+    </div>
+  </form>
+</div>
+<script>
+  (() => {
+    const filter = document.getElementById("category-filter");
+    const selectAll = document.getElementById("category-select-all");
+    const selectNone = document.getElementById("category-select-none");
+    const options = [...document.querySelectorAll(".category-option")];
+
+    if (!filter || options.length === 0) {
+      return;
+    }
+
+    filter.addEventListener("input", () => {
+      const query = filter.value.trim().toLowerCase();
+      options.forEach((option) => {
+        const label = option.dataset.label || "";
+        option.classList.toggle("d-none", query && !label.includes(query));
+      });
+    });
+
+    if (selectAll) {
+      selectAll.addEventListener("click", () => {
+        options.forEach((option) => {
+          const input = option.querySelector("input[type='checkbox']");
+          if (input && !input.checked) {
+            input.click();
+          }
+        });
+      });
+    }
+
+    if (selectNone) {
+      selectNone.addEventListener("click", () => {
+        options.forEach((option) => {
+          const input = option.querySelector("input[type='checkbox']");
+          if (input && input.checked) {
+            input.click();
+          }
+        });
+      });
+    }
+  })();
+</script>
+{% endblock %}

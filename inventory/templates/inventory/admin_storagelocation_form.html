@@ -10,12 +10,51 @@
           <i class="bi bi-pencil-square me-2"></i>
           {% if is_create %}Lagerort anlegen{% else %}Lagerort bearbeiten{% endif %}
         </h4>
-        <form method="post" novalidate>
+        <form method="post" novalidate
+              action="{% if is_create %}{% url 'admin_storagelocation_add' %}{% else %}{% url 'admin_storagelocation_edit' form.instance.pk %}{% endif %}">
           {% csrf_token %}
           <div class="mb-3">
             <label for="id_name" class="form-label">Name</label>
             {{ form.name }}
           </div>
+          <div class="mb-3">
+            <label for="id_nfc_token" class="form-label">NFC-Tag Token</label>
+            {{ form.nfc_token }}
+            <small class="text-muted d-block mt-1">
+              Leer lassen, um automatisch einen Token zu erzeugen.
+            </small>
+            <details class="mt-2">
+              <summary class="text-muted" style="cursor:pointer;">❓ Kurzanleitung</summary>
+              <div class="mt-1">
+                <ol class="mb-1">
+                  <li>Lagerort speichern (Token wird erzeugt oder übernommen).</li>
+                  <li>NFC-URL unten kopieren.</li>
+                  <li>Die URL auf den NFC-Tag schreiben.</li>
+                </ol>
+              </div>
+            </details>
+            {% if not is_create %}
+              <button class="btn btn-sm btn-outline-primary mt-2"
+                      type="submit"
+                      formaction="{% url 'admin_storagelocation_regenerate_nfc' form.instance.pk %}"
+                      formmethod="post">
+                NFC-Token neu erzeugen
+              </button>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label for="id_nfc_base_choice" class="form-label">NFC-Basis</label>
+            {{ form.nfc_base_choice }}
+            <small class="text-muted d-block mt-1">
+              Wähle, ob der NFC-Link die lokale oder die Tailscale/Remote Basis-URL verwenden soll.
+            </small>
+          </div>
+          {% if nfc_url %}
+            <div class="mb-3">
+              <label class="form-label">NFC-URL</label>
+              <input class="form-control" type="text" value="{{ nfc_url }}" readonly>
+            </div>
+          {% endif %}
           <div class="mb-3">
             <label for="id_parent" class="form-label">Übergeordneter Lagerort (optional)</label>
             {{ form.parent }}
@@ -36,30 +75,32 @@
       </div>
     </div>
   </div>
-  <div class="col-lg-5">
-    <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
-      <div class="card-body">
-        <h5 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>Hierarchie auswählen</h5>
-        <p class="text-muted mb-3">
-          Klicke auf einen vorhandenen Lagerort, um ihn als übergeordneten Stamm zu setzen.
-          Für einen neuen Hauptordner wähle „Kein übergeordneter Lagerort“.
-        </p>
-        <div class="d-flex flex-wrap gap-2 mb-3">
-          <button type="button" class="btn btn-sm btn-outline-info storage-tree__item" data-parent-id="">
-            Kein übergeordneter Lagerort
-          </button>
-          {% if parent_selected %}
-            <span class="badge bg-success align-self-center">Aktuell ausgewählt</span>
+  {% if is_create %}
+    <div class="col-lg-5">
+      <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+        <div class="card-body">
+          <h5 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>Hierarchie auswählen</h5>
+          <p class="text-muted mb-3">
+            Klicke auf einen vorhandenen Lagerort, um ihn als übergeordneten Stamm zu setzen.
+            Für einen neuen Hauptordner wähle „Kein übergeordneter Lagerort“.
+          </p>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="btn btn-sm btn-outline-info storage-tree__item" data-parent-id="">
+              Kein übergeordneter Lagerort
+            </button>
+            {% if parent_selected %}
+              <span class="badge bg-success align-self-center">Aktuell ausgewählt</span>
+            {% endif %}
+          </div>
+          {% if parent_tree %}
+            {% include "inventory/partials/storage_location_tree.html" with nodes=parent_tree %}
+          {% else %}
+            <div class="text-muted">Noch keine Lagerorte vorhanden.</div>
           {% endif %}
         </div>
-        {% if parent_tree %}
-          {% include "inventory/partials/storage_location_tree.html" with nodes=parent_tree %}
-        {% else %}
-          <div class="text-muted">Noch keine Lagerorte vorhanden.</div>
-        {% endif %}
       </div>
     </div>
-  </div>
+  {% endif %}
 </div>
 
 <style>

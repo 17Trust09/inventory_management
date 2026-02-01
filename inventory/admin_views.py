@@ -2,12 +2,15 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, NoReverseMatch
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django import forms
 from django.http import JsonResponse, HttpResponseBadRequest
+from django.db import connection
+from django.utils import timezone
 
 # NEU: wir brauchen den User für die Bearbeitungs-/Löschmaske
 from django.contrib.auth.models import User
@@ -16,9 +19,17 @@ from django.contrib.auth.models import User
 from barcode import Code128
 from barcode.writer import ImageWriter
 import qrcode
+import uuid
+import os
+import subprocess
+import json
+import shutil
+from pathlib import Path
 
+from .feature_flags import get_feature_flags
 from .models import (
     InventoryItem,
+    InventoryHistory,
     BorrowedItem,
     ApplicationTag,
     TagType,
@@ -38,9 +49,16 @@ from .forms import StorageLocationForm
 def _is_staff_or_super(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
 
+def _is_superuser(user):
+    return user.is_authenticated and user.is_superuser
+
 def staff_required(view_func):
     """Decorator für FBVs: lässt nur is_staff/is_superuser rein."""
     return user_passes_test(_is_staff_or_super, login_url="login")(view_func)
+
+def superuser_required(view_func):
+    """Decorator für FBVs: lässt nur Superuser rein."""
+    return user_passes_test(_is_superuser, login_url="login")(view_func)
 
 class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Mixin für CBVs: lässt nur is_staff/is_superuser rein."""
@@ -51,6 +69,87 @@ class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         messages.error(self.request, "Kein Zugriff. Bitte als Admin anmelden.")
         return redirect("login")
 
+class SuperuserRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Mixin für CBVs: lässt nur Superuser rein."""
+    def test_func(self):
+        return _is_superuser(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Kein Zugriff. Bitte als Superuser anmelden.")
+        return redirect("login")
+
+
+def _feature_enabled(flag_name: str) -> bool:
+    return get_feature_flags().get(flag_name, True)
+
+
+def _get_global_settings() -> GlobalSettings:
+    settings_obj = GlobalSettings.objects.first()
+    if not settings_obj:
+        settings_obj = GlobalSettings.objects.create()
+    return settings_obj
+
+
+def _get_tailscale_status() -> dict[str, str | bool | list[str] | None]:
+    if shutil.which("tailscale") is None:
+        return {
+            "installed": False,
+            "connected": False,
+            "error": "Tailscale ist nicht installiert.",
+            "backend_state": None,
+            "hostname": None,
+            "dns_name": None,
+            "ips": [],
+        }
+
+    try:
+        result = subprocess.run(
+            ["tailscale", "status", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "installed": True,
+            "connected": False,
+            "error": "Tailscale-Status hat zu lange gedauert.",
+            "backend_state": None,
+            "hostname": None,
+            "dns_name": None,
+            "ips": [],
+        }
+    if result.returncode != 0:
+        return {
+            "installed": True,
+            "connected": False,
+            "error": result.stderr.strip() or result.stdout.strip() or "Tailscale-Status konnte nicht gelesen werden.",
+            "backend_state": None,
+            "hostname": None,
+            "dns_name": None,
+            "ips": [],
+        }
+
+    try:
+        data = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        data = {}
+
+    self_node = data.get("Self", {}) if isinstance(data, dict) else {}
+    backend_state = data.get("BackendState") if isinstance(data, dict) else None
+    ips = self_node.get("TailscaleIPs") or []
+    if not isinstance(ips, list):
+        ips = []
+
+    return {
+        "installed": True,
+        "connected": backend_state == "Running",
+        "error": None,
+        "backend_state": backend_state,
+        "hostname": self_node.get("HostName"),
+        "dns_name": self_node.get("DNSName"),
+        "ips": ips,
+    }
 
 # ---------------------------------------------------------------------
 # FORMS
@@ -87,8 +186,22 @@ def dashboard(request):
     Letzte Feedbacks + Quick-Actions.
     """
     latest_feedback = Feedback.objects.select_related("created_by").order_by("-created_at")[:8]
+    pending_overview_qs = Overview.objects.filter(is_active=False, requested_by__isnull=False)
+    pending_overviews = (
+        pending_overview_qs.select_related("requested_by")
+        .order_by("-id")[:8]
+    )
+    settings_obj = _get_global_settings()
+    tailscale_setup_complete = (
+        settings_obj.tailscale_setup_complete
+        or settings_obj.tailscale_setup_ignored
+        or settings_obj.tailscale_setup_step >= 4
+    )
     return render(request, 'inventory/admin_dashboard.html', {
-        "latest_feedback": latest_feedback
+        "latest_feedback": latest_feedback,
+        "pending_overviews": pending_overviews,
+        "pending_overview_count": pending_overview_qs.count(),
+        "tailscale_setup_complete": tailscale_setup_complete,
     })
 
 
@@ -109,6 +222,115 @@ def admin_tags_overview(request):
     return render(request, 'inventory/admin_tags_overview.html', {
         'tags': tags,
     })
+
+
+# ---------------------------------------------------------------------
+# Historie & Rollback (Admin)
+# ---------------------------------------------------------------------
+@staff_required
+def admin_history_list(request):
+    if not _feature_enabled("show_admin_history"):
+        messages.error(request, "Historie & Rollback sind aktuell deaktiviert.")
+        return redirect("admin_dashboard")
+    action = (request.GET.get("action") or "").strip()
+    user_id = (request.GET.get("user") or "").strip()
+    query = (request.GET.get("q") or "").strip()
+
+    history = InventoryHistory.objects.select_related("item", "user").order_by("-created_at")
+    if action:
+        history = history.filter(action=action)
+    if user_id:
+        history = history.filter(user_id=user_id)
+    if query:
+        history = history.filter(item__name__icontains=query)
+
+    users = User.objects.filter(inventory_history_entries__isnull=False).distinct().order_by("username")
+
+    return render(
+        request,
+        "inventory/admin_history_list.html",
+        {
+            "history_entries": history[:200],
+            "action_choices": InventoryHistory.Action.choices,
+            "selected_action": action,
+            "selected_user": user_id,
+            "selected_query": query,
+            "users": users,
+        },
+    )
+
+
+@staff_required
+def admin_history_rollback(request, pk):
+    if not _feature_enabled("show_admin_history"):
+        messages.error(request, "Historie & Rollback sind aktuell deaktiviert.")
+        return redirect("admin_dashboard")
+    if request.method != "post" and request.method != "POST":
+        return HttpResponseBadRequest("Ungültige Methode.")
+
+    history = get_object_or_404(InventoryHistory, pk=pk)
+    if not history.data_before:
+        messages.error(request, "Kein Rollback-Zustand vorhanden.")
+        return redirect("admin_history_list")
+
+    item = history.item
+    current = {
+        "name": item.name,
+        "description": item.description,
+        "quantity": item.quantity,
+        "category_id": item.category_id,
+        "storage_location_id": item.storage_location_id,
+        "location_letter": item.location_letter,
+        "location_number": item.location_number,
+        "location_shelf": item.location_shelf,
+        "low_quantity": item.low_quantity,
+        "order_link": item.order_link,
+        "maintenance_date": item.maintenance_date,
+        "overview_id": item.overview_id,
+        "item_type": item.item_type,
+        "is_active": item.is_active,
+        "tags": list(item.application_tags.values_list("id", flat=True)),
+    }
+    target = history.data_before
+
+    item.name = target.get("name")
+    item.description = target.get("description")
+    item.quantity = target.get("quantity") or 0
+    item.category_id = target.get("category_id")
+    item.storage_location_id = target.get("storage_location_id")
+    item.location_letter = target.get("location_letter")
+    item.location_number = target.get("location_number")
+    item.location_shelf = target.get("location_shelf")
+    item.low_quantity = target.get("low_quantity") or 0
+    item.order_link = target.get("order_link")
+    maintenance_date = target.get("maintenance_date")
+    if maintenance_date:
+        try:
+            item.maintenance_date = timezone.datetime.fromisoformat(maintenance_date).date()
+        except ValueError:
+            item.maintenance_date = None
+    else:
+        item.maintenance_date = None
+    item.overview_id = target.get("overview_id")
+    item.item_type = target.get("item_type") or item.item_type
+    item.is_active = target.get("is_active", item.is_active)
+    item.save()
+
+    if "tags" in target:
+        item.application_tags.set(target["tags"])
+
+    InventoryHistory.objects.create(
+        item=item,
+        user=request.user,
+        action=InventoryHistory.Action.ROLLBACK,
+        data_before=current,
+        data_after=target,
+        changes=[],
+        meta={"source_history_id": history.id, "source": "admin"},
+    )
+
+    messages.success(request, "Rollback durchgeführt.")
+    return redirect("admin_history_list")
 
 
 # ---------------------------------------------------------------------
@@ -485,6 +707,13 @@ class GlobalSettingsListView(StaffRequiredMixin, ListView):
     template_name = 'inventory/admin_globalsettings_list.html'
     context_object_name = 'settings'
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if not qs.exists():
+            GlobalSettings.objects.create()
+            qs = super().get_queryset()
+        return qs
+
 
 @staff_required
 def admin_globalsettings_edit(request, pk):
@@ -493,14 +722,22 @@ def admin_globalsettings_edit(request, pk):
     class GSForm(forms.ModelForm):
         class Meta:
             model = GlobalSettings
-            fields = ['qr_base_url']
+            fields = ['qr_base_url', 'nfc_base_url_local', 'nfc_base_url_remote']
             widgets = {
                 'qr_base_url': forms.TextInput(attrs={'class': 'form-control form-control-lg'}),
+                'nfc_base_url_local': forms.TextInput(attrs={'class': 'form-control form-control-lg'}),
+                'nfc_base_url_remote': forms.TextInput(attrs={'class': 'form-control form-control-lg'}),
             }
             labels = {
                 'qr_base_url': 'Basis-URL für QR-Code-Links',
+                'nfc_base_url_local': 'NFC-Basis-URL (Lokal)',
+                'nfc_base_url_remote': 'NFC-Basis-URL (Tailscale/Remote)',
             }
-            help_texts = {'qr_base_url': 'z. B. http://192.168.178.20:8000'}
+            help_texts = {
+                'qr_base_url': 'z. B. http://192.168.178.20:8000',
+                'nfc_base_url_local': 'z. B. http://192.168.178.20:8000',
+                'nfc_base_url_remote': 'z. B. https://host.tailnet-xyz.ts.net',
+            }
 
     if request.method == 'POST':
         form = GSForm(request.POST, instance=gs)
@@ -512,6 +749,663 @@ def admin_globalsettings_edit(request, pk):
         form = GSForm(instance=gs)
 
     return render(request, 'inventory/admin_globalsettings_form.html', {'form': form})
+
+
+@superuser_required
+def admin_feature_toggles(request):
+    settings = GlobalSettings.objects.first()
+    if not settings:
+        settings = GlobalSettings.objects.create()
+
+    class FeatureToggleForm(forms.ModelForm):
+        class Meta:
+            model = GlobalSettings
+            fields = [
+                "show_patch_notes",
+                "show_feedback",
+                "show_movement_report",
+                "show_admin_history",
+                "show_scheduled_exports",
+                "show_mark_button",
+                "show_favorites",
+                "show_system_settings",
+                "enable_user_overview_requests",
+                "enable_bulk_actions",
+                "enable_item_move",
+                "enable_item_history",
+                "enable_attachments",
+                "enable_image_upload",
+                "enable_image_library",
+                "enable_qr_actions",
+                "enable_nfc_fields",
+                "enable_unit_fields",
+            ]
+            widgets = {
+                "show_patch_notes": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_feedback": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_movement_report": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_admin_history": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_scheduled_exports": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_mark_button": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_favorites": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "show_system_settings": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_user_overview_requests": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_bulk_actions": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_item_move": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_item_history": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_attachments": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_image_upload": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_image_library": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_qr_actions": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_nfc_fields": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "enable_unit_fields": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            }
+            labels = {
+                "show_patch_notes": "Patch Notes",
+                "show_feedback": "Feedback-Board",
+                "show_movement_report": "Lagerbewegungen",
+                "show_admin_history": "Historie & Rollback (Admin)",
+                "show_scheduled_exports": "Geplante Exporte",
+                "show_mark_button": "Markieren-Button im Dashboard",
+                "show_favorites": "Favoriten & Schnellzugriff",
+                "show_system_settings": "System-Einstellungen anzeigen",
+                "enable_user_overview_requests": "Dashboard-Anfragen durch Benutzer erlauben",
+                "enable_bulk_actions": "Bulk-Aktionen",
+                "enable_item_move": "Item in anderes Dashboard verschieben",
+                "enable_item_history": "Verlauf & Timeline im Item-Edit",
+                "enable_attachments": "Dokumente/Bilder (Anhänge)",
+                "enable_image_upload": "Bild-Upload",
+                "enable_image_library": "Bild-Bibliothek",
+                "enable_qr_actions": "QR-Aktionen",
+                "enable_nfc_fields": "NFC-Felder",
+                "enable_unit_fields": "Einheit anzeigen",
+            }
+
+    if request.method == "POST":
+        form = FeatureToggleForm(request.POST, instance=settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Feature-Schalter wurden gespeichert.")
+            return redirect("admin_feature_toggles")
+    else:
+        form = FeatureToggleForm(instance=settings)
+
+    return render(request, "inventory/admin_feature_toggles.html", {"form": form})
+
+
+def _get_git_status(branch: str) -> dict[str, str | int]:
+    base_dir = settings.BASE_DIR
+    repo_url = (
+        settings.UPDATE_REPO_URL_MAIN if branch == "main" else settings.UPDATE_REPO_URL_DEV
+    ).strip()
+    if not repo_url:
+        return {
+            "branch": branch,
+            "error": "Update-Repository ist nicht konfiguriert.",
+        }
+
+    if not (base_dir / ".git").exists():
+        init = subprocess.run(
+            ["git", "init"],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+        if init.returncode != 0:
+            return {
+                "branch": branch,
+                "error": init.stderr.strip() or init.stdout.strip() or "Git-Repository konnte nicht initialisiert werden.",
+            }
+        subprocess.run(
+            ["git", "remote", "add", "origin", repo_url],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+        fetch_init = subprocess.run(
+            ["git", "fetch", "origin", branch],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+        if fetch_init.returncode != 0:
+            return {
+                "branch": branch,
+                "error": fetch_init.stderr.strip() or fetch_init.stdout.strip() or "Git fetch fehlgeschlagen.",
+            }
+        rev_list = subprocess.run(
+            ["git", "rev-list", "--count", f"origin/{branch}"],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+        if rev_list.returncode != 0:
+            return {
+                "branch": branch,
+                "error": rev_list.stderr.strip() or rev_list.stdout.strip() or "Git-Status konnte nicht ermittelt werden.",
+            }
+        try:
+            behind_count = int(rev_list.stdout.strip())
+        except ValueError:
+            behind_count = 0
+        return {
+            "branch": branch,
+            "behind_count": behind_count,
+        }
+
+    remote_url = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=base_dir,
+        capture_output=True,
+        text=True,
+    )
+    if remote_url.returncode != 0:
+        subprocess.run(
+            ["git", "remote", "add", "origin", repo_url],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+    elif remote_url.stdout.strip() != repo_url:
+        subprocess.run(
+            ["git", "remote", "set-url", "origin", repo_url],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+        )
+
+    fetch = subprocess.run(
+        ["git", "fetch", "origin", branch],
+        cwd=base_dir,
+        capture_output=True,
+        text=True,
+    )
+    if fetch.returncode != 0:
+        return {
+            "branch": branch,
+            "error": fetch.stderr.strip() or fetch.stdout.strip() or "Git fetch fehlgeschlagen.",
+        }
+
+    rev_list = subprocess.run(
+        ["git", "rev-list", "--count", f"HEAD..origin/{branch}"],
+        cwd=base_dir,
+        capture_output=True,
+        text=True,
+    )
+    if rev_list.returncode != 0:
+        return {
+            "branch": branch,
+            "error": rev_list.stderr.strip() or rev_list.stdout.strip() or "Git-Status konnte nicht ermittelt werden.",
+        }
+
+    try:
+        behind_count = int(rev_list.stdout.strip())
+    except ValueError:
+        behind_count = 0
+
+    return {
+        "branch": branch,
+        "behind_count": behind_count,
+    }
+
+
+def _get_backup_root(settings_obj: GlobalSettings | None = None) -> tuple[Path, str | None]:
+    if settings_obj is None:
+        settings_obj = _get_global_settings()
+    configured = (settings_obj.backup_storage_path or "").strip()
+    if configured:
+        backup_root = Path(configured)
+        if not backup_root.exists():
+            return backup_root, "Backup-Speicherort existiert nicht."
+        return backup_root, None
+    return settings.BASE_DIR / "backup", None
+
+
+def _get_external_backup_paths() -> list[tuple[str, str]]:
+    candidates = []
+    for base in (Path("/mnt"), Path("/media"), Path("/run/media")):
+        if base.exists():
+            for entry in base.iterdir():
+                if entry.is_dir():
+                    candidates.append(entry)
+    choices = []
+    for path in candidates:
+        label = str(path)
+        choices.append((str(path), label))
+    return choices
+
+
+def _get_backup_entries() -> list[dict[str, str]]:
+    backup_root, _ = _get_backup_root()
+    if not backup_root.exists():
+        return []
+    entries = []
+    for item in sorted(backup_root.iterdir(), reverse=True):
+        if not item.is_dir():
+            continue
+        db_path = item / "db.sqlite3"
+        media_path = item / "media"
+        entries.append(
+            {
+                "name": item.name,
+                "path": str(item),
+                "has_db": db_path.exists(),
+                "has_media": media_path.exists(),
+            }
+        )
+    return entries
+
+
+def _create_backup() -> tuple[bool, str]:
+    settings_obj = _get_global_settings()
+    backup_root, error = _get_backup_root(settings_obj)
+    if error:
+        return False, error
+    backup_root.mkdir(parents=True, exist_ok=True)
+    backup_dir = backup_root / timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    db_source = settings.BASE_DIR / "db.sqlite3"
+    media_source = settings.BASE_DIR / "media"
+    if not db_source.exists():
+        return False, "db.sqlite3 nicht gefunden."
+    if not media_source.exists():
+        return False, "media-Ordner nicht gefunden."
+
+    try:
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(db_source, backup_dir / "db.sqlite3")
+        shutil.copytree(media_source, backup_dir / "media")
+    except OSError as exc:
+        return False, f"Backup fehlgeschlagen: {exc}"
+
+    settings_obj.last_backup_at = timezone.now()
+    settings_obj.save(update_fields=["last_backup_at"])
+    return True, f"Backup erstellt: {backup_dir.name}"
+
+
+def _prune_backups(keep_count: int) -> int:
+    if keep_count <= 0:
+        return 0
+    backup_root, _ = _get_backup_root()
+    if not backup_root.exists():
+        return 0
+    entries = [item for item in sorted(backup_root.iterdir(), reverse=True) if item.is_dir()]
+    removed = 0
+    for item in entries[keep_count:]:
+        try:
+            shutil.rmtree(item)
+            removed += 1
+        except OSError:
+            continue
+    return removed
+
+
+def _restore_backup(backup_dir: str) -> tuple[bool, str]:
+    backup_root, error = _get_backup_root()
+    if error:
+        return False, error
+    backup_path = backup_root / backup_dir
+    if not backup_path.exists():
+        return False, "Backup-Verzeichnis nicht gefunden."
+
+    db_source = backup_path / "db.sqlite3"
+    media_source = backup_path / "media"
+    if not db_source.exists():
+        return False, "Backup enthält keine db.sqlite3."
+    if not media_source.exists():
+        return False, "Backup enthält keinen media-Ordner."
+
+    db_target = settings.BASE_DIR / "db.sqlite3"
+    media_target = settings.BASE_DIR / "media"
+
+    try:
+        shutil.copy2(db_source, db_target)
+        if media_target.exists():
+            shutil.rmtree(media_target)
+        shutil.copytree(media_source, media_target)
+    except OSError as exc:
+        return False, f"Rollback fehlgeschlagen: {exc}"
+
+    return True, "Rollback abgeschlossen."
+
+
+@superuser_required
+def admin_updates(request):
+    update_output = None
+    update_error = None
+    update_branch = None
+    rollback_message = None
+    rollback_error = None
+
+    if request.method == "POST":
+        if request.POST.get("action") == "rollback":
+            backup_dir = request.POST.get("backup_dir")
+            if not backup_dir:
+                messages.error(request, "Kein Backup ausgewählt.")
+                return redirect("admin_updates")
+            success, message = _restore_backup(backup_dir)
+            if success:
+                rollback_message = message
+                messages.success(request, message)
+            else:
+                rollback_error = message
+                messages.error(request, message)
+            return redirect("admin_updates")
+
+        update_branch = request.POST.get("branch")
+        if update_branch not in {"main", "dev"}:
+            messages.error(request, "Ungültiger Branch für das Update.")
+            return redirect("admin_updates")
+
+        settings_obj = _get_global_settings()
+        auto_maintenance = settings_obj.auto_maintenance_on_update and not settings_obj.maintenance_mode_enabled
+        if auto_maintenance:
+            settings_obj.maintenance_mode_enabled = True
+            if not settings_obj.maintenance_message:
+                settings_obj.maintenance_message = "Update läuft. Bitte später erneut versuchen."
+            settings_obj.save(update_fields=["maintenance_mode_enabled", "maintenance_message"])
+
+        backup_ok, backup_message = _create_backup()
+        if backup_ok:
+            messages.success(request, backup_message)
+        else:
+            messages.error(request, f"Backup fehlgeschlagen: {backup_message}")
+            if auto_maintenance:
+                settings_obj.maintenance_mode_enabled = False
+                settings_obj.save(update_fields=["maintenance_mode_enabled"])
+            return redirect("admin_updates")
+        _prune_backups(settings_obj.backup_retention_count)
+
+        status = _get_git_status(update_branch)
+        if status.get("error"):
+            messages.error(request, f"Update-Check fehlgeschlagen: {status['error']}")
+            return redirect("admin_updates")
+
+        if status.get("behind_count", 0) == 0:
+            messages.info(request, f"{update_branch} ist bereits aktuell.")
+            return redirect("admin_updates")
+
+        script_path = settings.BASE_DIR / f"update_from_{update_branch}.sh"
+        if not script_path.exists():
+            messages.error(request, f"Update-Skript fehlt: {script_path}")
+            return redirect("admin_updates")
+
+        result = subprocess.run(
+            ["bash", str(script_path)],
+            cwd=settings.BASE_DIR,
+            capture_output=True,
+            text=True,
+        )
+        update_output = (result.stdout or "").strip()
+        update_error = (result.stderr or "").strip()
+        if result.returncode == 0:
+            messages.success(request, f"Update von {update_branch} gestartet.")
+        else:
+            messages.error(request, f"Update von {update_branch} fehlgeschlagen (Exit-Code {result.returncode}).")
+            if auto_maintenance:
+                settings_obj.maintenance_mode_enabled = False
+                settings_obj.save(update_fields=["maintenance_mode_enabled"])
+
+    context = {
+        "status_main": _get_git_status("main"),
+        "status_dev": _get_git_status("dev"),
+        "update_output": update_output,
+        "update_error": update_error,
+        "update_branch": update_branch,
+        "backup_entries": _get_backup_entries(),
+        "rollback_message": rollback_message,
+        "rollback_error": rollback_error,
+        "hide_admin_back": True,
+    }
+    return render(request, "inventory/admin_updates.html", context)
+
+
+# ---------------------------------------------------------------------
+# Tailscale Setup Wizard (Admin)
+# ---------------------------------------------------------------------
+@staff_required
+def admin_tailscale_setup(request):
+    status = _get_tailscale_status()
+    settings_obj = _get_global_settings()
+    command_output = None
+    command_error = None
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "reset_setup":
+            settings_obj.tailscale_setup_step = 0
+            settings_obj.tailscale_setup_complete = False
+            settings_obj.tailscale_setup_ignored = False
+            settings_obj.tailscale_setup_confirmed_at = None
+            settings_obj.save(
+                update_fields=[
+                    "tailscale_setup_step",
+                    "tailscale_setup_complete",
+                    "tailscale_setup_ignored",
+                    "tailscale_setup_confirmed_at",
+                ]
+            )
+            messages.info(request, "Tailscale-Setup wurde zurückgesetzt.")
+            return redirect("admin_tailscale_setup")
+
+        if action == "mark_step":
+            try:
+                step = int(request.POST.get("step", "0"))
+            except ValueError:
+                step = 0
+            if step not in {1, 2, 3}:
+                messages.error(request, "Ungültiger Setup-Schritt.")
+                return redirect("admin_tailscale_setup")
+            if step > settings_obj.tailscale_setup_step:
+                settings_obj.tailscale_setup_step = step
+                settings_obj.save(update_fields=["tailscale_setup_step"])
+                messages.success(request, f"Schritt {step} wurde markiert.")
+            return redirect("admin_tailscale_setup")
+
+        if action == "confirm_share":
+            if not settings.TAILSCALE_ADMIN_EMAIL:
+                messages.error(request, "Admin-E-Mail fehlt. Bitte in der .env konfigurieren.")
+                return redirect("admin_tailscale_setup")
+            if not status.get("connected"):
+                messages.error(request, "Gerät ist nicht mit Tailscale verbunden.")
+                return redirect("admin_tailscale_setup")
+            settings_obj.tailscale_setup_step = max(settings_obj.tailscale_setup_step, 4)
+            settings_obj.tailscale_setup_complete = True
+            settings_obj.tailscale_setup_ignored = False
+            settings_obj.tailscale_setup_confirmed_at = timezone.now()
+            settings_obj.save(
+                update_fields=[
+                    "tailscale_setup_step",
+                    "tailscale_setup_complete",
+                    "tailscale_setup_ignored",
+                    "tailscale_setup_confirmed_at",
+                ]
+            )
+            messages.success(request, "Tailscale-Setup wurde bestätigt.")
+            return redirect("admin_tailscale_setup")
+
+        if action == "ignore_setup":
+            if not request.user.is_superuser:
+                messages.error(request, "Nur Superuser können das Setup ignorieren.")
+                return redirect("admin_tailscale_setup")
+            settings_obj.tailscale_setup_complete = False
+            settings_obj.tailscale_setup_ignored = True
+            settings_obj.save(update_fields=["tailscale_setup_complete", "tailscale_setup_ignored"])
+            messages.warning(request, "Tailscale-Setup wird vorübergehend ignoriert.")
+            return redirect("admin_tailscale_setup")
+
+        if action in {"install_tailscale", "connect_tailscale"}:
+            if os.name != "posix":
+                messages.error(request, "Tailscale-Aktionen sind nur unter Linux verfügbar.")
+                return redirect("admin_tailscale_setup")
+            if action == "install_tailscale":
+                result = subprocess.run(
+                    ["bash", "-c", "curl -fsSL https://tailscale.com/install.sh | sh"],
+                    capture_output=True,
+                    text=True,
+                )
+            else:
+                if shutil.which("tailscale") is None:
+                    messages.error(request, "Tailscale ist nicht installiert.")
+                    return redirect("admin_tailscale_setup")
+                result = subprocess.run(
+                    ["sudo", "tailscale", "up"],
+                    capture_output=True,
+                    text=True,
+                )
+            command_output = (result.stdout or "").strip()
+            command_error = (result.stderr or "").strip()
+            if result.returncode == 0:
+                messages.success(request, "Tailscale-Befehl ausgeführt.")
+            else:
+                messages.error(request, "Tailscale-Befehl fehlgeschlagen.")
+
+    auto_step = settings_obj.tailscale_setup_step
+    if status.get("installed") and auto_step < 1:
+        auto_step = 1
+    if status.get("connected") and auto_step < 2:
+        auto_step = 2
+    if auto_step != settings_obj.tailscale_setup_step:
+        settings_obj.tailscale_setup_step = auto_step
+        settings_obj.save(update_fields=["tailscale_setup_step"])
+
+    if settings_obj.tailscale_setup_step >= 4 and not settings_obj.tailscale_setup_complete and not settings_obj.tailscale_setup_ignored:
+        settings_obj.tailscale_setup_complete = True
+        if not settings_obj.tailscale_setup_confirmed_at:
+            settings_obj.tailscale_setup_confirmed_at = timezone.now()
+        settings_obj.save(update_fields=["tailscale_setup_complete", "tailscale_setup_confirmed_at"])
+
+    context = {
+        "tailscale_status": status,
+        "tailscale_admin_email": settings.TAILSCALE_ADMIN_EMAIL,
+        "tailscale_admin_url": "https://login.tailscale.com/admin/machines",
+        "tailscale_setup_step": settings_obj.tailscale_setup_step,
+        "tailscale_setup_complete": settings_obj.tailscale_setup_complete,
+        "tailscale_setup_ignored": settings_obj.tailscale_setup_ignored,
+        "tailscale_setup_confirmed_at": settings_obj.tailscale_setup_confirmed_at,
+        "command_output": command_output,
+        "command_error": command_error,
+    }
+    return render(request, "inventory/admin_tailscale_setup.html", context)
+
+
+# ---------------------------------------------------------------------
+# Systemstatus & Wartung (Admin)
+# ---------------------------------------------------------------------
+@superuser_required
+def admin_system_status(request):
+    settings_obj = _get_global_settings()
+    tailscale_status = _get_tailscale_status()
+    backup_entries = _get_backup_entries()
+    show_system_settings = _feature_enabled("show_system_settings")
+
+    try:
+        connection.ensure_connection()
+        db_status = "OK"
+    except Exception:
+        db_status = "Fehler"
+
+    disk = shutil.disk_usage(settings.BASE_DIR)
+    disk_total_gb = round(disk.total / (1024 ** 3), 2)
+    disk_free_gb = round(disk.free / (1024 ** 3), 2)
+
+    class SystemSettingsForm(forms.ModelForm):
+        backup_storage_path = forms.CharField(
+            required=False,
+            label="Backup-Speicherort",
+            widget=forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "list": "backup-path-options",
+                }
+            ),
+        )
+
+        class Meta:
+            model = GlobalSettings
+            fields = [
+                "maintenance_mode_enabled",
+                "maintenance_message",
+                "auto_maintenance_on_update",
+                "backup_storage_path",
+                "backup_retention_count",
+                "backup_interval_days",
+                "role_plan_notes",
+            ]
+            widgets = {
+                "maintenance_mode_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "maintenance_message": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+                "auto_maintenance_on_update": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                "backup_retention_count": forms.NumberInput(attrs={"class": "form-control"}),
+                "backup_interval_days": forms.NumberInput(attrs={"class": "form-control"}),
+                "role_plan_notes": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            }
+            labels = {
+                "maintenance_mode_enabled": "Wartungsmodus aktiv",
+                "maintenance_message": "Wartungsnachricht",
+                "auto_maintenance_on_update": "Wartungsmodus bei Updates automatisch aktivieren",
+                "backup_retention_count": "Backups behalten (Anzahl)",
+                "backup_interval_days": "Backup-Intervall (Tage)",
+                "role_plan_notes": "Rollen-Plan (Notizen)",
+            }
+
+    backup_path_options = [
+        ("", "Standardpfad (Projekt/backup)"),
+    ]
+    existing_path = (settings_obj.backup_storage_path or "").strip()
+    if existing_path and existing_path not in dict(backup_path_options):
+        backup_path_options.append((existing_path, f"Aktueller Pfad: {existing_path}"))
+    backup_path_options.extend(_get_external_backup_paths())
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "create_backup":
+            ok, message = _create_backup()
+            if ok:
+                messages.success(request, message)
+                pruned = _prune_backups(settings_obj.backup_retention_count)
+                if pruned:
+                    messages.info(request, f"{pruned} alte Backups gelöscht.")
+            else:
+                messages.error(request, message)
+            return redirect("admin_system_status")
+
+        if show_system_settings:
+            form = SystemSettingsForm(request.POST, instance=settings_obj)
+            if form.is_valid():
+                backup_path = (form.cleaned_data.get("backup_storage_path") or "").strip()
+                if backup_path:
+                    try:
+                        Path(backup_path).mkdir(parents=True, exist_ok=True)
+                    except OSError as exc:
+                        form.add_error(
+                            "backup_storage_path",
+                            f"Backup-Ordner konnte nicht erstellt werden: {exc}",
+                        )
+                if not form.errors:
+                    settings_obj.role_plan_updated_at = timezone.now()
+                    form.save()
+                    messages.success(request, "System-Einstellungen gespeichert.")
+                    return redirect("admin_system_status")
+        else:
+            form = None
+    else:
+        form = SystemSettingsForm(instance=settings_obj) if show_system_settings else None
+
+    context = {
+        "form": form,
+        "tailscale_status": tailscale_status,
+        "backup_entries": backup_entries,
+        "db_status": db_status,
+        "disk_total_gb": disk_total_gb,
+        "disk_free_gb": disk_free_gb,
+        "settings_obj": settings_obj,
+        "backup_root": _get_backup_root(settings_obj)[0],
+        "hide_admin_back": True,
+        "show_system_settings": show_system_settings,
+        "backup_path_options": backup_path_options,
+    }
+    return render(request, "inventory/admin_system_status.html", context)
 
 
 # ---------------------------------------------------------------------
@@ -546,6 +1440,7 @@ class StorageLocationCreateView(StaffRequiredMixin, CreateView):
         ctx["parent_tree"] = ctx["form"].parent_tree()
         ctx["parent_selected"] = ctx["form"].instance.parent_id
         ctx["is_create"] = True
+        ctx["nfc_url"] = ""
         return ctx
 
     def get_success_url(self):
@@ -563,6 +1458,18 @@ class StorageLocationUpdateView(StaffRequiredMixin, UpdateView):
         ctx["parent_tree"] = ctx["form"].parent_tree()
         ctx["parent_selected"] = ctx["form"].instance.parent_id
         ctx["is_create"] = False
+        if self.object.nfc_token:
+            gs = GlobalSettings.objects.first()
+            local_base = gs.nfc_base_url_local if gs else ""
+            remote_base = gs.nfc_base_url_remote if gs else ""
+            base = local_base if self.object.nfc_base_choice == "local" else remote_base
+            if not base:
+                base = self.request.build_absolute_uri("/").rstrip("/")
+            ctx["nfc_url"] = (
+                f"{base.rstrip('/')}{reverse('nfc-location-redirect', kwargs={'token': self.object.nfc_token})}"
+            )
+        else:
+            ctx["nfc_url"] = ""
         return ctx
 
     def get_success_url(self):
@@ -577,6 +1484,21 @@ class StorageLocationDeleteView(StaffRequiredMixin, DeleteView):
     def get_success_url(self):
         messages.success(self.request, f"Lagerort „{self.object.name}“ wurde gelöscht.")
         return reverse('admin_storagelocations')
+
+
+@staff_required
+def admin_storagelocation_regenerate_nfc(request, pk):
+    location = get_object_or_404(StorageLocation, pk=pk)
+    base_choice = request.POST.get("nfc_base_choice")
+    if base_choice in dict(StorageLocation.NFC_BASE_CHOICES):
+        location.nfc_base_choice = base_choice
+    token = uuid.uuid4().hex[:16]
+    while StorageLocation.objects.filter(nfc_token=token).exists():
+        token = uuid.uuid4().hex[:16]
+    location.nfc_token = token
+    location.save(update_fields=["nfc_token", "nfc_base_choice"])
+    messages.success(request, "NFC-Token wurde neu erzeugt.")
+    return redirect("admin_storagelocation_edit", pk=pk)
 
 
 # ---------------------------------------------------------------------
@@ -599,6 +1521,8 @@ def admin_overview_create(request):
                 'categories',
                 'show_quantity', 'has_locations', 'has_min_stock',
                 'enable_borrow', 'is_consumable_mode', 'require_qr',
+                'enable_quick_adjust', 'show_images', 'show_tags', 'enable_mark_button',
+                'enable_advanced_filters', 'enable_comments', 'show_order_button',
                 'config',
             ]
             widgets = {
@@ -607,7 +1531,7 @@ def admin_overview_create(request):
                 'description': forms.Textarea(attrs={'class': 'form-control form-control-lg', 'rows': 3}),
                 'icon_emoji': forms.TextInput(attrs={'class': 'form-control'}),
                 'order': forms.NumberInput(attrs={'class': 'form-control'}),
-                'categories': forms.SelectMultiple(attrs={'class': 'form-select'}),
+                'categories': forms.CheckboxSelectMultiple,
                 'config': forms.Textarea(attrs={'class': 'form-control', 'rows': 6}),
             }
             labels = {'config': 'Erweiterte Konfiguration (JSON)'}
@@ -636,6 +1560,8 @@ def admin_overview_edit(request, pk):
                 'categories',
                 'show_quantity', 'has_locations', 'has_min_stock',
                 'enable_borrow', 'is_consumable_mode', 'require_qr',
+                'enable_quick_adjust', 'show_images', 'show_tags', 'enable_mark_button',
+                'enable_advanced_filters', 'enable_comments', 'show_order_button',
                 'config',
             ]
             widgets = {
@@ -644,7 +1570,7 @@ def admin_overview_edit(request, pk):
                 'description': forms.Textarea(attrs={'class': 'form-control form-control-lg', 'rows': 3}),
                 'icon_emoji': forms.TextInput(attrs={'class': 'form-control'}),
                 'order': forms.NumberInput(attrs={'class': 'form-control'}),
-                'categories': forms.SelectMultiple(attrs={'class': 'form-select'}),
+                'categories': forms.CheckboxSelectMultiple,
                 'config': forms.Textarea(attrs={'class': 'form-control', 'rows': 6}),
             }
             labels = {'config': 'Erweiterte Konfiguration (JSON)'}
@@ -669,6 +1595,21 @@ def admin_overview_delete(request, pk):
         messages.success(request, "Dashboard (Overview) gelöscht.")
         return redirect('admin_overviews')
     return render(request, 'inventory/admin_overview_confirm_delete.html', {'overview': ov})
+
+
+@staff_required
+def admin_overview_approve(request, pk):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Ungültige Methode.")
+    overview = get_object_or_404(Overview, pk=pk, is_active=False)
+    overview.is_active = True
+    overview.save(update_fields=["is_active"])
+    if overview.requested_by:
+        profile, _ = UserProfile.objects.get_or_create(user=overview.requested_by)
+        profile.allowed_overviews.add(overview)
+    messages.success(request, "Dashboard wurde freigegeben.")
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "admin_overviews"
+    return redirect(next_url)
 
 
 # ---------------------------------------------------------------------

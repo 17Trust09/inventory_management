@@ -1,0 +1,16 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Wartung{% endblock %}
+
+{% block content %}
+  <div class="container py-5" style="color:#e4e6eb;">
+    <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+      <div class="card-body">
+        <h3 class="mb-3">⏳ Wartungsmodus aktiv</h3>
+        <p class="text-muted mb-0">
+          {{ message|default:"Das System wird gerade gewartet. Bitte später erneut versuchen." }}
+        </p>
+      </div>
+    </div>
+  </div>
+{% endblock %}

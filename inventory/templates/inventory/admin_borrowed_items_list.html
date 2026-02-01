@@ -32,9 +32,17 @@
                 <i class="bi bi-check-circle me-1"></i> Ja ({{ b.returned_at|date:"d.m.Y" }})
               </span>
             {% else %}
-              <span class="badge bg-warning text-dark">
-                <i class="bi bi-hourglass-split me-1"></i> Offen
-              </span>
+              {% if b.is_overdue %}
+                <span class="badge bg-danger">
+                  <i class="bi bi-exclamation-triangle me-1"></i>
+                  Überfällig{% if b.return_date %} ({{ b.return_date|date:"d.m.Y" }}){% endif %}
+                </span>
+              {% else %}
+                <span class="badge bg-warning text-dark">
+                  <i class="bi bi-hourglass-split me-1"></i>
+                  Offen{% if b.return_date %} ({{ b.return_date|date:"d.m.Y" }}){% endif %}
+                </span>
+              {% endif %}
             {% endif %}
           </td>
           <td class="text-end">

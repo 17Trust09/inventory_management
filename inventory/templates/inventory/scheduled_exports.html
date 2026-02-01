@@ -1,0 +1,140 @@
+{% extends 'inventory/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="m-0">⏱️ Geplante Exporte</h2>
+    <a class="btn btn-outline-light" href="{% url 'dashboards' %}">Zurück zu Dashboards</a>
+  </div>
+
+  <div class="card mb-4" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
+    <div class="card-body">
+      <h5 class="mb-3">Neuen Export anlegen</h5>
+      <form method="post">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Dashboard</label>
+            {{ form.overview }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Format</label>
+            {{ form.export_format }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Frequenz</label>
+            {{ form.frequency }}
+            <div class="text-muted small mt-1">
+              Ausführung zur Uhrzeit der Erstellung: täglich = jeden Tag, wöchentlich = gleicher Wochentag,
+              monatlich = gleicher Kalendertag.
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <div class="fw-semibold mb-2">Spalten</div>
+          <div class="row g-2">
+            {% for key, label in export_columns %}
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="cols" value="{{ key }}" id="col_{{ key }}" checked>
+                  <label class="form-check-label" for="col_{{ key }}">{{ label }}</label>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="mt-3 form-check">
+          {{ form.is_active }}
+          <label class="form-check-label">Aktiv</label>
+        </div>
+
+        <button class="btn btn-outline-primary mt-3">Speichern</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mb-4" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
+    <div class="card-body">
+      <h5 class="mb-3">Geplante Exporte</h5>
+      {% if schedules %}
+        <div class="table-responsive">
+          <table class="table table-dark table-striped align-middle">
+            <thead>
+              <tr>
+                <th>Dashboard</th>
+                <th>Format</th>
+                <th>Frequenz</th>
+                <th>Aktiv</th>
+                <th>Nächster Lauf</th>
+                <th>Aktion</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for schedule in schedules %}
+                <tr>
+                  <td>{{ schedule.overview.name }}</td>
+                  <td>{{ schedule.get_export_format_display }}</td>
+                  <td>{{ schedule.get_frequency_display }}</td>
+                  <td>{% if schedule.is_active %}Ja{% else %}Nein{% endif %}</td>
+                  <td>{{ schedule.next_run_at|date:"d.m.Y H:i" }}</td>
+                  <td>
+                    <form method="post" action="{% url 'scheduled-export-run' schedule.id %}">
+                      {% csrf_token %}
+                      <button class="btn btn-sm btn-outline-light">Jetzt ausführen</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-muted">Noch keine geplanten Exporte.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
+    <div class="card-body">
+      <h5 class="mb-3">Letzte Export-Läufe</h5>
+      {% if runs %}
+        <div class="table-responsive">
+          <table class="table table-dark table-striped align-middle">
+            <thead>
+              <tr>
+                <th>Export</th>
+                <th>Status</th>
+                <th>Datum</th>
+                <th>Datei</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for run in runs %}
+                <tr>
+                  <td>{{ run.scheduled_export.overview.name }}</td>
+                  <td>{{ run.get_status_display }}</td>
+                  <td>{{ run.created_at|date:"d.m.Y H:i" }}</td>
+                  <td>
+                    {% if run.file_path %}
+                      <a href="{{ MEDIA_URL }}{{ run.file_path }}" class="link-light" target="_blank" rel="noopener">
+                        Download
+                      </a>
+                    {% else %}
+                      <span class="text-muted">–</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-muted">Noch keine Export-Läufe.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

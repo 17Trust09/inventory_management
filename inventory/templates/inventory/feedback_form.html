@@ -8,6 +8,11 @@
   <div class="card shadow" style="background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:1rem; max-width:720px; margin:auto;">
     <div class="card-body">
       <h3 class="card-title mb-4">Neues Feedback erstellen</h3>
+      {% if overview_hint %}
+        <div class="alert alert-info py-2">
+          Dieses Feedback wird dem Dashboard „{{ overview_hint.name }}“ zugeordnet.
+        </div>
+      {% endif %}
       <form method="post" novalidate>
         {% csrf_token %}
         <div class="mb-3">

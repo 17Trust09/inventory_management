@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 from . import views
 from .views import CustomAuthForm
 # API-Views
-from .api import FeedbackSummaryAPI, HAStatusAPI
+from .api import FeedbackSummaryAPI, HAStatusAPI, SystemHealthAPI
 
 urlpatterns = [
     # 1) Frontend-Views
@@ -23,8 +23,18 @@ urlpatterns = [
     path('delete-item/<int:pk>/', views.DeleteItem.as_view(), name='delete-item'),
 
     path('edit-item/<int:pk>/regenerate-qr/', views.RegenerateQRView.as_view(), name='regenerate-qr'),
+    path('edit-item/<int:pk>/regenerate-nfc/', views.RegenerateNFCTokenView.as_view(), name='regenerate-nfc'),
     path('edit-item/<int:pk>/delete-image/', views.DeleteImageView.as_view(), name='delete-image'),
+    path('item/<int:pk>/history/<int:history_id>/rollback/', views.ItemHistoryRollbackView.as_view(), name='item-history-rollback'),
     path('item/<int:item_id>/mark/', views.MarkItemAPI.as_view(), name='mark-item'),
+    path('item/<int:item_id>/favorite/', views.ToggleFavoriteView.as_view(), name='toggle-favorite'),
+    path('item/<int:item_id>/attachments/', views.ItemAttachmentUploadView.as_view(), name='item-attachment-upload'),
+    path('item/attachments/<int:attachment_id>/delete/', views.ItemAttachmentDeleteView.as_view(), name='item-attachment-delete'),
+    path('items/bulk-action/', views.BulkItemActionView.as_view(), name='bulk-item-action'),
+    path('item/<int:item_id>/adjust-quantity/', views.QuickAdjustQuantityView.as_view(), name='adjust-quantity'),
+    path('item/<int:item_id>/comment/', views.ItemCommentCreateView.as_view(), name='item-comment-add'),
+    path('nfc/<str:token>/', views.NFCItemRedirectView.as_view(), name='nfc-redirect'),
+    path('nfc/location/<str:token>/', views.NFCStorageLocationView.as_view(), name='nfc-location-redirect'),
 
     # Auth
     path('signup/', views.SignUpView.as_view(), name='signup'),
@@ -42,6 +52,9 @@ urlpatterns = [
     path('barcodes/', views.BarcodeListView.as_view(), name='barcode-list'),
     path('scan-barcode/', views.ScanBarcodeView.as_view(), name='scan-barcode'),
 
+    # Patch Notes
+    path('patch-notes/', views.PatchNotesView.as_view(), name='patch-notes'),
+
     # Verleih
     path('borrow/<int:item_id>/', views.BorrowedItemsView.as_view(), name='borrow-item'),
     path('return/<int:borrow_id>/', views.ReturnItemView.as_view(), name='return-item'),
@@ -54,7 +67,13 @@ urlpatterns = [
 
     # 3) Modulares Dashboard (Overview)
     path('dashboards/', views.DashboardSelectorView.as_view(), name='dashboards'),
+    path('overview/add/', views.OverviewRequestCreateView.as_view(), name='overview-request-add'),
     path('dashboards/<slug:slug>/', views.OverviewDashboardView.as_view(), name='overview-dashboard'),
+    path('dashboards/<slug:slug>/favorite/', views.ToggleOverviewFavoriteView.as_view(), name='overview-favorite'),
+    path('dashboards/<slug:slug>/export/<str:export_format>/', views.OverviewExportView.as_view(), name='overview-export'),
+    path('exports/scheduled/', views.ScheduledExportView.as_view(), name='scheduled-exports'),
+    path('exports/scheduled/<int:pk>/run/', views.ScheduledExportRunView.as_view(), name='scheduled-export-run'),
+    path('reports/movements/', views.MovementReportView.as_view(), name='movement-report'),
 
     # 4) Feedback
     path('feedback/', views.FeedbackListView.as_view(), name='feedback-list'),
@@ -68,6 +87,7 @@ urlpatterns = [
 
     # 6) Health / HA-Status
     path('api/health/ha/', HAStatusAPI.as_view(), name='ha-health'),
+    path('api/health/system/', SystemHealthAPI.as_view(), name='system-health'),
 
     path("item/<int:pk>/move/",views.MoveItemToOverviewView.as_view(),name="move-item-to-overview",),
 

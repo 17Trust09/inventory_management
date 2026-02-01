@@ -1,0 +1,113 @@
+{% extends 'inventory/admin_base.html' %}
+
+{% block admin_title %}Systemstatus{% endblock %}
+
+{% block admin_content %}
+  <div class="row g-4">
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+        <div class="card-body">
+          <h5 class="mb-3">Status</h5>
+          <ul class="text-muted small mb-3">
+            <li>Datenbank: {{ db_status }}</li>
+            <li>Festplatte: {{ disk_free_gb }} GB frei / {{ disk_total_gb }} GB gesamt</li>
+            <li>Tailscale: {% if tailscale_status.connected %}Verbunden{% else %}Nicht verbunden{% endif %}</li>
+            <li>Letztes Backup: {{ settings_obj.last_backup_at|date:"d.m.Y H:i" | default:"—" }}</li>
+            {% if show_system_settings %}
+              <li>Backup-Pfad: {{ backup_root }}</li>
+              <li>Wartungsnachricht: {{ settings_obj.maintenance_message|default:"—" }}</li>
+            {% endif %}
+          </ul>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_backup">
+            <button class="btn btn-outline-light btn-sm">Backup jetzt erstellen</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    {% if show_system_settings %}
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+          <div class="card-body">
+            <h5 class="mb-3">System-Einstellungen</h5>
+            <form method="post">
+              {% csrf_token %}
+              <div class="form-check form-switch mb-3">
+                {{ form.maintenance_mode_enabled }}
+                <label class="form-check-label" for="{{ form.maintenance_mode_enabled.id_for_label }}">
+                  Wartungsmodus aktiv
+                </label>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.maintenance_message.id_for_label }}">Wartungsnachricht</label>
+                {{ form.maintenance_message }}
+              </div>
+              <div class="form-check form-switch mb-3">
+                {{ form.auto_maintenance_on_update }}
+                <label class="form-check-label" for="{{ form.auto_maintenance_on_update.id_for_label }}">
+                  Wartungsmodus bei Updates automatisch aktivieren
+                </label>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.backup_storage_path.id_for_label }}">Backup-Speicherort</label>
+                {{ form.backup_storage_path }}
+                <datalist id="backup-path-options">
+                  {% for value, label in backup_path_options %}
+                    <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </datalist>
+                <div class="form-text text-muted">
+                  Externe Datenträger werden automatisch erkannt. Nicht vorhandene Ordner werden beim Speichern angelegt.
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.backup_retention_count.id_for_label }}">Backups behalten (Anzahl)</label>
+                {{ form.backup_retention_count }}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.backup_interval_days.id_for_label }}">Backup-Intervall (Tage)</label>
+                {{ form.backup_interval_days }}
+                <div class="form-text text-muted">0 deaktiviert automatische Backups.</div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.role_plan_notes.id_for_label }}">Rollen-Plan (Notizen)</label>
+                {{ form.role_plan_notes }}
+              </div>
+              <button class="btn btn-outline-light">Speichern</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+          <div class="card-body">
+            <h5 class="mb-3">System-Einstellungen</h5>
+            <div class="text-muted small">
+              Die System-Einstellungen sind derzeit deaktiviert.
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card shadow-sm mt-4" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-body">
+      <h6 class="text-uppercase text-muted small mb-2">Backups</h6>
+      {% if backup_entries %}
+        <ul class="list-group list-group-flush">
+          {% for entry in backup_entries %}
+            <li class="list-group-item" style="background:var(--surface); border-color:var(--border);">
+              {{ entry.name }}{% if not entry.has_db or not entry.has_media %} (unvollständig){% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="text-muted small">Keine Backups gefunden.</div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

@@ -25,6 +25,9 @@ from .admin_views import (
     admin_item_delete,
     BorrowedItemListView,
     admin_qr_codes_view,
+    admin_updates,
+    admin_tailscale_setup,
+    admin_system_status,
 
     # User Profiles
     UserProfileListView,
@@ -41,21 +44,28 @@ from .admin_views import (
     # Global Settings
     GlobalSettingsListView,
     admin_globalsettings_edit,
+    admin_feature_toggles,
 
     # Storage Locations
     StorageLocationListView,
     StorageLocationCreateView,
     StorageLocationUpdateView,
     StorageLocationDeleteView,
+    admin_storagelocation_regenerate_nfc,
 
     # Overviews (Dashboards)
     OverviewListView,
     admin_overview_create,
     admin_overview_edit,
     admin_overview_delete,
+    admin_overview_approve,
 
     # Feedback Quick-Action
     admin_feedback_set_status,
+
+    # History
+    admin_history_list,
+    admin_history_rollback,
 )
 
 urlpatterns = [
@@ -80,6 +90,11 @@ urlpatterns = [
     path('items/<int:pk>/delete/', admin_item_delete, name='admin_item_delete'),
     path('borrowed-items/', BorrowedItemListView.as_view(), name='admin_borrowed_items'),
     path('qr-codes/', admin_qr_codes_view, name='admin_qr_codes'),
+    path('updates/', admin_updates, name='admin_updates'),
+    path('tailscale-setup/', admin_tailscale_setup, name='admin_tailscale_setup'),
+    path('system-status/', admin_system_status, name='admin_system_status'),
+    path('history/', admin_history_list, name='admin_history_list'),
+    path('history/<int:pk>/rollback/', admin_history_rollback, name='admin_history_rollback'),
 
     # User Profiles
     path('profiles/', UserProfileListView.as_view(), name='admin_userprofiles_list'),
@@ -97,11 +112,13 @@ urlpatterns = [
     # Global Settings
     path('settings/', GlobalSettingsListView.as_view(), name='admin_global_settings'),
     path('settings/<int:pk>/edit/', admin_globalsettings_edit, name='admin_globalsettings_edit'),
+    path('feature-toggles/', admin_feature_toggles, name='admin_feature_toggles'),
 
     # Storage Locations
     path('storage-locations/', StorageLocationListView.as_view(), name='admin_storagelocations'),
     path('storage-locations/add/', StorageLocationCreateView.as_view(), name='admin_storagelocation_add'),
     path('storage-locations/<int:pk>/edit/', StorageLocationUpdateView.as_view(), name='admin_storagelocation_edit'),
+    path('storage-locations/<int:pk>/regenerate-nfc/', admin_storagelocation_regenerate_nfc, name='admin_storagelocation_regenerate_nfc'),
     path('storage-locations/<int:pk>/delete/', StorageLocationDeleteView.as_view(), name='admin_storagelocation_delete'),
 
     # Overviews (Dashboards)
@@ -109,6 +126,7 @@ urlpatterns = [
     path('overview/add/', admin_overview_create, name='admin_overview_add'),
     path('overview/<int:pk>/edit/', admin_overview_edit, name='admin_overview_edit'),
     path('overview/<int:pk>/delete/', admin_overview_delete, name='admin_overview_delete'),
+    path('overview/<int:pk>/approve/', admin_overview_approve, name='admin_overview_approve'),
 
     # Feedback Quick-Action (Status setzen)
     path('feedback/<int:pk>/set-status/', admin_feedback_set_status, name='admin_feedback_set_status'),

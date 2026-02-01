@@ -17,7 +17,8 @@
           <th style="width:10%">Reihenfolge</th>
           <th style="width:10%">Icon</th>
           <th style="width:20%">Name</th>
-          <th style="width:20%">Slug</th>
+          <th style="width:16%">Slug</th>
+          <th style="width:14%">Angefragt von</th>
           <th style="width:10%">Aktiv</th>
           <th style="width:25%" class="text-end">Aktionen</th>
         </tr>
@@ -30,6 +31,13 @@
           <td>{% if o.icon_emoji %}{{ o.icon_emoji }}{% else %}<span class="text-muted">–</span>{% endif %}</td>
           <td>{{ o.name }}</td>
           <td><code>{{ o.slug }}</code></td>
+          <td>
+            {% if o.requested_by %}
+              {{ o.requested_by.username }}
+            {% else %}
+              <span class="text-muted">–</span>
+            {% endif %}
+          </td>
           <td>
             {% if o.is_active %}
               <span class="badge bg-success">aktiv</span>
@@ -48,7 +56,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="7" class="text-center text-muted py-4">Noch keine Overviews vorhanden.</td>
+          <td colspan="8" class="text-center text-muted py-4">Noch keine Overviews vorhanden.</td>
         </tr>
         {% endfor %}
       </tbody>

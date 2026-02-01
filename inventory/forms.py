@@ -1,3 +1,5 @@
+import os
+
 from django import forms
 from django.db import connection
 from django.db.utils import OperationalError, ProgrammingError
@@ -12,7 +14,9 @@ from .models import (
     BorrowedItem,
     StorageLocation,
     Feedback,
-    FeedbackComment
+    FeedbackComment,
+    ItemComment,
+    ScheduledExport,
 )
 
 
@@ -46,6 +50,25 @@ def safe_all_tags():
         return ApplicationTag.objects.none()
     except Exception:
         return ApplicationTag.objects.none()
+
+
+def available_item_images():
+    try:
+        if not table_exists(InventoryItem):
+            return []
+        images = (
+            InventoryItem.objects
+            .exclude(image="")
+            .exclude(image__isnull=True)
+            .values_list("image", flat=True)
+            .distinct()
+        )
+        names = sorted({name for name in images if name})
+        return [(name, os.path.basename(name)) for name in names]
+    except (OperationalError, ProgrammingError):
+        return []
+    except Exception:
+        return []
 
 
 # -----------------------------
@@ -92,9 +115,11 @@ class StorageLocationForm(forms.ModelForm):
 
     class Meta:
         model = StorageLocation
-        fields = ["name", "parent"]
+        fields = ["name", "nfc_token", "nfc_base_choice", "parent"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control form-control-lg"}),
+            "nfc_token": forms.TextInput(attrs={"class": "form-control form-control-lg"}),
+            "nfc_base_choice": forms.Select(attrs={"class": "form-control form-control-lg"}),
         }
 
     def _descendant_ids(self, root: StorageLocation) -> set[int]:
@@ -165,6 +190,12 @@ class EquipmentItemForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control form-control-lg'}),
         label="Kategorie*"
     )
+    image_pick = forms.ChoiceField(
+        label="Vorhandenes Bild auswählen",
+        required=False,
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-control form-control-lg'}),
+    )
     application_tags = TagNameOnlyMultipleChoiceField(
         label="Tags*",
         queryset=ApplicationTag.objects.none(),
@@ -182,14 +213,17 @@ class EquipmentItemForm(forms.ModelForm):
     class Meta:
         model = InventoryItem
         fields = [
-            'name', 'quantity', 'category', 'storage_location',
-            'order_link', 'application_tags', 'image', 'maintenance_date',
+            'name', 'quantity', 'unit', 'category', 'storage_location',
+            'order_link', 'nfc_token', 'nfc_base_choice', 'application_tags', 'image', 'maintenance_date',
         ]
         labels = {
             'name': 'Name*',
             'quantity': 'Ist-Bestand*',
+            'unit': 'Einheit',
             'storage_location': 'Lagerort',
             'order_link': 'Bestell-Link',
+            'nfc_token': 'NFC-Tag Token',
+            'nfc_base_choice': 'NFC-Basis',
             'application_tags': 'Tags*',
             'image': 'Bild (optional)',
             'maintenance_date': 'Wartungs-/Ablaufdatum',
@@ -225,6 +259,9 @@ class EquipmentItemForm(forms.ModelForm):
             self.fields['storage_location'].queryset = StorageLocation.objects.none()
             self.fields['storage_location'].choices = [('', '–')]
 
+        image_choices = available_item_images()
+        self.fields['image_pick'].choices = [('', '–')] + image_choices
+
     def clean_application_tags(self):
         tags = self.cleaned_data.get('application_tags')
         if not tags:
@@ -236,7 +273,14 @@ class EquipmentItemForm(forms.ModelForm):
         Beim Editieren: bereits vorhandene System-Tags am Item NICHT verlieren,
         obwohl sie im Formular nicht sichtbar/auswählbar sind.
         """
-        instance = super().save(commit=commit)
+        instance = super().save(commit=False)
+        selected_image = self.cleaned_data.get("image_pick")
+        if selected_image and not self.files.get("image"):
+            instance.image.name = selected_image
+
+        if commit:
+            instance.save()
+            self.save_m2m()
 
         # existierendes Objekt? -> System-Tags wieder hinzufügen
         if instance.pk:
@@ -275,19 +319,28 @@ class ConsumableItemForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control form-control-lg'}),
         label="Lagerort"
     )
+    image_pick = forms.ChoiceField(
+        label="Vorhandenes Bild auswählen",
+        required=False,
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-control form-control-lg'}),
+    )
 
     class Meta:
         model = InventoryItem
         fields = [
-            'name', 'quantity', 'category', 'storage_location',
-            'low_quantity', 'order_link', 'application_tags', 'image', 'maintenance_date',
+            'name', 'quantity', 'unit', 'category', 'storage_location',
+            'low_quantity', 'order_link', 'nfc_token', 'nfc_base_choice', 'application_tags', 'image', 'maintenance_date',
         ]
         labels = {
             'name': 'Name*',
             'quantity': 'Ist-Bestand*',
+            'unit': 'Einheit',
             'storage_location': 'Lagerort',
             'low_quantity': 'Mindestbestand*',
             'order_link': 'Bestell-Link',
+            'nfc_token': 'NFC-Tag Token',
+            'nfc_base_choice': 'NFC-Basis',
             'application_tags': 'Tags*',
             'image': 'Bild (optional)',
             'maintenance_date': 'Wartungs-/Ablaufdatum',
@@ -319,6 +372,29 @@ class ConsumableItemForm(forms.ModelForm):
             self.fields['storage_location'].queryset = StorageLocation.objects.none()
             self.fields['storage_location'].choices = [('', '–')]
 
+        image_choices = available_item_images()
+        self.fields['image_pick'].choices = [('', '–')] + image_choices
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        selected_image = self.cleaned_data.get("image_pick")
+        if selected_image and not self.files.get("image"):
+            instance.image.name = selected_image
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+
+        if instance.pk:
+            try:
+                before = InventoryItem.objects.get(pk=instance.pk)
+                system_tags = before.application_tags.filter(SYSTEM_TAG_FILTER)
+                if system_tags.exists():
+                    instance.application_tags.add(*system_tags)
+            except InventoryItem.DoesNotExist:
+                pass
+        return instance
+
     def clean_low_quantity(self):
         low = self.cleaned_data.get('low_quantity')
         if low is None or low < 0:
@@ -330,19 +406,6 @@ class ConsumableItemForm(forms.ModelForm):
         if not tags:
             raise forms.ValidationError("Du musst mindestens einen Tag auswählen.")
         return tags
-
-    def save(self, commit=True):
-        instance = super().save(commit=commit)
-        if instance.pk:
-            try:
-                before = InventoryItem.objects.get(pk=instance.pk)
-                system_tags = before.application_tags.filter(SYSTEM_TAG_FILTER)
-                if system_tags.exists():
-                    instance.application_tags.add(*system_tags)
-            except InventoryItem.DoesNotExist:
-                pass
-        return instance
-
 
 class BorrowItemForm(forms.ModelForm):
     return_date = forms.DateField(
@@ -443,3 +506,31 @@ class FeedbackCommentForm(forms.ModelForm):
         for n in visible:
             f = self.fields[n]
             f.widget = forms.Textarea(attrs={"class": "form-control", "rows": 4})
+
+
+class ItemCommentForm(forms.ModelForm):
+    class Meta:
+        model = ItemComment
+        fields = ["text"]
+        widgets = {
+            "text": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Kommentar hinzufügen...",
+                }
+            ),
+        }
+
+
+class ScheduledExportForm(forms.ModelForm):
+    class Meta:
+        model = ScheduledExport
+        fields = ["overview", "export_format", "frequency", "columns", "is_active"]
+        widgets = {
+            "overview": forms.Select(attrs={"class": "form-control form-control-lg"}),
+            "export_format": forms.Select(attrs={"class": "form-control form-control-lg"}),
+            "frequency": forms.Select(attrs={"class": "form-control form-control-lg"}),
+            "columns": forms.HiddenInput(),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }

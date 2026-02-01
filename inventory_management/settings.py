@@ -19,6 +19,19 @@ HA_URL = os.getenv('HA_URL', 'http://homeassistant.local:8123')
 # INVENTORY_BASE_URL in .env setzen, z.B. http://raspi.tailnet-xyz.ts.net:8000
 INVENTORY_BASE_URL = os.getenv('INVENTORY_BASE_URL', '')
 
+# Git-Update-Repositories (optional). Wenn leer, wird der Standard-Repo genutzt.
+UPDATE_REPO_URL_MAIN = os.getenv(
+    "UPDATE_REPO_URL_MAIN",
+    "https://github.com/17Trust09/inventory_management",
+)
+UPDATE_REPO_URL_DEV = os.getenv(
+    "UPDATE_REPO_URL_DEV",
+    "https://github.com/17Trust09/inventory_management",
+)
+
+# Tailscale-Setup (für Admin-Wizard)
+TAILSCALE_ADMIN_EMAIL = os.getenv("TAILSCALE_ADMIN_EMAIL", "").strip()
+
 # Optionale HA-Integrationstoggles
 HA_VERIFY_SSL = os.getenv('HA_VERIFY_SSL', 'true').lower() == 'true'
 HA_TIMEOUT = int(os.getenv('HA_TIMEOUT', '6'))
@@ -68,6 +81,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'inventory.middleware.MaintenanceModeMiddleware',
     # NEU: macht aktuelle Request global (ThreadLocal) verfügbar → dynamische Deeplinks
     'inventory.middleware.ThreadLocalMiddleware',
 ]
@@ -90,6 +104,8 @@ TEMPLATES = [
                 'django.template.context_processors.media',
                 # NEU: aktive Overviews global verfügbar (für Navbar/Sidebar)
                 'inventory.context_processors.active_overviews',
+                'inventory.context_processors.global_features',
+                'inventory.context_processors.maintenance_status',
             ],
         },
     },
@@ -148,6 +164,11 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'de'
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Versionierung (mit Patch Notes synchron halten)
+# ──────────────────────────────────────────────────────────────────────────────
+INVENTORY_VERSION = "1.0.7"
 TIME_ZONE = 'Europe/Berlin'
 USE_I18N = True
 USE_TZ = True

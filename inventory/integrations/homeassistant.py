@@ -93,7 +93,7 @@ def check_available(force: bool = False) -> bool:
     if not force and _IS_AVAILABLE is not None and (now - _LAST_CHECK_TS) < _CACHE_SECONDS:
         return bool(_IS_AVAILABLE)
 
-    if _use_webhook() and not _has_api_config():
+    if _use_webhook():
         _IS_AVAILABLE = True
         _LAST_CHECK_TS = now
         _remember(HA_WEBHOOK_URL)
@@ -139,7 +139,7 @@ def get_status_tuple() -> tuple[bool, str]:
     """
     Liefert (available, message) für den UI-Badge.
     """
-    if _use_webhook() and not _has_api_config():
+    if _use_webhook():
         return True, "Feedbacks werden online per Webhook übertragen"
     if not _has_api_config():
         return False, "Keine HA-Konfiguration (.env) – Token/URL fehlen"

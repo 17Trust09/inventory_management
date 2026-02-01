@@ -94,6 +94,36 @@
           {{ form.order_link }}
         </div>
         <div class="col-md-12 mb-3">
+          <label for="{{ form.nfc_token.id_for_label }}">{{ form.nfc_token.label }}</label>
+          {{ form.nfc_token }}
+          <div class="form-text text-muted">Leer lassen, um automatisch einen Token zu erzeugen.</div>
+          <details class="mt-1">
+            <summary class="text-muted" style="cursor:pointer;">❓ Kurzanleitung</summary>
+            <div class="mt-1">
+              <ol class="mb-1">
+                <li>Item speichern (Token wird erzeugt oder übernommen).</li>
+                <li>NFC-URL unten kopieren.</li>
+                <li>Die URL auf den NFC-Tag schreiben.</li>
+              </ol>
+            </div>
+          </details>
+          {% if form.instance.pk %}
+            <form method="post" action="{% url 'regenerate-nfc' form.instance.id %}" class="mt-2">
+              {% csrf_token %}
+              {% if o %}<input type="hidden" name="o" value="{{ o }}">{% endif %}
+              {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+              <button class="btn btn-sm btn-outline-primary">NFC-Token neu erzeugen</button>
+            </form>
+          {% endif %}
+        </div>
+        <div class="col-md-12 mb-3">
+          <label for="{{ form.nfc_base_choice.id_for_label }}">{{ form.nfc_base_choice.label }}</label>
+          {{ form.nfc_base_choice }}
+          <div class="form-text text-muted">
+            Wähle, ob der NFC-Link die lokale oder die Tailscale/Remote Basis-URL verwenden soll.
+          </div>
+        </div>
+        <div class="col-md-12 mb-3">
           <label>{{ form.application_tags.label }}</label>
           <div class="d-flex flex-wrap border rounded p-2" style="max-height:200px; overflow:auto; background:#2a2a2a; border:1px solid #444;">
             {{ form.application_tags }}
@@ -108,6 +138,18 @@
           {{ form.maintenance_date }}
         </div>
       </div>
+
+      {% if form.instance.nfc_token %}
+        <div class="mb-3">
+          <strong>📟 NFC-Tag Link</strong>
+          {% if nfc_url %}
+            <input class="form-control mt-2" type="text" readonly value="{{ nfc_url }}">
+          {% else %}
+            <input class="form-control mt-2" type="text" readonly
+                   value="{{ request.scheme }}://{{ request.get_host }}{% url 'nfc-redirect' form.instance.nfc_token %}">
+          {% endif %}
+        </div>
+      {% endif %}
 
       <button type="submit"
               class="btn btn-success btn-lg w-100 mt-3"
