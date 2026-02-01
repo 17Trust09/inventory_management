@@ -28,6 +28,7 @@ UPDATE_REPO_URL_DEV = os.getenv(
     "UPDATE_REPO_URL_DEV",
     "https://github.com/17Trust09/inventory_management",
 )
+GIT_BINARY = os.getenv("GIT_BINARY", "git").strip() or "git"
 
 # Tailscale-Setup (für Admin-Wizard)
 TAILSCALE_ADMIN_EMAIL = os.getenv("TAILSCALE_ADMIN_EMAIL", "").strip()

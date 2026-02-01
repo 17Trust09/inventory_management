@@ -847,11 +847,28 @@ def admin_feature_toggles(request):
     return render(request, "inventory/admin_feature_toggles.html", {"form": form})
 
 
+def _resolve_git_command() -> tuple[list[str] | None, str | None]:
+    git_binary = (getattr(settings, "GIT_BINARY", "") or "git").strip() or "git"
+    git_path = Path(git_binary)
+    if git_path.is_absolute():
+        if git_path.exists() and os.access(git_path, os.X_OK):
+            return [str(git_path)], None
+        return None, f"Git-Binary nicht gefunden oder nicht ausführbar: {git_binary}"
+    resolved = shutil.which(git_binary)
+    if resolved:
+        return [resolved], None
+    return None, (
+        "Git ist nicht installiert oder nicht im PATH verfügbar. "
+        "Optional: GIT_BINARY in der .env setzen (z. B. /usr/bin/git)."
+    )
+
+
 def _get_git_status(branch: str) -> dict[str, str | int]:
-    if shutil.which("git") is None:
+    git_cmd, git_error = _resolve_git_command()
+    if git_error:
         return {
             "branch": branch,
-            "error": "Git ist nicht installiert oder nicht im PATH verfügbar.",
+            "error": git_error,
         }
     base_dir = settings.BASE_DIR
     repo_url = (
@@ -865,7 +882,7 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
 
     if not (base_dir / ".git").exists():
         init = subprocess.run(
-            ["git", "init"],
+            [*git_cmd, "init"],
             cwd=base_dir,
             capture_output=True,
             text=True,
@@ -876,13 +893,13 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
                 "error": init.stderr.strip() or init.stdout.strip() or "Git-Repository konnte nicht initialisiert werden.",
             }
         subprocess.run(
-            ["git", "remote", "add", "origin", repo_url],
+            [*git_cmd, "remote", "add", "origin", repo_url],
             cwd=base_dir,
             capture_output=True,
             text=True,
         )
         fetch_init = subprocess.run(
-            ["git", "fetch", "origin", branch],
+            [*git_cmd, "fetch", "origin", branch],
             cwd=base_dir,
             capture_output=True,
             text=True,
@@ -893,7 +910,7 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
                 "error": fetch_init.stderr.strip() or fetch_init.stdout.strip() or "Git fetch fehlgeschlagen.",
             }
         rev_list = subprocess.run(
-            ["git", "rev-list", "--count", f"origin/{branch}"],
+            [*git_cmd, "rev-list", "--count", f"origin/{branch}"],
             cwd=base_dir,
             capture_output=True,
             text=True,
@@ -913,28 +930,28 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
         }
 
     remote_url = subprocess.run(
-        ["git", "remote", "get-url", "origin"],
+        [*git_cmd, "remote", "get-url", "origin"],
         cwd=base_dir,
         capture_output=True,
         text=True,
     )
     if remote_url.returncode != 0:
         subprocess.run(
-            ["git", "remote", "add", "origin", repo_url],
+            [*git_cmd, "remote", "add", "origin", repo_url],
             cwd=base_dir,
             capture_output=True,
             text=True,
         )
     elif remote_url.stdout.strip() != repo_url:
         subprocess.run(
-            ["git", "remote", "set-url", "origin", repo_url],
+            [*git_cmd, "remote", "set-url", "origin", repo_url],
             cwd=base_dir,
             capture_output=True,
             text=True,
         )
 
     fetch = subprocess.run(
-        ["git", "fetch", "origin", branch],
+        [*git_cmd, "fetch", "origin", branch],
         cwd=base_dir,
         capture_output=True,
         text=True,
@@ -946,14 +963,14 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
         }
 
     head_check = subprocess.run(
-        ["git", "rev-parse", "--verify", "HEAD"],
+        [*git_cmd, "rev-parse", "--verify", "HEAD"],
         cwd=base_dir,
         capture_output=True,
         text=True,
     )
     if head_check.returncode != 0:
         rev_list = subprocess.run(
-            ["git", "rev-list", "--count", f"origin/{branch}"],
+            [*git_cmd, "rev-list", "--count", f"origin/{branch}"],
             cwd=base_dir,
             capture_output=True,
             text=True,
@@ -965,7 +982,7 @@ def _get_git_status(branch: str) -> dict[str, str | int]:
             }
     else:
         rev_list = subprocess.run(
-            ["git", "rev-list", "--count", f"HEAD..origin/{branch}"],
+            [*git_cmd, "rev-list", "--count", f"HEAD..origin/{branch}"],
             cwd=base_dir,
             capture_output=True,
             text=True,
