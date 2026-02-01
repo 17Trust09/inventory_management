@@ -56,6 +56,16 @@ gewählte `POSTGRES_PORT` bereits belegt. In dem Fall entweder einen freien Port
 `docker-compose.postgres.yml` komplett deaktivieren (empfohlen, wenn du nur intern
 auf Postgres zugreifst).
 
+Wenn du **bereits eine eigene Postgres-Instanz** (z. B. einen anderen Docker-Container)
+auf dem Host laufen hast, nutze diese statt der integrierten DB:
+
+- Verwende `docker-compose.yml` (App + interne DB ohne Portfreigabe), **oder**
+- entferne den `db`-Service aus deiner Compose-Datei und setze in `.env`:
+  - `POSTGRES_HOST=<IP des vorhandenen Postgres-Containers>`
+  - `POSTGRES_PORT=<dessen Port>`
+
+So vermeidest du Portkollisionen mit dem vorhandenen Postgres-Container.
+
 ## 4) Update-Mechanik (1‑Klick Update in Unraid)
 
 Die Docker-Variante nutzt **Container-Updates** statt Git-Pull:
