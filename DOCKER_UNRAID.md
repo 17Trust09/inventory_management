@@ -44,7 +44,15 @@ DJANGO_SETTINGS_MODULE=inventory_management.settings_postgres
 2. In Compose Manager `docker-compose.yml` auswählen.
 3. `Compose Up`.
 
+> Hinweis: Wenn Compose Manager noch eine alte `docker-compose.yml` mit `version:` im
+> Appdata-Verzeichnis hat, bitte die Datei aus dem Repo erneut übernehmen (oder das
+> `version:`-Feld entfernen), damit die Warnung nicht mehr erscheint.
+
 Die App ist danach unter `http://<unraid-ip>:8111` erreichbar.
+
+Wenn beim Start ein Fehler wie `bind: address already in use` erscheint, ist der
+gewählte `POSTGRES_PORT` bereits belegt. In dem Fall einen freien Port in `.env`
+setzen (z. B. `POSTGRES_PORT=5434`) und `Compose Up` erneut starten.
 
 ## 4) Update-Mechanik (1‑Klick Update in Unraid)
 
