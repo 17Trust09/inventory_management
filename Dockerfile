@@ -15,7 +15,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
-RUN pip install -r requirements.txt
+ARG MEDIAPY_VERSION=1.1.6
+RUN if pip install -r requirements.txt; then \
+        echo "Installed requirements (git mediapy available)."; \
+    else \
+        echo "Failed to install git-based mediapy. Falling back to mediapy==${MEDIAPY_VERSION}."; \
+        pip install "mediapy==${MEDIAPY_VERSION}"; \
+        grep -v "mediapy @ git+https://github.com/PWhiddy/mediapy.git@" requirements.txt > /tmp/requirements-no-git.txt; \
+        pip install -r /tmp/requirements-no-git.txt; \
+    fi
 
 COPY . .
 
