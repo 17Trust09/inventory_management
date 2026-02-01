@@ -19,9 +19,23 @@ Im Repository liegen:
 DJANGO_SECRET_KEY=super-secret-key
 DJANGO_DEBUG=false
 
-POSTGRES_DB=inventorydb
+# local:
+# PostgreSQL
+# DB_ENGINE=postgres
+# POSTGRES_DB=inventorydb
+# POSTGRES_USER=inventory
+# POSTGRES_PASSWORD=inventory
+# POSTGRES_HOST=127.0.0.1
+# POSTGRES_PORT=5432
+# POSTGRES_CONN_MAX_AGE=60
+
+# docker:
 POSTGRES_USER=inventory
 POSTGRES_PASSWORD=inventory
+POSTGRES_DB=inventorydb
+POSTGRES_HOST=192.168.178.69
+POSTGRES_PORT=5433
+DJANGO_SETTINGS_MODULE=inventory_management.settings_postgres
 ```
 
 ## 3) Start in Unraid (Compose Manager)
