@@ -903,6 +903,7 @@ class EditItem(LoginRequiredMixin, UpdateView):
                 "history_action_choices": InventoryHistory.Action.choices,
                 "history_users": history_users,
                 "attachments": item.attachments.all(),
+                "attachment_type_choices": ItemAttachment.AttachmentType.choices,
             }
         )
         return ctx
@@ -1981,7 +1982,21 @@ class ItemAttachmentUploadView(LoginRequiredMixin, View):
             return redirect("edit-item", pk=item_id)
 
         label = (request.POST.get("label") or "").strip()
-        ItemAttachment.objects.create(item=item, file=file, label=label)
+        attachment_type = (request.POST.get("attachment_type") or "").strip() or ItemAttachment.AttachmentType.OTHER
+        valid_types = {choice for choice, _ in ItemAttachment.AttachmentType.choices}
+        if attachment_type not in valid_types:
+            attachment_type = ItemAttachment.AttachmentType.OTHER
+
+        if attachment_type == ItemAttachment.AttachmentType.IMAGE and not ((file.content_type or "").startswith("image/")):
+            messages.error(request, "Für den Typ 'Bild' bitte eine Bilddatei hochladen.")
+            return redirect("edit-item", pk=item_id)
+
+        ItemAttachment.objects.create(
+            item=item,
+            file=file,
+            label=label,
+            attachment_type=attachment_type,
+        )
         messages.success(request, "Datei wurde hinzugefügt.")
         return redirect("edit-item", pk=item_id)
 

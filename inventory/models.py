@@ -874,12 +874,24 @@ class Overview(models.Model):
 
 
 class ItemAttachment(models.Model):
+    class AttachmentType(models.TextChoices):
+        IMAGE = "image", "Bild"
+        OPERATING_INSTRUCTION = "operating_instruction", "Betriebsanweisung"
+        MANUAL = "manual", "Bedienungsanleitung"
+        CERTIFICATE = "certificate", "Prüfprotokoll/Zertifikat"
+        OTHER = "other", "Sonstiges"
+
     item = models.ForeignKey(
         InventoryItem,
         on_delete=models.CASCADE,
         related_name="attachments",
     )
     label = models.CharField(max_length=120, blank=True)
+    attachment_type = models.CharField(
+        max_length=40,
+        choices=AttachmentType.choices,
+        default=AttachmentType.OTHER,
+    )
     file = models.FileField(upload_to="item_attachments/")
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
