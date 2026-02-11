@@ -17,6 +17,7 @@ from .models import (
     FeedbackComment,
     ItemComment,
     ScheduledExport,
+    GlobalSettings,
 )
 
 
@@ -99,6 +100,24 @@ SYSTEM_TAG_FILTER = (Q(name='-') | Q(name__startswith='__ov::'))
 def visible_tags_qs():
     """Nur sichtbare (nicht-systemische) Tags."""
     return ApplicationTag.objects.exclude(SYSTEM_TAG_FILTER).order_by('name')
+
+
+def unit_fields_enabled() -> bool:
+    """
+    Prüft robust, ob das Einheiten-Feld global aktiviert ist.
+    Bei DB-/Migrations-Problemen gilt der sichere Default: aktiviert.
+    """
+    try:
+        if not table_exists(GlobalSettings):
+            return True
+        settings = GlobalSettings.objects.first()
+        if not settings:
+            return True
+        return bool(settings.enable_unit_fields)
+    except (OperationalError, ProgrammingError):
+        return True
+    except Exception:
+        return True
 
 
 # -----------------------------
@@ -234,6 +253,9 @@ class EquipmentItemForm(forms.ModelForm):
         kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
+        if not unit_fields_enabled():
+            self.fields.pop('unit', None)
+
         # Bootstrap-Klassen
         for f in self.fields.values():
             if not isinstance(f.widget, forms.CheckboxSelectMultiple):
@@ -350,6 +372,9 @@ class ConsumableItemForm(forms.ModelForm):
         # user wird evtl. übergeben, aber nicht mehr verwendet
         kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        if not unit_fields_enabled():
+            self.fields.pop('unit', None)
 
         for f in self.fields.values():
             if not isinstance(f.widget, forms.CheckboxSelectMultiple):
