@@ -132,15 +132,15 @@ a:hover {
 
 /* ========= Aktionen im Dashboard kompakt ========= */
 .action-menu-compact {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
 }
 .action-menu-panel {
-  background: rgba(14, 14, 14, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 0.45rem;
-  padding: 0.4rem 0.5rem;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.38);
-  max-width: 220px;
+  background: rgba(17, 17, 17, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+  max-width: 320px;
   margin-left: auto;
 }
 .action-menu-compact .action-list {
@@ -148,41 +148,35 @@ a:hover {
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.35rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.35rem 0.6rem;
 }
 .action-menu-compact .action-list li {
   width: auto;
 }
-.action-link {
+.action-menu-compact .action-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   width: 100%;
-  padding: 0.18rem 0.3rem;
-  border: 0;
-  background: transparent;
-  border-radius: 0.3rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 0.4rem;
   text-decoration: none;
-  font-size: 0.68rem;
-  color: var(--text);
-  justify-content: flex-start;
-  text-align: left;
-  appearance: none;
-  -webkit-appearance: none;
+  font-size: 0.75rem;
+  color: inherit;
+  justify-content: center;
+  text-align: center;
 }
-.action-link:hover,
-.action-link:focus {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text);
+.action-menu-compact .action-link:hover,
+.action-menu-compact .action-link:focus {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
 }
-.action-link:disabled {
+.action-menu-compact .action-link:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background: transparent;
-}
-.action-link.text-warning,
-.action-link.text-info,
-.action-link.text-success {
-  color: var(--text) !important;
+  border-color: transparent;
 }

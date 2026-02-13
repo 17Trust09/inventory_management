@@ -671,14 +671,6 @@ class BorrowedItem(models.Model):
             self.returned_at = timezone.now()
             self.save()
 
-    @property
-    def is_overdue(self) -> bool:
-        if self.returned:
-            return False
-        if not self.return_date:
-            return False
-        return self.return_date < date.today()
-
     class Meta:
         indexes = [
             models.Index(fields=["item", "returned"]),
