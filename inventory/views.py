@@ -1903,7 +1903,17 @@ class ItemAttachmentUploadView(LoginRequiredMixin, View):
             return redirect("edit-item", pk=item_id)
 
         label = (request.POST.get("label") or "").strip()
-        ItemAttachment.objects.create(item=item, file=file, label=label)
+        attachment_type = request.POST.get("attachment_type")
+        allowed_types = {choice[0] for choice in ItemAttachment.AttachmentType.choices}
+        if attachment_type not in allowed_types:
+            attachment_type = ItemAttachment.AttachmentType.OTHER
+
+        ItemAttachment.objects.create(
+            item=item,
+            file=file,
+            label=label,
+            attachment_type=attachment_type,
+        )
         messages.success(request, "Datei wurde hinzugefügt.")
         return redirect("edit-item", pk=item_id)
 
