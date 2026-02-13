@@ -191,10 +191,30 @@
                       Mehrere Dateien pro Artikel möglich (z. B. Fotos, Anleitungen, Prüfprotokolle).
                       Nach dem Hochladen kannst du die Dateien hier öffnen.
                     </div>
-                    <div class="d-flex flex-wrap gap-2 align-items-end">
-                      <input class="form-control" type="text" name="label" placeholder="Bezeichnung (optional)" form="attachment-upload-form">
-                      <input class="form-control" type="file" name="attachment" required form="attachment-upload-form">
-                      <button class="btn btn-outline-light" type="submit" form="attachment-upload-form">Hinzufügen</button>
+                    <div class="row g-2 align-items-end">
+                      <div class="col-12 col-md-5">
+                        <label class="form-label small text-muted mb-1">Dateityp</label>
+                        <select class="form-select" name="attachment_type" form="attachment-upload-form">
+                          <option value="documentation">Dokumentation</option>
+                          <option value="manual">Bedienungsanleitung / Manual</option>
+                          <option value="datasheet">Datenblatt</option>
+                          <option value="certificate">Prüfprotokoll / Zertifikat</option>
+                          <option value="invoice">Rechnung / Beleg</option>
+                          <option value="image">Foto</option>
+                          <option value="other" selected>Sonstiges</option>
+                        </select>
+                      </div>
+                      <div class="col-12 col-md-7">
+                        <label class="form-label small text-muted mb-1">Bezeichnung (optional)</label>
+                        <input class="form-control" type="text" name="label" placeholder="z. B. Handbuch Deutsch" form="attachment-upload-form">
+                      </div>
+                      <div class="col-12 col-md-8">
+                        <label class="form-label small text-muted mb-1">Datei</label>
+                        <input class="form-control" type="file" name="attachment" required form="attachment-upload-form">
+                      </div>
+                      <div class="col-12 col-md-4 d-grid">
+                        <button class="btn btn-outline-light" type="submit" form="attachment-upload-form">Hinzufügen</button>
+                      </div>
                     </div>
                     {% if attachments %}
                       <div class="mt-3 d-flex flex-wrap gap-3">
@@ -206,6 +226,7 @@
                               <div class="mb-2"><i class="bi bi-file-earmark-text" style="font-size:2rem;"></i></div>
                             {% endif %}
                             <div class="small text-muted">{{ attachment.label|default:attachment.file.name }}</div>
+                            <div class="mt-1"><span class="badge text-bg-secondary">{{ attachment.get_attachment_type_display }}</span></div>
                             <div class="d-flex flex-column gap-1 mt-2">
                               <a class="btn btn-sm btn-outline-light" href="{{ attachment.file.url }}" target="_blank" rel="noopener">Öffnen</a>
                               <button class="btn btn-sm btn-outline-danger"
