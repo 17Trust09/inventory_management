@@ -74,6 +74,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Wichtig: git wird benötigt, weil requirements.txt mindestens ein Git-Dependency enthält
+# (z. B. mediapy @ git+https://...)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
@@ -165,6 +171,10 @@ docker run -d \
 ```
 
 ## 9) Typische Fehler & Fixes
+
+- **Build-Fehler `Cannot find command 'git'`**
+  - Entsteht, wenn eine Git-Dependency in `requirements.txt` steckt.
+  - Mit obigem Dockerfile wird `git` im Image installiert (Fix).
 
 - **`connection refused` zur DB**
   - Prüfe `POSTGRES_HOST` (Unraid-IP) und `POSTGRES_PORT=15433`.
