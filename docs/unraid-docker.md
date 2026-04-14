@@ -8,7 +8,7 @@ Diese Anleitung ist für dein Setup gedacht, bei dem PostgreSQL bereits **als ei
 
 - Unraid mit laufendem PostgreSQL-Container (bei dir: `postgres:15`).
 - Dieses Projekt als Ordner auf Unraid, z. B.:
-  - `/mnt/user/appdata/inventory_management`
+  - `/mnt/data/appdata/inventory_management`
 - Freier Port für die Django-App, z. B. `18000`.
 
 ## 2) `.env` für den App-Container anlegen
@@ -118,8 +118,8 @@ docker run -d \
   --restart unless-stopped \
   -p 18000:8000 \
   --env-file .env \
-  -v /mnt/user/appdata/inventory_management/media:/app/media \
-  -v /mnt/user/appdata/inventory_management/staticfiles:/app/staticfiles \
+  -v /mnt/data/appdata/inventory_management/media:/app/media \
+  -v /mnt/data/appdata/inventory_management/staticfiles:/app/staticfiles \
   inventory_app:latest
 ```
 
