@@ -60,6 +60,36 @@ from .exports import EXPORT_COLUMNS, calculate_next_run, export_overview_to_file
 
 
 # ---------------------------------------------------------------------------
+# Sicherer Redirect-Helper (validiert next-URL und HTTP_REFERER)
+# ---------------------------------------------------------------------------
+def safe_redirect_or(request, url, fallback_view=None, fallback_kwargs=None):
+    """
+    Validiert eine Benutzer-gesteuerte Redirect-URL (next / HTTP_REFERER)
+    und leitet entweder dorthin oder per View-Name + kwargs weiter.
+
+    Beispiele:
+        safe_redirect_or(request, next_url, fallback_view="dashboards")
+        safe_redirect_or(request, nxt, fallback_view="overview-dashboard",
+                         fallback_kwargs={"slug": item.overview.slug})
+    """
+    if url and url_has_allowed_host_and_scheme(
+        url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(url)
+
+    if fallback_view:
+        return redirect(fallback_view, **(fallback_kwargs or {}))
+    return redirect("/")
+
+
+def extract_next(request):
+    """Extrahiert 'next' aus POST, GET oder HTTP_REFERER."""
+    return request.POST.get("next") or request.GET.get("next") or request.META.get("HTTP_REFERER", "")
+
+
+# ---------------------------------------------------------------------------
 # Hilfsfunktion: Overview + Features kontextsensitiv lesen
 # ---------------------------------------------------------------------------
 def _get_overview_and_features(request, default_item_type: str):
@@ -734,18 +764,13 @@ class EditItem(LoginRequiredMixin, UpdateView):
         return ConsumableItemForm if item.item_type == "consumable" else EquipmentItemForm
 
     def get_success_url(self):
-        nxt = self.request.POST.get("next") or self.request.GET.get("next")
-        if nxt:
-            return nxt
-
+        nxt = extract_next(self.request)
         item = self.get_object()
         if item.overview:
-            return reverse_lazy(
-                "overview-dashboard",
-                kwargs={"slug": item.overview.slug}
-            )
-
-        return reverse_lazy("dashboards")
+            return safe_redirect_or(self.request, nxt,
+                fallback_view="overview-dashboard",
+                fallback_kwargs={"slug": item.overview.slug})
+        return safe_redirect_or(self.request, nxt, fallback_view="dashboards")
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -1315,7 +1340,10 @@ class BorrowedItemsView(LoginRequiredMixin, View):
 
 class ReturnItemView(LoginRequiredMixin, View):
     def post(self, request, borrow_id):
-        borrowed = get_object_or_404(BorrowedItem, id=borrow_id)
+        borrowed = get_object_or_404(
+            BorrowedItem.objects.select_related("item", "item__overview"),
+            id=borrow_id,
+        )
         if not borrowed.returned:
             before = _snapshot_item(borrowed.item)
             borrowed.return_item()
@@ -1337,12 +1365,17 @@ class ReturnItemView(LoginRequiredMixin, View):
             messages.success(request, f"{borrowed.quantity_borrowed}x {borrowed.item.name} zurückgegeben.")
         else:
             messages.info(request, "Dieser Artikel wurde bereits zurückgegeben.")
-        nxt = self.request.POST.get("next") or self.request.GET.get("next")
-        if nxt:
-            return redirect(nxt)
-        return redirect(
-            "dashboard-equipment" if borrowed.item.item_type == "equipment" else "dashboard-consumables"
-        )
+
+        nxt = extract_next(request)
+
+        # Overview-Fallback: in die Overview des Items zurück
+        item = borrowed.item
+        if item.overview:
+            return safe_redirect_or(request, nxt,
+                fallback_view="overview-dashboard",
+                fallback_kwargs={"slug": item.overview.slug})
+
+        return safe_redirect_or(request, nxt, fallback_view="dashboards")
 
 
 # ---------------------------------------------------------------------------
@@ -1438,19 +1471,19 @@ class DeleteItem(LoginRequiredMixin, DeleteView):
         return ctx
 
     def get_success_url(self):
-        nxt = self.request.POST.get("next") or self.request.GET.get("next")
-        if nxt:
-            return nxt
-        try:
-            return reverse_lazy("admin_items")
-        except Exception:
-            pass
-        itype = self.request.POST.get("item_type") or self.request.GET.get("item_type")
-        if itype == "equipment":
-            return reverse_lazy("dashboard-equipment")
-        if itype == "consumable":
-            return reverse_lazy("dashboard-consumables")
-        return reverse_lazy("dashboard")
+        item = self.object
+        if hasattr(self, '_overview_slug') and self._overview_slug:
+            return reverse("overview-dashboard", kwargs={"slug": self._overview_slug})
+        if item.overview:
+            return reverse("overview-dashboard", kwargs={"slug": item.overview.slug})
+        return reverse("dashboards")
+
+    def delete(self, request, *args, **kwargs):
+        self._overview_slug = None
+        item = self.get_object()
+        if item.overview:
+            self._overview_slug = item.overview.slug
+        return super().delete(request, *args, **kwargs)
 
 
 class ScanBarcodeView(LoginRequiredMixin, View):
@@ -1510,15 +1543,13 @@ class MarkItemAPI(LoginRequiredMixin, View):
         loc_name = location.name if location else "?"
         messages.success(request, f"{item.name} wurde markiert – LED {loc_name} leuchtet.")
 
-        next_url = request.POST.get("next") or request.GET.get("next") or request.META.get("HTTP_REFERER")
-        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
-            return redirect(next_url)
-        return redirect("dashboards")
+        nxt = extract_next(request)
+        return safe_redirect_or(request, nxt, fallback_view="dashboards")
 
 
 class QuickAdjustQuantityView(LoginRequiredMixin, View):
     def post(self, request, item_id):
-        next_url = request.POST.get("next") or request.META.get("HTTP_REFERER", "/")
+        nxt = extract_next(request)
         try:
             delta = int(request.POST.get("delta", "0"))
         except ValueError:
@@ -1530,13 +1561,13 @@ class QuickAdjustQuantityView(LoginRequiredMixin, View):
         overview = item.overview
         if not overview or not overview.enable_quick_adjust or not overview.show_quantity:
             messages.error(request, "Schnellanpassung ist für dieses Dashboard deaktiviert.")
-            return redirect(next_url)
+            return safe_redirect_or(request, nxt, fallback_view="dashboards")
 
         if not request.user.is_superuser:
             allowed = _allowed_overviews_for_user(request.user).filter(pk=overview.pk).exists()
             if not allowed:
                 messages.error(request, "Du hast keinen Zugriff auf dieses Dashboard.")
-                return redirect(next_url)
+                return safe_redirect_or(request, nxt, fallback_view="dashboards")
 
         before = _snapshot_item(item)
         new_quantity = item.quantity + delta
@@ -1558,7 +1589,7 @@ class QuickAdjustQuantityView(LoginRequiredMixin, View):
         )
         if request.headers.get("x-requested-with") == "XMLHttpRequest":
             return JsonResponse({"quantity": item.quantity})
-        return redirect(next_url)
+        return safe_redirect_or(request, nxt, fallback_view="dashboards")
 
 
 class NFCItemRedirectView(LoginRequiredMixin, View):
@@ -1738,18 +1769,9 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
 
     def _compute_add_url(self):
         if self.overview.is_consumable_mode:
-            try:
-                return reverse("add-consumable")
-            except NoReverseMatch:
-                try:
-                    return reverse("add-verbrauch")
-                except NoReverseMatch:
-                    return "/add-verbrauch/"
+            return reverse("add-consumable")
         else:
-            try:
-                return reverse("add-equipment")
-            except NoReverseMatch:
-                return "/add-equipment/"
+            return reverse("add-equipment")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -1851,7 +1873,8 @@ class ToggleFavoriteView(LoginRequiredMixin, View):
             request,
             "Favorit gesetzt." if item.is_favorite else "Favorit entfernt.",
         )
-        return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
+        nxt = extract_next(request)
+        return safe_redirect_or(request, nxt, fallback_view="dashboards")
 
 
 class ToggleOverviewFavoriteView(LoginRequiredMixin, View):
@@ -1872,7 +1895,8 @@ class ToggleOverviewFavoriteView(LoginRequiredMixin, View):
         else:
             profile.favorite_overviews.add(overview)
             messages.success(request, f"Dashboard „{overview.name}“ als Favorit gespeichert.")
-        return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
+        nxt = extract_next(request)
+        return safe_redirect_or(request, nxt, fallback_view="dashboards")
 
 
 class BulkItemActionView(LoginRequiredMixin, View):
@@ -1884,7 +1908,7 @@ class BulkItemActionView(LoginRequiredMixin, View):
         ids = request.POST.getlist("item_ids")
         if not ids:
             messages.warning(request, "Keine Artikel ausgewählt.")
-            return redirect(request.META.get("HTTP_REFERER") or "dashboards")
+            return safe_redirect_or(request, extract_next(request), fallback_view="dashboards")
 
         items = InventoryItem.objects.filter(id__in=ids)
         if not request.user.is_superuser:
@@ -1900,7 +1924,7 @@ class BulkItemActionView(LoginRequiredMixin, View):
         else:
             messages.error(request, "Ungültige Bulk-Aktion.")
 
-        return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
+        return safe_redirect_or(request, extract_next(request), fallback_view="dashboards")
 
 
 class ItemAttachmentUploadView(LoginRequiredMixin, View):
@@ -2127,7 +2151,7 @@ class ItemCommentCreateView(LoginRequiredMixin, View):
         item = get_object_or_404(InventoryItem, pk=item_id)
         if not item.overview or not item.overview.enable_comments:
             messages.error(request, "Kommentare sind für dieses Dashboard deaktiviert.")
-            return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
+            return safe_redirect_or(request, extract_next(request), fallback_view="dashboards")
         if not request.user.is_superuser:
             allowed = _allowed_overviews_for_user(request.user).filter(pk=item.overview_id).exists()
             if not allowed:
@@ -2142,7 +2166,7 @@ class ItemCommentCreateView(LoginRequiredMixin, View):
                 messages.success(request, "Kommentar gelöscht.")
             else:
                 messages.info(request, "Kein Kommentar vorhanden.")
-            return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
+            return safe_redirect_or(request, extract_next(request), fallback_view="dashboards")
 
         form = ItemCommentForm(request.POST)
         if form.is_valid():
@@ -2159,7 +2183,7 @@ class ItemCommentCreateView(LoginRequiredMixin, View):
         else:
             messages.error(request, "Kommentar konnte nicht gespeichert werden.")
 
-        return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards")
+        return safe_redirect_or(request, extract_next(request), fallback_view="dashboards")
 
 # --------------------------------------------------------
 # Login: Benutzer ist deaktiviert -> klare Fehlermeldung

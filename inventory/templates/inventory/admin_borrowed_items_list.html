@@ -39,9 +39,12 @@
           </td>
           <td class="text-end">
             {% if not b.returned %}
-              <a href="{% url 'return-item' b.pk %}" class="btn btn-sm btn-outline-light">
-                <i class="bi bi-arrow-counterclockwise me-1"></i> Rückgabe
-              </a>
+              <form method="post" action="{% url 'return-item' b.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-light">
+                  <i class="bi bi-arrow-counterclockwise me-1"></i> Rückgabe
+                </button>
+              </form>
             {% endif %}
           </td>
         </tr>

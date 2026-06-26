@@ -591,6 +591,7 @@
                                 </ul>
                                 <form method="post" action="{% url 'return-item' br.id %}">
                                   {% csrf_token %}
+                                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                   <button class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-box-arrow-in-left"></i> Zurückgeben
                                   </button>
