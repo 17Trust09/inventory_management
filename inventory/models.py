@@ -209,6 +209,12 @@ class GlobalSettings(models.Model):
         blank=True,
         verbose_name="Rollen-Plan aktualisiert am",
     )
+    active_git_branch = models.CharField(
+        max_length=100,
+        default="main",
+        verbose_name="Aktiver Git-Branch",
+        help_text="Branch, der aktuell ausgecheckt ist (wird beim Update-Wechsel aktualisiert).",
+    )
     enable_image_upload = models.BooleanField(
         default=True,
         verbose_name="Bild-Upload erlauben",

@@ -24,7 +24,10 @@ import os
 import subprocess
 import json
 import shutil
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from .feature_flags import get_feature_flags
 from .models import (
@@ -847,120 +850,151 @@ def admin_feature_toggles(request):
     return render(request, "inventory/admin_feature_toggles.html", {"form": form})
 
 
-def _get_git_status(branch: str) -> dict[str, str | int]:
-    base_dir = settings.BASE_DIR
-    repo_url = (
-        settings.UPDATE_REPO_URL_MAIN if branch == "main" else settings.UPDATE_REPO_URL_DEV
-    ).strip()
+def fetch_all_branches() -> list[str]:
+    """Liest alle Remote-Branches des Update-Repositories aus."""
+    repo_url = getattr(settings, "UPDATE_REPO_URL_MAIN", "").strip()
     if not repo_url:
-        return {
-            "branch": branch,
-            "error": "Update-Repository ist nicht konfiguriert.",
-        }
-
-    if not (base_dir / ".git").exists():
-        init = subprocess.run(
-            ["git", "init"],
-            cwd=base_dir,
-            capture_output=True,
-            text=True,
-        )
-        if init.returncode != 0:
-            return {
-                "branch": branch,
-                "error": init.stderr.strip() or init.stdout.strip() or "Git-Repository konnte nicht initialisiert werden.",
-            }
-        subprocess.run(
-            ["git", "remote", "add", "origin", repo_url],
-            cwd=base_dir,
-            capture_output=True,
-            text=True,
-        )
-        fetch_init = subprocess.run(
-            ["git", "fetch", "origin", branch],
-            cwd=base_dir,
-            capture_output=True,
-            text=True,
-        )
-        if fetch_init.returncode != 0:
-            return {
-                "branch": branch,
-                "error": fetch_init.stderr.strip() or fetch_init.stdout.strip() or "Git fetch fehlgeschlagen.",
-            }
-        rev_list = subprocess.run(
-            ["git", "rev-list", "--count", f"origin/{branch}"],
-            cwd=base_dir,
-            capture_output=True,
-            text=True,
-        )
-        if rev_list.returncode != 0:
-            return {
-                "branch": branch,
-                "error": rev_list.stderr.strip() or rev_list.stdout.strip() or "Git-Status konnte nicht ermittelt werden.",
-            }
-        try:
-            behind_count = int(rev_list.stdout.strip())
-        except ValueError:
-            behind_count = 0
-        return {
-            "branch": branch,
-            "behind_count": behind_count,
-        }
-
-    remote_url = subprocess.run(
-        ["git", "remote", "get-url", "origin"],
-        cwd=base_dir,
-        capture_output=True,
-        text=True,
-    )
-    if remote_url.returncode != 0:
-        subprocess.run(
-            ["git", "remote", "add", "origin", repo_url],
-            cwd=base_dir,
-            capture_output=True,
-            text=True,
-        )
-    elif remote_url.stdout.strip() != repo_url:
-        subprocess.run(
-            ["git", "remote", "set-url", "origin", repo_url],
-            cwd=base_dir,
-            capture_output=True,
-            text=True,
-        )
-
-    fetch = subprocess.run(
-        ["git", "fetch", "origin", branch],
-        cwd=base_dir,
-        capture_output=True,
-        text=True,
-    )
-    if fetch.returncode != 0:
-        return {
-            "branch": branch,
-            "error": fetch.stderr.strip() or fetch.stdout.strip() or "Git fetch fehlgeschlagen.",
-        }
-
-    rev_list = subprocess.run(
-        ["git", "rev-list", "--count", f"HEAD..origin/{branch}"],
-        cwd=base_dir,
-        capture_output=True,
-        text=True,
-    )
-    if rev_list.returncode != 0:
-        return {
-            "branch": branch,
-            "error": rev_list.stderr.strip() or rev_list.stdout.strip() or "Git-Status konnte nicht ermittelt werden.",
-        }
+        logger.error("UPDATE_REPO_URL_MAIN ist nicht konfiguriert.")
+        return []
 
     try:
-        behind_count = int(rev_list.stdout.strip())
-    except ValueError:
-        behind_count = 0
+        result = subprocess.run(
+            ["git", "ls-remote", "--heads", repo_url],
+            cwd=settings.BASE_DIR,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.exception("Remote-Branches konnten nicht abgerufen werden: %s", exc)
+        return []
 
-    return {
-        "branch": branch,
-        "behind_count": behind_count,
+    if result.returncode != 0:
+        logger.error(
+            "git ls-remote fehlgeschlagen: %s",
+            (result.stderr or result.stdout or "Unbekannter Fehler").strip(),
+        )
+        return []
+
+    branches: list[str] = []
+    for line in (result.stdout or "").splitlines():
+        parts = line.strip().split()
+        if len(parts) < 2:
+            continue
+        ref = parts[1]
+        if not ref.startswith("refs/heads/"):
+            continue
+        branch_name = ref.removeprefix("refs/heads/").strip()
+        if branch_name and branch_name != "HEAD":
+            branches.append(branch_name)
+    return sorted(set(branches))
+
+
+def _run_git(args: list[str]) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", *args],
+        cwd=settings.BASE_DIR,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _ensure_git_origin(repo_url: str) -> str | None:
+    base_dir = settings.BASE_DIR
+    if not (base_dir / ".git").exists():
+        init = _run_git(["init"])
+        if init.returncode != 0:
+            return init.stderr.strip() or init.stdout.strip() or "Git-Repository konnte nicht initialisiert werden."
+
+    remote_url = _run_git(["remote", "get-url", "origin"])
+    if remote_url.returncode != 0:
+        add_remote = _run_git(["remote", "add", "origin", repo_url])
+        if add_remote.returncode != 0:
+            return add_remote.stderr.strip() or add_remote.stdout.strip() or "Git-Remote konnte nicht gesetzt werden."
+    elif remote_url.stdout.strip() != repo_url:
+        set_remote = _run_git(["remote", "set-url", "origin", repo_url])
+        if set_remote.returncode != 0:
+            return set_remote.stderr.strip() or set_remote.stdout.strip() or "Git-Remote konnte nicht aktualisiert werden."
+    return None
+
+
+def _git_stdout(args: list[str]) -> str:
+    result = _run_git(args)
+    if result.returncode != 0:
+        return ""
+    return (result.stdout or "").strip()
+
+
+def _git_count(args: list[str]) -> int:
+    output = _git_stdout(args)
+    try:
+        return int(output)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _get_git_status_dynamic(branch_name: str) -> dict[str, str | int | bool]:
+    """Ermittelt den Git-Status für einen beliebigen Remote-Branch."""
+    branch_name = (branch_name or "").strip()
+    repo_url = getattr(settings, "UPDATE_REPO_URL_MAIN", "").strip()
+    status: dict[str, str | int | bool] = {
+        "branch": branch_name,
+        "behind_count": 0,
+        "ahead_count": 0,
+        "current_sha": "",
+        "current_sha_short": "",
+        "remote_sha": "",
+        "remote_sha_short": "",
+        "last_commit": "",
+        "last_commit_short": "",
+        "is_current": False,
     }
+    if not branch_name:
+        status["error"] = "Kein Branch angegeben."
+        return status
+    if not repo_url:
+        status["error"] = "Update-Repository ist nicht konfiguriert."
+        return status
+
+    origin_error = _ensure_git_origin(repo_url)
+    if origin_error:
+        status["error"] = origin_error
+        return status
+
+    fetch = _run_git(["fetch", "origin", branch_name])
+    if fetch.returncode != 0:
+        status["error"] = fetch.stderr.strip() or fetch.stdout.strip() or "Git fetch fehlgeschlagen."
+        return status
+
+    current_sha = _git_stdout(["rev-parse", "HEAD"])
+    remote_sha = _git_stdout(["rev-parse", f"origin/{branch_name}"])
+    if not remote_sha:
+        fetch_tracking = _run_git(["fetch", "origin", f"{branch_name}:refs/remotes/origin/{branch_name}"])
+        if fetch_tracking.returncode != 0:
+            status["error"] = fetch_tracking.stderr.strip() or fetch_tracking.stdout.strip() or "Remote-Branch konnte nicht aktualisiert werden."
+            return status
+        remote_sha = _git_stdout(["rev-parse", f"origin/{branch_name}"])
+    behind_count = _git_count(["rev-list", "--count", f"HEAD..origin/{branch_name}"])
+    ahead_count = _git_count(["rev-list", "--count", f"origin/{branch_name}..HEAD"])
+
+    status.update(
+        {
+            "behind_count": behind_count,
+            "ahead_count": ahead_count,
+            "current_sha": current_sha,
+            "current_sha_short": current_sha[:7] if current_sha else "",
+            "remote_sha": remote_sha,
+            "remote_sha_short": remote_sha[:7] if remote_sha else "",
+            "last_commit": remote_sha,
+            "last_commit_short": remote_sha[:7] if remote_sha else "",
+            "is_current": bool(current_sha and remote_sha and current_sha == remote_sha),
+        }
+    )
+    return status
+
+
+# Rückwärtskompatibilität für ältere interne Aufrufe.
+_get_git_status = _get_git_status_dynamic
 
 
 def _get_backup_root(settings_obj: GlobalSettings | None = None) -> tuple[Path, str | None]:
@@ -1090,9 +1124,11 @@ def admin_updates(request):
     update_branch = None
     rollback_message = None
     rollback_error = None
+    settings_obj = _get_global_settings()
 
     if request.method == "POST":
-        if request.POST.get("action") == "rollback":
+        action = request.POST.get("action")
+        if action == "rollback":
             backup_dir = request.POST.get("backup_dir")
             if not backup_dir:
                 messages.error(request, "Kein Backup ausgewählt.")
@@ -1106,63 +1142,81 @@ def admin_updates(request):
                 messages.error(request, message)
             return redirect("admin_updates")
 
-        update_branch = request.POST.get("branch")
-        if update_branch not in {"main", "dev"}:
-            messages.error(request, "Ungültiger Branch für das Update.")
-            return redirect("admin_updates")
+        if action == "switch_branch":
+            update_branch = (request.POST.get("selected_branch") or "").strip()
+            remote_branches = fetch_all_branches()
+            if not update_branch or update_branch not in remote_branches:
+                messages.error(request, "Ungültiger oder unbekannter Branch für das Update.")
+                return redirect("admin_updates")
 
-        settings_obj = _get_global_settings()
-        auto_maintenance = settings_obj.auto_maintenance_on_update and not settings_obj.maintenance_mode_enabled
-        if auto_maintenance:
-            settings_obj.maintenance_mode_enabled = True
-            if not settings_obj.maintenance_message:
-                settings_obj.maintenance_message = "Update läuft. Bitte später erneut versuchen."
-            settings_obj.save(update_fields=["maintenance_mode_enabled", "maintenance_message"])
-
-        backup_ok, backup_message = _create_backup()
-        if backup_ok:
-            messages.success(request, backup_message)
-        else:
-            messages.error(request, f"Backup fehlgeschlagen: {backup_message}")
+            auto_maintenance = settings_obj.auto_maintenance_on_update and not settings_obj.maintenance_mode_enabled
             if auto_maintenance:
-                settings_obj.maintenance_mode_enabled = False
-                settings_obj.save(update_fields=["maintenance_mode_enabled"])
-            return redirect("admin_updates")
-        _prune_backups(settings_obj.backup_retention_count)
+                settings_obj.maintenance_mode_enabled = True
+                if not settings_obj.maintenance_message:
+                    settings_obj.maintenance_message = "Update läuft. Bitte später erneut versuchen."
+                settings_obj.save(update_fields=["maintenance_mode_enabled", "maintenance_message"])
 
-        status = _get_git_status(update_branch)
-        if status.get("error"):
-            messages.error(request, f"Update-Check fehlgeschlagen: {status['error']}")
-            return redirect("admin_updates")
+            backup_ok, backup_message = _create_backup()
+            output_lines = [backup_message]
+            if backup_ok:
+                messages.success(request, backup_message)
+            else:
+                messages.error(request, f"Backup fehlgeschlagen: {backup_message}")
+                if auto_maintenance:
+                    settings_obj.maintenance_mode_enabled = False
+                    settings_obj.save(update_fields=["maintenance_mode_enabled"])
+                update_output = "\n".join(output_lines)
+                return redirect("admin_updates")
+            _prune_backups(settings_obj.backup_retention_count)
 
-        if status.get("behind_count", 0) == 0:
-            messages.info(request, f"{update_branch} ist bereits aktuell.")
-            return redirect("admin_updates")
+            repo_url = getattr(settings, "UPDATE_REPO_URL_MAIN", "").strip()
+            origin_error = _ensure_git_origin(repo_url) if repo_url else "Update-Repository ist nicht konfiguriert."
+            commands = []
+            if origin_error:
+                update_error = origin_error
+            else:
+                commands = [
+                    ["git", "fetch", "origin", update_branch],
+                    ["git", "fetch", "origin", f"{update_branch}:refs/remotes/origin/{update_branch}"],
+                    ["git", "checkout", "-B", update_branch, f"origin/{update_branch}"],
+                    ["python", "manage.py", "migrate"],
+                ]
 
-        script_path = settings.BASE_DIR / f"update_from_{update_branch}.sh"
-        if not script_path.exists():
-            messages.error(request, f"Update-Skript fehlt: {script_path}")
-            return redirect("admin_updates")
+            exit_code = 0
+            for command in commands:
+                output_lines.append(f"$ {' '.join(command)}")
+                result = subprocess.run(
+                    command,
+                    cwd=settings.BASE_DIR,
+                    capture_output=True,
+                    text=True,
+                )
+                if result.stdout:
+                    output_lines.append(result.stdout.strip())
+                if result.stderr:
+                    output_lines.append(result.stderr.strip())
+                if result.returncode != 0:
+                    exit_code = result.returncode
+                    update_error = f"Befehl fehlgeschlagen ({' '.join(command)}), Exit-Code {result.returncode}."
+                    break
 
-        result = subprocess.run(
-            ["bash", str(script_path)],
-            cwd=settings.BASE_DIR,
-            capture_output=True,
-            text=True,
-        )
-        update_output = (result.stdout or "").strip()
-        update_error = (result.stderr or "").strip()
-        if result.returncode == 0:
-            messages.success(request, f"Update von {update_branch} gestartet.")
-        else:
-            messages.error(request, f"Update von {update_branch} fehlgeschlagen (Exit-Code {result.returncode}).")
-            if auto_maintenance:
-                settings_obj.maintenance_mode_enabled = False
-                settings_obj.save(update_fields=["maintenance_mode_enabled"])
+            update_output = "\n".join(line for line in output_lines if line)
+            if not update_error and exit_code == 0:
+                settings_obj.active_git_branch = update_branch
+                settings_obj.save(update_fields=["active_git_branch"])
+                messages.success(request, f"Branch-Wechsel auf {update_branch} abgeschlossen.")
+            else:
+                messages.error(request, update_error or f"Branch-Wechsel auf {update_branch} fehlgeschlagen.")
+                if auto_maintenance:
+                    settings_obj.maintenance_mode_enabled = False
+                    settings_obj.save(update_fields=["maintenance_mode_enabled"])
 
+    branches = fetch_all_branches()
+    branch_statuses = [_get_git_status_dynamic(branch) for branch in branches]
     context = {
-        "status_main": _get_git_status("main"),
-        "status_dev": _get_git_status("dev"),
+        "branches": branches,
+        "branch_statuses": branch_statuses,
+        "active_git_branch": settings_obj.active_git_branch,
         "update_output": update_output,
         "update_error": update_error,
         "update_branch": update_branch,
