@@ -95,13 +95,11 @@ bool fetchMarkedItems(JsonDocument &doc) {
     return true;
 }
 
-// ── Position → LED-Index ──────────────────────────────────────────────────────
-int positionToLed(const char *letter, int number, const char *shelf) {
-    // Sucht in der position_map nach der passenden Position
+// ── Location-ID → LED-Index ─────────────────────────────────────────────────
+int locationIdToLed(int locationId) {
+    // Sucht in der position_map nach der passenden location_id
     for (size_t i = 0; i < POSITION_COUNT; i++) {
-        if (strcmp(POSITION_MAP[i].letter, letter) == 0 &&
-            POSITION_MAP[i].number == number &&
-            strcmp(POSITION_MAP[i].shelf, shelf) == 0) {
+        if (POSITION_MAP[i].locationId == locationId) {
             return POSITION_MAP[i].ledIndex;
         }
     }
@@ -132,17 +130,20 @@ void updateLEDs() {
     // Markierte Items durchgehen und LED-Positionen setzen
     unsigned long nowMs = millis();
     for (JsonObject mark : marks) {
-        JsonObject pos = mark["position"];
-        const char *letter = pos["letter"] | "";
-        int number = pos["number"] | 0;
-        const char *shelf = pos["shelf"] | "";
+        int locationId = mark["location_id"] | 0;
+        if (locationId == 0) {
+            const char *name = mark["name"] | "?";
+            Serial.printf("  ⚠️  %s hat keinen Lagerort\n", name);
+            continue;
+        }
 
-        int ledIdx = positionToLed(letter, number, shelf);
+        int ledIdx = locationIdToLed(locationId);
         if (ledIdx >= 0 && ledIdx < NUM_LEDS) {
             newState[ledIdx] = true;
             ledTimestamps[ledIdx] = nowMs;
         } else {
-            Serial.printf("  ❓ Unbekannte Position: %s-%d-%s\n", letter, number, shelf);
+            const char *name = mark["name"] | "?";
+            Serial.printf("  ❓ location_id=%d (%s) nicht in POSITION_MAP\n", locationId, name);
         }
     }
 

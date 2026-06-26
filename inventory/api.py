@@ -139,7 +139,9 @@ class SystemHealthAPI(View):
 class MarkedItemsAPI(View):
     """
     REST-API für den ESP32 (LED-Anzeige).
-    Gibt alle aktuell markierten Items mit ihrer Position zurück.
+    Gibt alle aktuell markierten Items mit dem **untersten StorageLocation**
+    (Blattknoten im Lagerort-Baum) zurück. Die LED-Position ergibt sich aus
+    der `location_id` (1:1-Mapping: location_id → LED-Index).
 
     Aufruf:
         GET /api/marked-items/?key=DEIN_KEY
@@ -150,15 +152,16 @@ class MarkedItemsAPI(View):
                 {
                     "id": 42,
                     "name": "Schraube M8",
-                    "position": {
-                        "letter": "B",
-                        "number": 3,
-                        "shelf": "2"
-                    }
+                    "location_id": 7,
+                    "location_name": "Schublade 1",
+                    "location_path": "Regal A > Schublade 1",
+                    "mark_id": 1,
+                    "marked_at": "2026-06-26T07:09:00+00:00",
+                    "is_active": true
                 }
             ],
             "count": 1,
-            "checked_at": "2026-06-26T..."
+            "checked_at": "2026-06-26T07:09:03+00:00"
         }
     """
     def get(self, request):
@@ -169,23 +172,20 @@ class MarkedItemsAPI(View):
         if not request.GET.get("all"):
             marks = ItemMark.objects.filter(
                 cleared_at__isnull=True
-            ).select_related("item").order_by("-marked_at")
+            ).select_related("item", "location").order_by("-marked_at")
         else:
-            marks = ItemMark.objects.select_related("item").order_by("-marked_at")[:50]
+            marks = ItemMark.objects.select_related("item", "location").order_by("-marked_at")[:50]
 
         data = []
         now_ts = now()
         for mark in marks:
-            item = mark.item
-            pos = {
-                "letter": item.location_letter or "",
-                "number": item.location_number,
-                "shelf": item.location_shelf or "",
-            }
+            loc = mark.location
             entry = {
-                "id": item.id,
-                "name": item.name,
-                "position": pos,
+                "id": mark.item.id,
+                "name": mark.item.name,
+                "location_id": loc.id if loc else None,
+                "location_name": loc.name if loc else "?",
+                "location_path": loc.get_full_path() if loc else "?",
                 "mark_id": mark.id,
                 "marked_at": mark.marked_at.isoformat(),
                 "is_active": mark.is_active,

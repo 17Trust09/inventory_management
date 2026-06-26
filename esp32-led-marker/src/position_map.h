@@ -2,59 +2,51 @@
 #define POSITION_MAP_H
 
 /*
- * POSITION_MAP: Übersetzt Regal-Position (Buchstabe + Zahl + Fach)
+ * POSITION_MAP: Übersetzt eine StorageLocation-ID (location_id)
  * in einen LED-Index auf dem WS2812B-Streifen.
  *
- * Layout-Beispiel für ein Regal mit 4 Reihen (A-D) und 5 Spalten (1-5):
- *   A1 A2 A3 A4 A5   → LEDs 0-4
- *   B1 B2 B3 B4 B5   → LEDs 5-9
- *   C1 C2 C3 C4 C5   → LEDs 10-14
- *   D1 D2 D3 D4 D5   → LEDs 15-19
+ * Jede Schublade/jeder Lagerort bekommt GENAU EINE LED.
+ * Das Mapping ist 1:1: location_id → LED-Index.
  *
- * shelf = Fachnummer (0 = Hauptfach, 1 = Oberfach, etc.)
- * letter = Regalreihe (A, B, C, ...)
- * number = Spaltennummer (1, 2, 3, ...)
+ * So ermittelst du die location_id:
+ *   1. In der Django-App: Admin → Lagerorte
+ *   2. Dort siehst du die ID jeder StorageLocation
+ *   3. Oder: Rufe /api/marked-items/ auf → "location_id" im JSON
  *
- * ⚠️  WICHTIG: Dieses Mapping muss zu deinem Regal-Layout passen!
- *     Ändere die Einträge entsprechend deiner tatsächlichen Anordnung.
+ * Beispiel für ein Regal mit 20 Schubladen:
+ *   Schublade ID 1  → LED #0
+ *   Schublade ID 2  → LED #1
+ *   ...
+ *   Schublade ID 20 → LED #19
+ *
+ * ⚠️  WICHTIG: location_id ≠ LED-Index!
+ *     Du musst die IDs deiner Lagerorte hier eintragen.
  */
 
 struct PositionEntry {
-    const char *letter;     // Regalreihe (z.B. "A", "B")
-    int         number;     // Spalte (z.B. 1, 2, 3, ...)
-    const char *shelf;      // Fach (z.B. "0", "1", "2", oder "" für Hauptfach)
-    int         ledIndex;   // Index auf dem LED-Streifen (0-basiert)
+    int  locationId;   // ID des StorageLocation (aus der Django-DB)
+    int  ledIndex;     // Index auf dem LED-Streifen (0-basiert)
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════════
-//  BEISPIEL-Mapping für ein Regal (A-D, 1-5, 0 Fächer)
-//  Passe dies an dein tatsächliches Regal an!
+//  BEISPIEL-Mapping – Passe dies an DEINE StorageLocation-IDs an!
+//
+//  So findest du die IDs:
+//    curl "http://192.168.178.69:18000/api/marked-items/?key=dein-key"
+//    → Im JSON steht "location_id": 7 für jede Markierung
 // ═══════════════════════════════════════════════════════════════════════════════════
 const PositionEntry POSITION_MAP[] = {
-    // ─── Regalreihe A ───
-    {"A", 1, "",  0},
-    {"A", 2, "",  1},
-    {"A", 3, "",  2},
-    {"A", 4, "",  3},
-    {"A", 5, "",  4},
-    // ─── Regalreihe B ───
-    {"B", 1, "",  5},
-    {"B", 2, "",  6},
-    {"B", 3, "",  7},
-    {"B", 4, "",  8},
-    {"B", 5, "",  9},
-    // ─── Regalreihe C ───
-    {"C", 1, "", 10},
-    {"C", 2, "", 11},
-    {"C", 3, "", 12},
-    {"C", 4, "", 13},
-    {"C", 5, "", 14},
-    // ─── Regalreihe D ───
-    {"D", 1, "", 15},
-    {"D", 2, "", 16},
-    {"D", 3, "", 17},
-    {"D", 4, "", 18},
-    {"D", 5, "", 19},
+    // {location_id, LED_Index}
+    {1,  0},   // Schublade 1  → LED #0
+    {2,  1},   // Schublade 2  → LED #1
+    {3,  2},   // Schublade 3  → LED #2
+    {4,  3},   // Schublade 4  → LED #3
+    {5,  4},   // Schublade 5  → LED #4
+    {6,  5},   // Schublade 6  → LED #5
+    {7,  6},   // Schublade 7  → LED #6
+    {8,  7},   // Schublade 8  → LED #7
+    {9,  8},   // Schublade 9  → LED #8
+    {10, 9},   // Schublade 10 → LED #9
 };
 
 // Anzahl der Einträge automatisch ermitteln

@@ -1042,14 +1042,29 @@ class Cable(models.Model):
 class ItemMark(models.Model):
     """
     Speichert, welche Items aktuell zur Abholung/LED-Anzeige markiert sind.
-    Der ESP pollt /api/marked-items/ und leuchtet die entsprechende LED-Position.
-    Ein Mark läuft entweder per Auto-Timeout (cleared_at) oder manuell ab.
+    Der ESP pollt /api/marked-items/ und leuchtet die LED des zugehörigen
+    **untersten Lagerorts** (StorageLocation-Blattknoten im Baum).
+
+    Beispiel:
+      Regal A > Schublade 1  → location_id = ID von "Schublade 1"
+      Regal B > Fach 3       → location_id = ID von "Fach 3"
+
+    Die LED-Position ergibt sich aus der StorageLocation-ID (1:1 Mapping).
     """
     item = models.ForeignKey(
         "InventoryItem",
         on_delete=models.CASCADE,
         related_name="marks",
         verbose_name="Markiertes Item",
+    )
+    location = models.ForeignKey(
+        "StorageLocation",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="marks",
+        verbose_name="Unterster Lagerort (LED-Ziel)",
+        help_text="Der unterste Knoten im StorageLocation-Baum, dem das Item zugeordnet ist.",
     )
     marked_at = models.DateTimeField(
         auto_now_add=True,
@@ -1079,7 +1094,8 @@ class ItemMark(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.item.name} (markiert um {self.marked_at.strftime('%H:%M:%S')})"
+        loc = self.location.name if self.location else "?"
+        return f"{self.item.name} → {loc} (markiert um {self.marked_at.strftime('%H:%M:%S')})"
 
     @property
     def is_active(self) -> bool:

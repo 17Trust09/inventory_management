@@ -106,12 +106,17 @@ Damit der "Markieren"-Button im Dashboard sichtbar ist, muss in den **Globalen E
 
 ## 🔴 ESP32 – Regal-LED-Anzeige
 
+Zeigt mit WS2812B-LEDs an, **welcher Lagerort** (z. B. Schublade) markiert ist.
+Items werden über den **StorageLocation-Baum** bis zum untersten Blattknoten verfolgt.
+
 ### Funktionsweise
 
-1. Ein Item im Dashboard markieren → Eintrag in der `ItemMark`-Tabelle
-2. ESP32 pollt alle 3 Sekunden `GET /api/marked-items/?key=...`
-3. API liefert Position (Reihe/Spalte/Fach) aller markierten Items
-4. ESP leuchtet die entsprechende LED auf dem WS2812B-Streifen
+1. Ein Item im Dashboard markieren
+2. Django ermittelt den **untersten StorageLocation** (Blatt im Baum)
+3. Eintrag in der `ItemMark`-Tabelle mit `location_id`
+4. ESP32 pollt alle 3s `GET /api/marked-items/?key=...`
+5. API liefert `location_id` → ESP mapped auf LED-Index via `position_map.h`
+6. LED leuchtet auf
 
 ### Benötigte Hardware
 
@@ -139,7 +144,7 @@ GND     ───────────────── GND
               GND ──────── GND
 ```
 
-> **⚠️ Wichtig:** Bei Strips über 1 m Länge **Strom alle 2-3 Meter nachspeisen** (5V+GND), sonst werden die hinteren LEDs dunkler.
+> **⚠️ Wichtig:** Bei Strips > 1 m Länge Strom alle 2-3 Meter nachspeisen (5V+GND).
 
 ### Installation (PlatformIO)
 
@@ -152,7 +157,7 @@ cd esp32-led-marker
 
 # 3. Konfiguration anpassen (siehe nächster Abschnitt)
 
-# 4. Kompilieren & auf den ESP flashen
+# 4. Kompilieren & flashen
 pio run --target upload
 
 # 5. Serielle Ausgabe beobachten
@@ -161,8 +166,6 @@ pio device monitor
 
 ### Konfiguration (`esp32-led-marker/src/config.h`)
 
-Passe diese Werte an:
-
 ```c++
 // WLAN
 const char* WLAN_SSID = "DEIN_WLAN";
@@ -170,56 +173,53 @@ const char* WLAN_PASS = "DEIN_PASSWORT";
 
 // API
 const char* API_URL = "http://192.168.178.69:18000/api/marked-items/";
-const char* API_KEY = "dein-api-key";  // = FEEDBACK_API_KEY aus .env
+const char* API_KEY="dein-api-key";  // = FEEDBACK_API_KEY aus .env
 
 // LED-Streifen
 const int   LED_PIN    = 13;      // GPIO
-const int   NUM_LEDS   = 60;      // Anzahl LEDs im Streifen
+const int   NUM_LEDS   = 60;      // Anzahl LEDs
 const int   BRIGHTNESS = 80;      // Helligkeit 0-255
 
 // Timing
 const int   POLL_INTERVAL_MS = 3000;   // Alle 3s API abfragen
 const int   LED_TIMEOUT_SEC  = 300;    // LED nach 5 Min ohne Update aus
 
-// Farbe (RGB)
+// Farbe
 const uint32_t MARK_COLOR = strip.Color(0, 0, 255);  // Blau
 ```
 
 ### Position-Mapping (`esp32-led-marker/src/position_map.h`)
 
-Hier wird festgelegt, welche LED zu welcher Regalposition gehört:
+Jede **Schublade / jeder Lagerort** bekommt genau eine LED.
+Das Mapping ist `location_id → LED-Index`:
 
 ```c++
-// Format: {"Reihe", Spalte, "Fach", LED_Index}
-{"A", 1, "",  0},   // Position A1 → LED #0
-{"A", 2, "",  1},   // Position A2 → LED #1
-{"B", 1, "",  5},   // Position B1 → LED #5
-{"B", 2, "",  6},   // Position B2 → LED #6
+const PositionEntry POSITION_MAP[] = {
+    // {location_id, LED_Index}
+    {1,  0},   // Schublade 1  → LED #0
+    {2,  1},   // Schublade 2  → LED #1
+    {3,  2},   // Schublade 3  → LED #2
+    ...
+};
 ```
 
-Passe das Mapping an **dein** Regal-Layout an:
-
-- `letter` = Regalreihe (A, B, C, …)
-- `number` = Spaltennummer (1, 2, 3, …)
-- `shelf` = Fach (leer `""` für Hauptfach, sonst `"1"`, `"2"`, …)
-- `ledIndex` = 0-basierte Position auf dem LED-Streifen
+So findest du die `location_id`:
+- Via API: `curl "http://DEINE_IP:18000/api/marked-items/?key=KEY"` → Feld `location_id`
+- Im Django-Admin: **Lagerorte** → ID-Spalte
 
 ### API-Referenz
 
 ```http
 GET /api/marked-items/?key=dein-api-key
-Content-Type: application/json
 
 {
   "marks": [
     {
       "id": 42,
       "name": "Schraube M8",
-      "position": {
-        "letter": "B",
-        "number": 3,
-        "shelf": "2"
-      },
+      "location_id": 7,
+      "location_name": "Schublade 1",
+      "location_path": "Regal A > Schublade 1",
       "mark_id": 1,
       "marked_at": "2026-06-26T07:09:00+00:00",
       "is_active": true
