@@ -1705,3 +1705,13 @@ def admin_feedback_set_status(request, pk):
     nicename = dict(Feedback.Status.choices).get(status, status)
     messages.success(request, f"Status für „{fb.title}“ gesetzt auf: {nicename}.")
     return redirect('admin_dashboard')
+
+
+# ---------------------------------------------------------------------
+# ESP32 Setup Guide
+# ---------------------------------------------------------------------
+
+@staff_required
+def admin_esp32_setup(request):
+    return render(request, "inventory/admin_esp32_setup.html")
+

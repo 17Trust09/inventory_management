@@ -1,0 +1,268 @@
+{% extends "inventory/admin_base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url "admin_dashboard" %}">Admin</a></li>
+      <li class="breadcrumb-item active">ESP32 Setup</li>
+    </ol>
+  </nav>
+
+  <h2 class="mb-2">🔧 ESP32 Regal-LED Setup</h2>
+  <p class="text-muted mb-4">
+    So richtest du den ESP32 ein, der markierte Lagerorte per LED anzeigt.
+  </p>
+
+  <!-- 0: Funktionsweise -->
+  <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+      🔄 Funktionsweise
+    </div>
+    <div class="card-body">
+      <ol class="mb-0">
+        <li>In der Lagerdatenbank wird ein Item markiert (Button <strong>Markieren</strong>)</li>
+        <li>Django ermittelt den <strong>untersten StorageLocation</strong></li>
+        <li>Eintrag in ItemMark-Tabelle mit location_id</li>
+        <li>ESP pollt alle 3s die API</li>
+        <li>API liefert location_id jedes markierten Items</li>
+        <li>ESP mapped location_id auf LED und leuchtet sie</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 1: Hardware -->
+  <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+      🔌 Benötigte Hardware
+    </div>
+    <div class="card-body">
+      <table class="table table-sm" style="color:var(--text);">
+        <thead><tr><th>Komponente</th><th>Empfehlung</th><th>Preis</th></tr></thead>
+        <tbody>
+          <tr><td>ESP32 Board</td><td>ESP32-WROOM-32, z.B. AZ-Delivery</td><td>~10 €</td></tr>
+          <tr><td>LED-Streifen</td><td>WS2812B NeoPixel, 5V</td><td>~15 €/m</td></tr>
+          <tr><td>Netzteil</td><td>5V / 2A (60 LEDs)</td><td>~10–20 €</td></tr>
+          <tr><td>Kondensator</td><td>1000 µF zwischen 5V und GND</td><td>~1 €</td></tr>
+          <tr><td>Widerstand</td><td>470 Ω auf Datenleitung</td><td>~0,10 €</td></tr>
+        </tbody>
+      </table>
+      <pre style="background:#1e1e2e; color:#cdd6f4; padding:1rem; border-radius:8px; font-size:.85rem;">
+ESP32                     WS2812B Streifen
+─────                     ───────────────
+GPIO 13 --[470O]--------> DI (Daten)
+GND     ----------------- GND
+5V      -------+
+                |
+          ------+------
+          | 5V Netzteil |
+          --------------
+              5V --------> 5V+ (LED)
+              GND ------- GND</pre>
+      <p class="text-warning small mt-2">⚠️ Bei Strips &gt; 1 m Laenge Strom nachspeisen.</p>
+    </div>
+  </div>
+
+  <!-- 2: config.h -->
+  <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-header d-flex justify-content-between align-items-center fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+      <span>📄 src/config.h – WLAN, API, LED</span>
+      <span class="badge bg-warning text-dark">Hier anpassen!</span>
+    </div>
+    <div class="card-body p-0">
+      <pre style="background:#1e1e2e; color:#cdd6f4; padding:1rem; margin:0; font-size:.8rem; overflow-x:auto; border-radius:0 0 .75rem .75rem;"><code>#ifndef CONFIG_H
+#define CONFIG_H
+
+const char* WLAN_SSID       = "DEIN_WLAN_NAME";
+const char* WLAN_PASS       = "DEIN_WLAN_PASSWORT";
+
+const char* API_URL = "http://192.168.178.69:18000/api/marked-items/";
+const char* API_KEY = "DEIN_FEEDBACK_API_KEY"; // aus .env
+
+const int   LED_PIN          = 13;
+const int   NUM_LEDS         = 60;     // <-- Anzahl LEDs anpassen!
+const int   BRIGHTNESS       = 80;
+
+const int   POLL_INTERVAL_MS = 3000;
+const int   LED_TIMEOUT_SEC  = 300;
+
+const uint32_t MARK_COLOR = strip.Color(0, 0, 255); // Blau
+
+#endif</code></pre>
+    </div>
+  </div>
+
+  <!-- 3: position_map.h -->
+  <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-header d-flex justify-content-between align-items-center fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+      <span>📄 src/position_map.h – Schubladen auf LEDs mappen</span>
+      <span class="badge bg-warning text-dark">Hier anpassen!</span>
+    </div>
+    <div class="card-body p-0">
+      <pre style="background:#1e1e2e; color:#cdd6f4; padding:1rem; margin:0; font-size:.8rem; overflow-x:auto; border-radius:0 0 .75rem .75rem;"><code>#ifndef POSITION_MAP_H
+#define POSITION_MAP_H
+
+struct PositionEntry {
+    int locationId;
+    int ledIndex;
+};
+
+// IDs findest du: Admin -> Lagerorte, oder via API
+const PositionEntry POSITION_MAP[] = {
+    {1,  0},   // Schublade 1 -> LED #0
+    {2,  1},   // Schublade 2 -> LED #1
+    {3,  2},   // Schublade 3 -> LED #2
+    {4,  3},   // Schublade 4 -> LED #3
+    {5,  4},   // Schublade 5 -> LED #4
+    {6,  5},   // Schublade 6 -> LED #5
+    {7,  6},   // Schublade 7 -> LED #6
+    {8,  7},   // Schublade 8 -> LED #7
+    {9,  8},   // Schublade 9 -> LED #8
+    {10, 9},  // Schublade 10 -> LED #9
+};
+
+const size_t POSITION_COUNT = sizeof(POSITION_MAP) / sizeof(POSITION_MAP[0]);
+
+#endif</code></pre>
+    </div>
+  </div>
+
+  <!-- 4: regal_led.ino -->
+  <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+      📄 src/regal_led.ino – Hauptprogramm <span class="badge bg-secondary ms-2">muss nicht angepasst werden</span>
+    </div>
+    <div class="card-body p-0">
+      <pre style="background:#1e1e2e; color:#cdd6f4; padding:1rem; margin:0; font-size:.8rem; overflow-x:auto; border-radius:0 0 .75rem .75rem;"><code>#include &lt;Arduino.h&gt;
+#include &lt;WiFi.h&gt;
+#include &lt;HTTPClient.h&gt;
+#include &lt;ArduinoJson.h&gt;
+#include &lt;Adafruit_NeoPixel.h&gt;
+#include "config.h"
+#include "position_map.h"
+
+Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+bool ledState[NUM_LEDS] = {false};
+unsigned long ledTimestamps[NUM_LEDS] = {0};
+
+void connectWiFi() {
+    Serial.print("Verbinde mit WLAN: ");
+    Serial.println(WLAN_SSID);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(WLAN_SSID, WLAN_PASS);
+    int a = 0;
+    while (WiFi.status() != WL_CONNECTED && a &lt; 40) {
+        delay(500); Serial.print("."); a++;
+    }
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println(); Serial.print("IP: "); Serial.println(WiFi.localIP());
+    } else {
+        Serial.println("\nFehlgeschlagen. Neustart...");
+        delay(30000); ESP.restart();
+    }
+}
+
+bool fetchMarkedItems(JsonDocument &doc) {
+    HTTPClient http;
+    String url = String(API_URL) + "?key=" + String(API_KEY);
+    http.begin(url); http.setTimeout(5000);
+    int code = http.GET();
+    if (code != 200) { http.end(); return false; }
+    DeserializationError err = deserializeJson(doc, http.getStream());
+    if (err) { http.end(); return false; }
+    http.end(); return true;
+}
+
+int locationIdToLed(int locationId) {
+    for (size_t i = 0; i &lt; POSITION_COUNT; i++)
+        if (POSITION_MAP[i].locationId == locationId) return POSITION_MAP[i].ledIndex;
+    return -1;
+}
+
+void updateLEDs() {
+    StaticJsonDocument&lt;16384&gt; doc;
+    if (!fetchMarkedItems(doc)) { Serial.println("API nicht erreichbar"); return; }
+    JsonArray marks = doc["marks"].as&lt;JsonArray&gt;();
+    bool newState[NUM_LEDS] = {false};
+    unsigned long now = millis();
+    for (JsonObject m : marks) {
+        int loc = m["location_id"] | 0;
+        if (loc == 0) continue;
+        int led = locationIdToLed(loc);
+        if (led &gt;= 0 && led &lt; NUM_LEDS) { newState[led] = true; ledTimestamps[led] = now; }
+    }
+    for (int i = 0; i &lt; NUM_LEDS; i++) {
+        if (newState[i] != ledState[i]) {
+            ledState[i] = newState[i];
+            strip.setPixelColor(i, newState[i] ? MARK_COLOR : 0);
+        } else if (newState[i] && (now - ledTimestamps[i] &gt; LED_TIMEOUT_SEC * 1000UL)) {
+            ledState[i] = false; strip.setPixelColor(i, 0);
+        }
+    }
+    strip.show();
+}
+
+void setup() {
+    Serial.begin(115200); delay(500);
+    Serial.println("\nESP32 Regal-LED v1.0");
+    strip.begin(); strip.setBrightness(BRIGHTNESS); strip.show();
+    connectWiFi();
+}
+
+void loop() {
+    if (WiFi.status() != WL_CONNECTED) connectWiFi();
+    updateLEDs();
+    delay(POLL_INTERVAL_MS);
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- 5: Flashen -->
+  <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+      🚀 ESP32 flashen
+    </div>
+    <div class="card-body">
+      <h6>Mit PlatformIO (empfohlen)</h6>
+      <ol>
+        <li>VS Code + PlatformIO Extension installieren</li>
+        <li>Ordner esp32-led-marker/ oeffnen</li>
+        <li>config.h und position_map.h anpassen</li>
+        <li>ESP per USB anschliessen</li>
+        <li>Auf Upload and Monitor klicken</li>
+      </ol>
+      <h6 class="mt-3">Mit Arduino IDE</h6>
+      <ol>
+        <li>regal_led.ino oeffnen</li>
+        <li>.h-Dateien muessen im gleichen Ordner liegen</li>
+        <li>Board: ESP32 Dev Module</li>
+        <li>Bibliotheken: Adafruit NeoPixel, ArduinoJson</li>
+        <li>Sketch -> Upload</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 6: Fehlersuche -->
+  <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+      🚨 Fehlersuche
+    </div>
+    <div class="card-body">
+      <table class="table table-sm" style="color:var(--text);">
+        <thead><tr><th>Problem</th><th>Loesung</th></tr></thead>
+        <tbody>
+          <tr><td>WLAN keine Verbindung</td><td>config.h: SSID/Passwort pruefen</td></tr>
+          <tr><td>Keine LEDs</td><td>LED_PIN (GPIO 13) und NUM_LEDS pruefen</td></tr>
+          <tr><td>API 403</td><td>API_KEY = FEEDBACK_API_KEY aus .env</td></tr>
+          <tr><td>API 404</td><td>API_URL: Port 18000 richtig?</td></tr>
+          <tr><td>nicht in POSITION_MAP</td><td>location_id in position_map.h ergaenzen</td></tr>
+          <tr><td>LEDs hinten dunkel</td><td>Strom nachspeisen (5V alle 2m)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
