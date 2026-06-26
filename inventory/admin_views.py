@@ -1216,7 +1216,8 @@ def admin_updates(request):
     context = {
         "branches": branches,
         "branch_statuses": branch_statuses,
-        "active_git_branch": settings_obj.active_git_branch,
+        "active_git_branch": _git_stdout(["rev-parse", "--abbrev-ref", "HEAD"])
+            or settings_obj.active_git_branch,
         "update_output": update_output,
         "update_error": update_error,
         "update_branch": update_branch,
