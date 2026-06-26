@@ -480,7 +480,7 @@
                       <form method="post" action="{% url 'mark-item' it.id %}">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <button class="action-link text-warning" type="submit">Markieren</button>
+                        <button class="action-link" type="submit">Markieren</button>
                       </form>
                     </li>
                   {% endif %}
@@ -515,7 +515,7 @@
                   {% endif %}
                   {% if features.enable_comments %}
                     <li>
-                      <button class="action-link text-info" type="button" data-bs-toggle="modal" data-bs-target="#commentModal{{ it.id }}">
+                      <button class="action-link" type="button" data-bs-toggle="modal" data-bs-target="#commentModal{{ it.id }}">
                         Kommentieren
                       </button>
                     </li>
