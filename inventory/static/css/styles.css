@@ -140,7 +140,7 @@ a:hover {
   border-radius: 0.6rem;
   padding: 0.6rem 0.75rem;
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
-  max-width: 320px;
+  max-width: 400px;
   margin-left: auto;
 }
 .action-menu-compact .action-list {
@@ -148,8 +148,8 @@ a:hover {
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.35rem 0.6rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
 }
 .action-menu-compact .action-list li {
   width: auto;
