@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 from . import views
 from .views import CustomAuthForm
 # API-Views
-from .api import FeedbackSummaryAPI, HAStatusAPI, SystemHealthAPI
+from .api import FeedbackSummaryAPI, HAStatusAPI, SystemHealthAPI, MarkedItemsAPI
 
 urlpatterns = [
     # 1) Frontend-Views
@@ -88,6 +88,9 @@ urlpatterns = [
     # 6) Health / HA-Status
     path('api/health/ha/', HAStatusAPI.as_view(), name='ha-health'),
     path('api/health/system/', SystemHealthAPI.as_view(), name='system-health'),
+
+    # 7) ESP-LED: aktuelle Markierungen abrufen
+    path('api/marked-items/', MarkedItemsAPI.as_view(), name='marked-items'),
 
     path("item/<int:pk>/move/",views.MoveItemToOverviewView.as_view(),name="move-item-to-overview",),
 

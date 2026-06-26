@@ -52,6 +52,7 @@ from .models import (
     FeedbackVote,
     ScheduledExport,
     ExportRun,
+    ItemMark,
 )
 from .integrations.homeassistant import notify_item_marked
 from .patch_notes import PATCH_NOTES, CURRENT_VERSION
@@ -1486,11 +1487,17 @@ class BarcodeListView(LoginRequiredMixin, View):
 class MarkItemAPI(LoginRequiredMixin, View):
     def post(self, request, item_id):
         item = get_object_or_404(InventoryItem, id=item_id)
-        ok = notify_item_marked(item, user=request.user)
-        if ok:
-            messages.success(request, f"{item.name} wurde an Home Assistant gemeldet.")
-        else:
-            messages.error(request, "Home Assistant konnte nicht erreicht werden.")
+
+        # In DB speichern (für ESP-LED-Anzeige)
+        ItemMark.objects.create(item=item, marked_by=request.user)
+
+        # Optional: HA-Event feuern (nicht blockierend)
+        try:
+            notify_item_marked(item, user=request.user)
+        except Exception:
+            pass
+
+        messages.success(request, f"{item.name} wurde markiert – LED leuchtet auf.")
 
         next_url = request.POST.get("next") or request.GET.get("next") or request.META.get("HTTP_REFERER")
         if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):

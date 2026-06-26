@@ -1037,3 +1037,51 @@ class Cable(models.Model):
 
     def __str__(self):
         return self.code
+
+
+class ItemMark(models.Model):
+    """
+    Speichert, welche Items aktuell zur Abholung/LED-Anzeige markiert sind.
+    Der ESP pollt /api/marked-items/ und leuchtet die entsprechende LED-Position.
+    Ein Mark läuft entweder per Auto-Timeout (cleared_at) oder manuell ab.
+    """
+    item = models.ForeignKey(
+        "InventoryItem",
+        on_delete=models.CASCADE,
+        related_name="marks",
+        verbose_name="Markiertes Item",
+    )
+    marked_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
+        verbose_name="Markiert am",
+    )
+    cleared_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name="Aufgehoben am",
+    )
+    marked_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Markiert von",
+    )
+
+    class Meta:
+        verbose_name = "Item-Markierung"
+        verbose_name_plural = "Item-Markierungen"
+        ordering = ["-marked_at"]
+        indexes = [
+            models.Index(fields=["cleared_at", "marked_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.item.name} (markiert um {self.marked_at.strftime('%H:%M:%S')})"
+
+    @property
+    def is_active(self) -> bool:
+        """True, solange die Markierung nicht aufgehoben wurde."""
+        return self.cleared_at is None

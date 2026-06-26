@@ -9,7 +9,7 @@ from django.views import View
 from django.http import JsonResponse, HttpResponseForbidden
 from django.utils.timezone import localtime, now
 
-from .models import Feedback
+from .models import Feedback, ItemMark
 from .admin_views import _get_tailscale_status, _get_global_settings
 from .integrations.homeassistant import check_available, get_status_tuple, get_diagnostics
 
@@ -134,3 +134,66 @@ class SystemHealthAPI(View):
         }
 
         return JsonResponse(payload, json_dumps_params={"ensure_ascii": False})
+
+
+class MarkedItemsAPI(View):
+    """
+    REST-API für den ESP32 (LED-Anzeige).
+    Gibt alle aktuell markierten Items mit ihrer Position zurück.
+
+    Aufruf:
+        GET /api/marked-items/?key=DEIN_KEY
+
+    Antwort:
+        {
+            "marks": [
+                {
+                    "id": 42,
+                    "name": "Schraube M8",
+                    "position": {
+                        "letter": "B",
+                        "number": 3,
+                        "shelf": "2"
+                    }
+                }
+            ],
+            "count": 1,
+            "checked_at": "2026-06-26T..."
+        }
+    """
+    def get(self, request):
+        guard = _require_key(request)
+        if guard is not None:
+            return guard
+
+        if not request.GET.get("all"):
+            marks = ItemMark.objects.filter(
+                cleared_at__isnull=True
+            ).select_related("item").order_by("-marked_at")
+        else:
+            marks = ItemMark.objects.select_related("item").order_by("-marked_at")[:50]
+
+        data = []
+        now_ts = now()
+        for mark in marks:
+            item = mark.item
+            pos = {
+                "letter": item.location_letter or "",
+                "number": item.location_number,
+                "shelf": item.location_shelf or "",
+            }
+            entry = {
+                "id": item.id,
+                "name": item.name,
+                "position": pos,
+                "mark_id": mark.id,
+                "marked_at": mark.marked_at.isoformat(),
+                "is_active": mark.is_active,
+            }
+            data.append(entry)
+
+        return JsonResponse({
+            "marks": data,
+            "count": len(data),
+            "checked_at": now_ts.isoformat(),
+        }, json_dumps_params={"ensure_ascii": False})
