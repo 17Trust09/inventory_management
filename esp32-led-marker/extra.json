@@ -1,0 +1,7 @@
+{
+    "name": "ESP32 Regal-LED Anzeige",
+    "version": "1.0.0",
+    "description": "Pollt die Lagerdatenbank nach markierten Items und leuchtet die entsprechende LED-Position auf einem WS2812B-Streifen.",
+    "frameworks": ["arduino"],
+    "platforms": ["espressif32"]
+}
