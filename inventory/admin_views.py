@@ -1713,5 +1713,18 @@ def admin_feedback_set_status(request, pk):
 
 @staff_required
 def admin_esp32_setup(request):
-    return render(request, "inventory/admin_esp32_setup.html")
+    settings_gs = GlobalSettings.load()
+    if request.method == "POST":
+        try:
+            secs = int(request.POST.get("esp_mark_auto_clear_seconds", 10))
+            secs = max(0, min(86400, secs))
+            settings_gs.esp_mark_auto_clear_seconds = secs
+            settings_gs.save()
+            messages.success(request, f"Auto-Clear auf {secs} Sekunden gesetzt.")
+            return redirect("admin_esp32_setup")
+        except (ValueError, TypeError):
+            messages.error(request, "Ungultige Eingabe.")
+    return render(request, "inventory/admin_esp32_setup.html", {
+        "auto_clear_seconds": settings_gs.esp_mark_auto_clear_seconds,
+    })
 

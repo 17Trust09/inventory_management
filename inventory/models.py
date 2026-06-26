@@ -235,6 +235,11 @@ class GlobalSettings(models.Model):
         default=True,
         verbose_name="Einheit anzeigen",
     )
+    esp_mark_auto_clear_seconds = models.PositiveIntegerField(
+        default=10,
+        verbose_name="Markierung automatisch löschen (Sekunden)",
+        help_text="Nach wie vielen Sekunden eine Markierung automatisch aufgehoben wird (0 = nie). Der ESP schaltet die LED dann aus.",
+    )
 
     def __str__(self):
         return "Globale Einstellungen"

@@ -16,7 +16,37 @@
     So richtest du den ESP32 ein, der markierte Lagerorte per LED anzeigt.
   </p>
 
-  <!-- 0: Funktionsweise -->
+  <!-- 0: Einstellungen -->
+  <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+    <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+      ⚙️ ESP-Einstellungen
+    </div>
+    <div class="card-body">
+      <form method="post" class="row g-3 align-items-end">
+        {% csrf_token %}
+        <div class="col-auto">
+          <label class="form-label" for="auto_clear_sec" style="color:var(--text);">Markierung automatisch löschen nach (Sekunden)</label>
+          <input type="number" id="auto_clear_sec" name="esp_mark_auto_clear_seconds"
+                 class="form-control" style="background:var(--surface-2); color:var(--text); border:1px solid var(--border);"
+                 min="0" max="86400" value="{{ auto_clear_seconds }}">
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary">Speichern</button>
+        </div>
+        <div class="col-auto">
+          <small class="text-muted ms-2">0 = nie automatisch löschen</small>
+        </div>
+      </form>
+      <hr>
+      <p class="mb-0" style="color:var(--text);">
+        🔄 Aktuelle Einstellung: <strong>{{ auto_clear_seconds }} Sekunden</strong>
+        – nach dieser Zeit wird eine Markierung beim nächsten API-Poll automatisch aufgehoben.
+        Der ESP schaltet die LED dann aus.
+      </p>
+    </div>
+  </div>
+
+  <!-- 1: Funktionsweise -->
   <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
     <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
       🔄 Funktionsweise
@@ -29,11 +59,12 @@
         <li>ESP pollt alle 3s die API</li>
         <li>API liefert location_id jedes markierten Items</li>
         <li>ESP mapped location_id auf LED und leuchtet sie</li>
+        <li>Nach der eingestellten Sekundenzahl wird die Markierung automatisch aufgehoben</li>
       </ol>
     </div>
   </div>
 
-  <!-- 1: Hardware -->
+  <!-- 2: Hardware -->
   <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
     <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
       🔌 Benötigte Hardware
@@ -65,7 +96,7 @@ GND     ----------------- GND
     </div>
   </div>
 
-  <!-- 2: config.h -->
+  <!-- 3: config.h -->
   <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
     <div class="card-header d-flex justify-content-between align-items-center fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
       <span>📄 src/config.h – WLAN, API, LED</span>
@@ -79,7 +110,7 @@ const char* WLAN_SSID       = "DEIN_WLAN_NAME";
 const char* WLAN_PASS       = "DEIN_WLAN_PASSWORT";
 
 const char* API_URL = "http://192.168.178.69:18000/api/marked-items/";
-const char* API_KEY = "DEIN_FEEDBACK_API_KEY"; // aus .env
+const char* API_KEY="DEIN_F..._KEY"; // aus .env
 
 const int   LED_PIN          = 13;
 const int   NUM_LEDS         = 60;     // <-- Anzahl LEDs anpassen!
@@ -88,13 +119,13 @@ const int   BRIGHTNESS       = 80;
 const int   POLL_INTERVAL_MS = 3000;
 const int   LED_TIMEOUT_SEC  = 300;
 
-const uint32_t MARK_COLOR = strip.Color(0, 0, 255); // Blau
+const uint32_t MARK_COLOR = 0x0000FF; // Blau
 
 #endif</code></pre>
     </div>
   </div>
 
-  <!-- 3: position_map.h -->
+  <!-- 4: position_map.h -->
   <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
     <div class="card-header d-flex justify-content-between align-items-center fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
       <span>📄 src/position_map.h – Schubladen auf LEDs mappen</span>
@@ -111,16 +142,14 @@ struct PositionEntry {
 
 // IDs findest du: Admin -> Lagerorte, oder via API
 const PositionEntry POSITION_MAP[] = {
-    {1,  0},   // Schublade 1 -> LED #0
-    {2,  1},   // Schublade 2 -> LED #1
-    {3,  2},   // Schublade 3 -> LED #2
-    {4,  3},   // Schublade 4 -> LED #3
-    {5,  4},   // Schublade 5 -> LED #4
-    {6,  5},   // Schublade 6 -> LED #5
-    {7,  6},   // Schublade 7 -> LED #6
-    {8,  7},   // Schublade 8 -> LED #7
-    {9,  8},   // Schublade 9 -> LED #8
-    {10, 9},  // Schublade 10 -> LED #9
+    {5,  0},   // Schublade 1 -> LED #0
+    {6,  1},   // Schublade 2 -> LED #1
+    {7,  2},   // Schublade 3 -> LED #2
+    {8,  3},   // Schublade 4 -> LED #3
+    {9,  4},   // Schublade 5 -> LED #4
+    {10, 5},   // Schublade 6 -> LED #5
+    {11, 6},   // Schublade 7 -> LED #6
+    {12, 7},   // Schublade 8 -> LED #7
 };
 
 const size_t POSITION_COUNT = sizeof(POSITION_MAP) / sizeof(POSITION_MAP[0]);
@@ -129,7 +158,7 @@ const size_t POSITION_COUNT = sizeof(POSITION_MAP) / sizeof(POSITION_MAP[0]);
     </div>
   </div>
 
-  <!-- 4: regal_led.ino -->
+  <!-- 5: regal_led.ino -->
   <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
     <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
       📄 src/regal_led.ino – Hauptprogramm <span class="badge bg-secondary ms-2">muss nicht angepasst werden</span>
@@ -145,27 +174,28 @@ const size_t POSITION_COUNT = sizeof(POSITION_MAP) / sizeof(POSITION_MAP[0]);
 
 Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 bool ledState[NUM_LEDS] = {false};
-unsigned long ledTimestamps[NUM_LEDS] = {0};
 
 void connectWiFi() {
+    Serial.println();
     Serial.print("Verbinde mit WLAN: ");
     Serial.println(WLAN_SSID);
     WiFi.mode(WIFI_STA);
     WiFi.begin(WLAN_SSID, WLAN_PASS);
-    int a = 0;
-    while (WiFi.status() != WL_CONNECTED && a &lt; 40) {
-        delay(500); Serial.print("."); a++;
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 40) {
+        delay(500); Serial.print("."); attempts++;
     }
     if (WiFi.status() == WL_CONNECTED) {
         Serial.println(); Serial.print("IP: "); Serial.println(WiFi.localIP());
     } else {
-        Serial.println("\nFehlgeschlagen. Neustart...");
+        Serial.println(); Serial.println("WLAN-Fehlgeschlagen. Neustart...");
         delay(30000); ESP.restart();
     }
 }
 
-bool fetchMarkedItems(JsonDocument &doc) {
+bool fetchMarkedItems(DynamicJsonDocument &doc) {
     HTTPClient http;
+    if (WiFi.status() != WL_CONNECTED) return false;
     String url = String(API_URL) + "?key=" + String(API_KEY);
     http.begin(url); http.setTimeout(5000);
     int code = http.GET();
@@ -176,29 +206,31 @@ bool fetchMarkedItems(JsonDocument &doc) {
 }
 
 int locationIdToLed(int locationId) {
-    for (size_t i = 0; i &lt; POSITION_COUNT; i++)
+    for (size_t i = 0; i < POSITION_COUNT; i++)
         if (POSITION_MAP[i].locationId == locationId) return POSITION_MAP[i].ledIndex;
     return -1;
 }
 
 void updateLEDs() {
-    StaticJsonDocument&lt;16384&gt; doc;
-    if (!fetchMarkedItems(doc)) { Serial.println("API nicht erreichbar"); return; }
-    JsonArray marks = doc["marks"].as&lt;JsonArray&gt;();
-    bool newState[NUM_LEDS] = {false};
-    unsigned long now = millis();
-    for (JsonObject m : marks) {
-        int loc = m["location_id"] | 0;
-        if (loc == 0) continue;
-        int led = locationIdToLed(loc);
-        if (led &gt;= 0 && led &lt; NUM_LEDS) { newState[led] = true; ledTimestamps[led] = now; }
+    Serial.println("Frage API ab...");
+    DynamicJsonDocument doc(8192);
+    if (!fetchMarkedItems(doc)) { Serial.println("API nicht erreichbar."); return; }
+    JsonArray marks = doc["marks"].as<JsonArray>();
+    int count = doc["count"].as<int>();
+    Serial.print("API Antwort: "); Serial.print(count); Serial.println(" markierte Items");
+    for (int i = 0; i < NUM_LEDS; i++) {
+        if (ledState[i]) { ledState[i] = false; strip.setPixelColor(i, 0); }
     }
-    for (int i = 0; i &lt; NUM_LEDS; i++) {
-        if (newState[i] != ledState[i]) {
-            ledState[i] = newState[i];
-            strip.setPixelColor(i, newState[i] ? MARK_COLOR : 0);
-        } else if (newState[i] && (now - ledTimestamps[i] &gt; LED_TIMEOUT_SEC * 1000UL)) {
-            ledState[i] = false; strip.setPixelColor(i, 0);
+    for (JsonObject mark : marks) {
+        int locationId = mark["location_id"] | 0;
+        if (locationId == 0) continue;
+        int ledIdx = locationIdToLed(locationId);
+        if (ledIdx >= 0 && ledIdx < NUM_LEDS) {
+            Serial.printf("  -> Location-ID %d -> LED %d\n", locationId, ledIdx);
+            ledState[ledIdx] = true;
+            strip.setPixelColor(ledIdx, MARK_COLOR);
+        } else {
+            Serial.printf("  -> Location-ID %d (%s) nicht in POSITION_MAP\n", locationId, mark["name"] | "?");
         }
     }
     strip.show();
@@ -206,20 +238,21 @@ void updateLEDs() {
 
 void setup() {
     Serial.begin(115200); delay(500);
-    Serial.println("\nESP32 Regal-LED v1.0");
+    Serial.println(); Serial.println("ESP32 Regal-LED v1.0");
     strip.begin(); strip.setBrightness(BRIGHTNESS); strip.show();
+    Serial.printf("LEDs: %d (Pin %d)\n", NUM_LEDS, LED_PIN);
     connectWiFi();
+    updateLEDs();
 }
 
 void loop() {
-    if (WiFi.status() != WL_CONNECTED) connectWiFi();
-    updateLEDs();
     delay(POLL_INTERVAL_MS);
+    updateLEDs();
 }</code></pre>
     </div>
   </div>
 
-  <!-- 5: Flashen -->
+  <!-- 6: Flashen -->
   <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
     <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
       🚀 ESP32 flashen
@@ -244,7 +277,7 @@ void loop() {
     </div>
   </div>
 
-  <!-- 6: Fehlersuche -->
+  <!-- 7: Fehlersuche -->
   <div class="card mb-4 shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
     <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
       🚨 Fehlersuche
@@ -255,9 +288,10 @@ void loop() {
         <tbody>
           <tr><td>WLAN keine Verbindung</td><td>config.h: SSID/Passwort pruefen</td></tr>
           <tr><td>Keine LEDs</td><td>LED_PIN (GPIO 13) und NUM_LEDS pruefen</td></tr>
-          <tr><td>API 403</td><td>API_KEY = FEEDBACK_API_KEY aus .env</td></tr>
+          <tr><td>API 403</td><td>API_KEY=*** aus .env</td></tr>
           <tr><td>API 404</td><td>API_URL: Port 18000 richtig?</td></tr>
           <tr><td>nicht in POSITION_MAP</td><td>location_id in position_map.h ergaenzen</td></tr>
+          <tr><td>Markierung bleibt zu lange</td><td>Auto-Clear-Sekunden oben einstellen</td></tr>
           <tr><td>LEDs hinten dunkel</td><td>Strom nachspeisen (5V alle 2m)</td></tr>
         </tbody>
       </table>

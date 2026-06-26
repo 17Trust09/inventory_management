@@ -168,6 +168,25 @@ class MarkedItemsAPI(View):
         guard = _require_key(request)
         if guard is not None:
             return guard
+        # Automatisch abgelaufene Markierungen löschen (ESP-Auto-Clear)
+        from django.utils.timezone import now as dj_now
+        from datetime import timedelta
+        import logging
+        logger = logging.getLogger(__name__)
+        from .models import GlobalSettings
+
+        gs = GlobalSettings.load()
+        if gs.esp_mark_auto_clear_seconds > 0:
+            cutoff = dj_now() - timedelta(seconds=gs.esp_mark_auto_clear_seconds)
+            expired = ItemMark.objects.filter(
+                cleared_at__isnull=True,
+                marked_at__lt=cutoff
+            )
+            ec = expired.count()
+            if ec:
+                expired.update(cleared_at=dj_now())
+                logger.info(f"ESP-Auto-Clear: {ec} Markierung(en) aufgehoben")
+
 
         if not request.GET.get("all"):
             marks = ItemMark.objects.filter(
