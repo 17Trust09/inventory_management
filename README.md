@@ -102,6 +102,17 @@ INVENTORY_BASE_URL=http://192.168.178.69:18000
 
 Damit der "Markieren"-Button im Dashboard sichtbar ist, muss in den **Globalen Einstellungen** (Admin → Globale Einstellungen) die Option **"Markieren-Button anzeigen"** aktiviert werden.
 
+### Auto-Clear (Markierungen automatisch aufheben)
+
+In **Admin → Globale Einstellungen** gibt es das Feld **"Markierung automatisch löschen (Sekunden)"** (`esp_mark_auto_clear_seconds`).
+
+- **Standardwert:** 10 Sekunden
+- Wenn ein Item markiert wird und nach X Sekunden kein API-Poll vom ESP kommt (z. B. ESP aus), wird die Markierung automatisch aufgehoben
+- **0 = nie löschen** (manuell per Dashboard-Klick)
+- Der ESP selbst timeoutet LEDs nach `LED_TIMEOUT_SEC` (config.h), der Server hebelt die DB-Markierung nach `esp_mark_auto_clear_seconds` auf
+
+Hinweis: Das GlobalSettings-Model verwendet **kein django-solo**, sondern `GlobalSettings.objects.first() or GlobalSettings.objects.create()`. Dieses Pattern wird in `api.py` und `views.py` verwendet.
+
 ---
 
 ## 🔴 ESP32 – Regal-LED-Anzeige

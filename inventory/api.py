@@ -175,7 +175,7 @@ class MarkedItemsAPI(View):
         logger = logging.getLogger(__name__)
         from .models import GlobalSettings
 
-        gs = GlobalSettings.load()
+        gs = GlobalSettings.objects.first() or GlobalSettings.objects.create()
         if gs.esp_mark_auto_clear_seconds > 0:
             cutoff = dj_now() - timedelta(seconds=gs.esp_mark_auto_clear_seconds)
             expired = ItemMark.objects.filter(
