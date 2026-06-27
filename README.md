@@ -9,6 +9,7 @@ Voll funktionsfähiges Inventarverwaltungssystem mit Dashboard, Barcode/NFC-Unte
 | Funktion | Beschreibung |
 |---|---|
 | **Dashboard** | Modulare Overviews mit Filter, Sortierung, Export |
+
 | **Items** | Equipment + Verbrauchsmaterial mit Mengenverwaltung |
 | **Barcode & QR** | Automatische Generierung von Barcodes/QR-Codes pro Item |
 | **NFC-Tags** | NFC-Token für schnellen Zugriff per Smartphone |
@@ -24,7 +25,26 @@ Voll funktionsfähiges Inventarverwaltungssystem mit Dashboard, Barcode/NFC-Unte
 
 ## 🚀 Installation & Betrieb
 
-### Variante A: Docker auf Unraid (empfohlen)
+### Variante A: Raspberry Pi / Debian – Ein-Befehl-Setup (NEU)
+
+Das Skript installiert alles automatisch: PostgreSQL, Python, Django, systemd-Service, Admin-User.
+
+```bash
+sudo apt install -y curl
+sudo bash -c "$(curl -sL https://raw.githubusercontent.com/17Trust09/inventory_management/main/setup.sh)"
+```
+
+Oder nach dem Klonen:
+
+```bash
+git clone https://github.com/17Trust09/inventory_management.git
+cd inventory_management
+sudo bash setup.sh
+```
+
+Das Skript erstellt einen systemd-Service (`inventory_app`), der beim Boot automatisch startet.
+
+### Variante B: Docker auf Unraid (empfohlen)
 
 Siehe [`docs/unraid-docker.md`](docs/unraid-docker.md) für die vollständige Anleitung.
 
