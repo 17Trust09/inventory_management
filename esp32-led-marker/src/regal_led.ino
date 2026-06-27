@@ -22,6 +22,7 @@
  * LED-Position-Mapping:
  *   Der ESP muss wissen, welche LED zu welcher Position gehört.
  *   Anpassbar in position_map.h.
+ *   Jeder Lagerort kann 1, 2, 3 oder mehr LEDs bekommen (ledCount).
  */
 
 #include <Arduino.h>
@@ -95,15 +96,25 @@ bool fetchMarkedItems(JsonDocument &doc) {
     return true;
 }
 
-// ── Location-ID → LED-Index ─────────────────────────────────────────────────
-int locationIdToLed(int locationId) {
-    // Sucht in der position_map nach der passenden location_id
+// ── Location-ID → LEDs an/aus ──────────────────────────────────────────────
+// Schaltet ALLE LEDs, die zu dieser location_id gehören (laut POSITION_MAP).
+// turnOn=true  → LEDs einschalten + Zeitstempel setzen
+// turnOn=false → LEDs ausschalten
+void setLocationLeds(int locationId, bool turnOn, bool newState[], unsigned long ledTimestamps[], unsigned long nowMs) {
+    bool found = false;
     for (size_t i = 0; i < POSITION_COUNT; i++) {
         if (POSITION_MAP[i].locationId == locationId) {
-            return POSITION_MAP[i].ledIndex;
+            found = true;
+            int start = POSITION_MAP[i].ledStart;
+            int count = POSITION_MAP[i].ledCount;
+            for (int led = start; led < start + count && led < NUM_LEDS; led++) {
+                newState[led] = true;
+                if (turnOn) {
+                    ledTimestamps[led] = nowMs;
+                }
+            }
         }
     }
-    return -1;  // Nicht gefunden
 }
 
 // ── Markierungs-Logik ─────────────────────────────────────────────────────────
@@ -137,14 +148,7 @@ void updateLEDs() {
             continue;
         }
 
-        int ledIdx = locationIdToLed(locationId);
-        if (ledIdx >= 0 && ledIdx < NUM_LEDS) {
-            newState[ledIdx] = true;
-            ledTimestamps[ledIdx] = nowMs;
-        } else {
-            const char *name = mark["name"] | "?";
-            Serial.printf("  ❓ location_id=%d (%s) nicht in POSITION_MAP\n", locationId, name);
-        }
+        setLocationLeds(locationId, true, newState, ledTimestamps, nowMs);
     }
 
     // LEDs aktualisieren (nur bei Änderung, um Flackern zu vermeiden)
@@ -172,7 +176,7 @@ void setup() {
     delay(500);
 
     Serial.println("\n===================================");
-    Serial.println("  ESP32 Regal-LED Anzeige v1.0");
+    Serial.println("  ESP32 Regal-LED Anzeige v1.1");
     Serial.println("===================================");
 
     // LED-Streifen initialisieren

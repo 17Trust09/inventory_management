@@ -201,18 +201,23 @@ const uint32_t MARK_COLOR = strip.Color(0, 0, 255);  // Blau
 
 ### Position-Mapping (`esp32-led-marker/src/position_map.h`)
 
-Jede **Schublade / jeder Lagerort** bekommt genau eine LED.
-Das Mapping ist `location_id → LED-Index`:
+Jeder **Lagerort** kann eine oder mehrere LEDs bekommen.
+`ledCount` bestimmt, wie viele LEDs nebeneinander leuchten (1 = eine LED, 3 = stärkere Markierung).
 
 ```c++
 const PositionEntry POSITION_MAP[] = {
-    // {location_id, LED_Index}
-    {1,  0},   // Schublade 1  → LED #0
-    {2,  1},   // Schublade 2  → LED #1
-    {3,  2},   // Schublade 3  → LED #2
+    // {location_id, ledStart, ledCount}
+    {1,  0,  3},   // Schublade 1  → LEDs 0,1,2   (3 LEDs = breite Markierung)
+    {2,  3,  3},   // Schublade 2  → LEDs 3,4,5
+    {3,  6,  1},   // Schublade 3  → LED  6       (1 LED = schmale Markierung)
+    {4,  7,  1},   // Schublade 4  → LED  7
     ...
 };
 ```
+
+**Wichtig:** Achte darauf, dass sich die LED-Bereiche nicht überschneiden!
+- Schublade 1 belegt LEDs 0-2 → nächste Start-LED ist 3
+- `ledStart + ledCount` der einen muss ≤ `ledStart` der nächsten sein
 
 So findest du die `location_id`:
 - Via API: `curl "http://DEINE_IP:18000/api/marked-items/?key=KEY"` → Feld `location_id`
