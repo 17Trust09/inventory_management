@@ -42,11 +42,15 @@
       color: var(--text);
       border: 1px solid var(--border);
       border-radius: 1rem;
-      overflow: hidden;
     }
     .table-darkish thead tr{
       background: var(--surface-2);
       color: var(--text);
+    }
+    /* table-responsive wrapper benötigt overflow-x:auto, daher Border-Radius
+       auf die Tabelle verschieben, nicht auf den Wrapper */
+    .table-responsive > .table-darkish {
+      border-radius: 1rem;
     }
     .table-darkish a{ color: inherit; }
 

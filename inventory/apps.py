@@ -11,3 +11,11 @@ class InventoryConfig(AppConfig):
         # Signals für UserProfile-Erstellung und Default-Tag/-Group laden
         import inventory.signals
         import inventory.checks
+
+        # GlobalSettings-Thread-Cache bei jedem Request-Start leeren
+        from django.core.signals import request_started
+        from .utils import clear_global_settings_cache
+        request_started.connect(
+            clear_global_settings_cache,
+            dispatch_uid="clear_global_settings_cache",
+        )

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from .models import GlobalSettings
+from .utils import get_global_settings
 
 
 DEFAULT_FEATURE_FLAGS = {
@@ -29,7 +29,7 @@ DEFAULT_FEATURE_FLAGS = {
 
 def get_feature_flags() -> dict[str, bool]:
     flags = DEFAULT_FEATURE_FLAGS.copy()
-    settings = GlobalSettings.objects.first()
+    settings = get_global_settings()
     if settings:
         flags.update(
             {

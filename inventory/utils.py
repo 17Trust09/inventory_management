@@ -1,41 +1,33 @@
-# inventory/utils.py
-#
-# Vereinfachte Zugriffskontrolle:
-# - Nur Login ist nötig. Es gibt KEINE rollen- oder seitenbasierte Prüfung mehr.
-# - Decorator und Mixin bleiben bestehen, damit bestehender Code unverändert funktioniert.
+"""
+Hilfsfunktionen für inventory_management.
+"""
 
-from functools import wraps
+import threading
+from .models import GlobalSettings
 
-from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseForbidden
-from django.shortcuts import redirect
+_thread_locals = threading.local()
 
 
-def page_view_permission_required(view_func):
+def get_global_settings():
     """
-    Decorator für Funktions-Views: erzwingt ausschließlich Login.
-    Nach erfolgreichem Login gibt es KEINE weitere Rechteprüfung.
+    Gibt GlobalSettings-Instanz zurück – mit Thread-Caching pro Request.
+
+    Der Cache wird beim ersten Aufruf innerhalb eines Request-Threads befüllt
+    und gilt bis zum Ende des Requests. So wird GlobalSettings.objects.first()
+    nicht mehrfach pro Request aus der DB geladen.
+
+    Der Cache wird automatisch über den request_started-Hook zurückgesetzt,
+    der in apps.py registriert ist.
     """
-    @wraps(view_func)
-    def _wrapped(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            messages.warning(request, "Bitte melde dich an.")
-            return redirect("login")
-        # Nach Login immer erlauben
-        return view_func(request, *args, **kwargs)
-    return _wrapped
+    if not hasattr(_thread_locals, "global_settings_cached"):
+        _thread_locals.global_settings_cached = True
+        _thread_locals.global_settings = GlobalSettings.objects.first()
+    return _thread_locals.global_settings
 
 
-class PageViewPermissionRequiredMixin(LoginRequiredMixin):
-    """
-    Mixin für Class-Based-Views: erzwingt ausschließlich Login.
-    Nach erfolgreichem Login gibt es KEINE weitere Rechteprüfung.
-    """
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            messages.warning(request, "Bitte melde dich an.")
-            return redirect("login")
-        # Nach Login immer erlauben
-        return super().dispatch(request, *args, **kwargs)
+def clear_global_settings_cache():
+    """Setzt den Cache zurück – wird bei jedem Request-Start aufgerufen."""
+    if hasattr(_thread_locals, "global_settings_cached"):
+        del _thread_locals.global_settings_cached
+    if hasattr(_thread_locals, "global_settings"):
+        del _thread_locals.global_settings

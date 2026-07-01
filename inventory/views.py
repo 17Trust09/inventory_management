@@ -1802,9 +1802,16 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
             .distinct()
         )
         storage_locations.sort(key=lambda loc: loc.get_full_path().lower())
-        favorites = base_qs.filter(is_favorite=True).order_by("name")[:6]
+        # Favoriten separat laden: schlanker Query statt base_qs (das paginierte QS) erneut zu evaluieren
+        favorites = []
         overview_is_favorite = False
         if _feature_enabled("show_favorites"):
+            favorites = list(
+                InventoryItem.objects
+                .filter(overview=self.overview, is_favorite=True)
+                .only("id", "name", "overview")
+                .order_by("name")[:6]
+            )
             profile = UserProfile.objects.filter(user=self.request.user).first()
             overview_is_favorite = bool(
                 profile and profile.favorite_overviews.filter(pk=self.overview.pk).exists()
