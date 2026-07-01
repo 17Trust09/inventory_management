@@ -1,5 +1,5 @@
 from .feature_flags import get_feature_flags_namespace
-from .utils import get_global_settings
+from .threadlocal import get_global_settings
 from .models import Overview
 
 

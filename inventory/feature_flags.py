@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from .utils import get_global_settings
+from .threadlocal import get_global_settings
 
 # Nur diese Felder aus GlobalSettings gelten als Feature-Flags.
 # Alle BooleanField-Namen, die NICHT in diesem Set sind, werden ignoriert
