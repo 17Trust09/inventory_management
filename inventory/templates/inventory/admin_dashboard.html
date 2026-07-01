@@ -250,6 +250,7 @@
                       <th>Name</th>
                       <th class="d-none d-md-table-cell">Angefragt von</th>
                       <th class="d-none d-md-table-cell">Datum</th>
+                      <th class="text-end">Aktionen</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -259,6 +260,21 @@
                         <td class="fw-semibold">{{ req.name }}</td>
                         <td class="d-none d-md-table-cell">{{ req.requested_by.username }}</td>
                         <td class="d-none d-md-table-cell">{{ req.created_at|date:"d.m.Y H:i" }}</td>
+                        <td class="text-end">
+                          <div class="btn-group btn-group-sm" role="group">
+                            <form method="post" action="{% url 'admin_pending_category_approve' req.id %}" class="d-inline">
+                              {% csrf_token %}
+                              <input type="hidden" name="action" value="approve">
+                              <button type="submit" class="btn btn-outline-success">Freigeben</button>
+                            </form>
+                            <form method="post" action="{% url 'admin_pending_category_approve' req.id %}" class="d-inline">
+                              {% csrf_token %}
+                              <input type="hidden" name="action" value="reject">
+                              <button type="submit" class="btn btn-outline-danger"
+                                      onclick="return confirm('Anfrage wirklich ablehnen?')">Ablehnen</button>
+                            </form>
+                          </div>
+                        </td>
                       </tr>
                     {% endfor %}
                     {% for req in pending_tag_reqs %}
@@ -267,6 +283,21 @@
                         <td class="fw-semibold">{{ req.name }}</td>
                         <td class="d-none d-md-table-cell">{{ req.requested_by.username }}</td>
                         <td class="d-none d-md-table-cell">{{ req.created_at|date:"d.m.Y H:i" }}</td>
+                        <td class="text-end">
+                          <div class="btn-group btn-group-sm" role="group">
+                            <form method="post" action="{% url 'admin_pending_tag_approve' req.id %}" class="d-inline">
+                              {% csrf_token %}
+                              <input type="hidden" name="action" value="approve">
+                              <button type="submit" class="btn btn-outline-success">Freigeben</button>
+                            </form>
+                            <form method="post" action="{% url 'admin_pending_tag_approve' req.id %}" class="d-inline">
+                              {% csrf_token %}
+                              <input type="hidden" name="action" value="reject">
+                              <button type="submit" class="btn btn-outline-danger"
+                                      onclick="return confirm('Anfrage wirklich ablehnen?')">Ablehnen</button>
+                            </form>
+                          </div>
+                        </td>
                       </tr>
                     {% endfor %}
                   </tbody>

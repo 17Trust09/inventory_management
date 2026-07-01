@@ -43,3 +43,25 @@ class CategoryDeleteView(StaffRequiredMixin, DeleteView):
     def get_success_url(self):
         messages.success(self.request, f"Kategorie „{self.object.name}“ gelöscht.")
         return reverse('admin_categories')
+
+
+# ---------------------------------------------------------------------------
+# Pending-Kategorie-Anfrage: Freigabe / Ablehnen
+# ---------------------------------------------------------------------------
+@staff_required
+def admin_pending_category_approve(request, pk):
+    from ..models import PendingCategoryRequest, Category
+    pending = get_object_or_404(PendingCategoryRequest, pk=pk)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "approve":
+            Category.objects.get_or_create(name=pending.name)
+            pending.approved = True
+            pending.save()
+            messages.success(request, f"Kategorie „{pending.name}“ freigegeben und angelegt.")
+        elif action == "reject":
+            pending.approved = False
+            pending.save()
+            messages.success(request, f"Kategorie-Anfrage „{pending.name}“ abgelehnt.")
+        return redirect('admin_dashboard')
+    return redirect('admin_dashboard')

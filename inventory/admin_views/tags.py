@@ -88,3 +88,25 @@ class TagTypeDeleteView(StaffRequiredMixin, DeleteView):
     def get_success_url(self):
         messages.success(self.request, f"TagType „{self.object.name}“ gelöscht.")
         return reverse('admin_tagtypes')
+
+
+# ---------------------------------------------------------------------------
+# Pending-Tag-Anfrage: Freigabe / Ablehnen
+# ---------------------------------------------------------------------------
+@staff_required
+def admin_pending_tag_approve(request, pk):
+    from ..models import PendingTagRequest, ApplicationTag
+    pending = get_object_or_404(PendingTagRequest, pk=pk)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "approve":
+            ApplicationTag.objects.get_or_create(name=pending.name)
+            pending.approved = True
+            pending.save()
+            messages.success(request, f"Tag „{pending.name}“ freigegeben und angelegt.")
+        elif action == "reject":
+            pending.approved = False
+            pending.save()
+            messages.success(request, f"Tag-Anfrage „{pending.name}“ abgelehnt.")
+        return redirect('admin_dashboard')
+    return redirect('admin_dashboard')

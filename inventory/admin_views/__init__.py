@@ -9,8 +9,8 @@ from .helpers import (
     ApplicationTagForm, CategoryForm,
 )
 from .dashboard import dashboard
-from .categories import admin_categories_overview, CategoryCreateView, CategoryUpdateView, CategoryDeleteView
-from .tags import admin_tags_overview, ApplicationTagCreateView, ApplicationTagUpdateView, ApplicationTagDeleteView
+from .categories import admin_categories_overview, CategoryCreateView, CategoryUpdateView, CategoryDeleteView, admin_pending_category_approve
+from .tags import admin_tags_overview, ApplicationTagCreateView, ApplicationTagUpdateView, ApplicationTagDeleteView, admin_pending_tag_approve
 from .items import InventoryItemListView, admin_item_edit, admin_item_delete, BorrowedItemListView, admin_qr_codes_view
 from .users import (
     admin_userprofile_edit, admin_user_toggle_active,

@@ -14,10 +14,16 @@ from .admin_views import (
     CategoryUpdateView,
     CategoryDeleteView,
 
+    # Kategorien – Pending-Anfragen
+    admin_pending_category_approve,
+
     # Tags – einheitliches CRUD
     ApplicationTagCreateView,
     ApplicationTagUpdateView,
     ApplicationTagDeleteView,
+
+    # Tags – Pending-Anfragen
+    admin_pending_tag_approve,
 
     # Items & Vorgänge
     InventoryItemListView,
@@ -78,12 +84,14 @@ urlpatterns = [
     path('categories/add/', CategoryCreateView.as_view(), name='admin_category_add'),
     path('categories/<int:pk>/edit/', CategoryUpdateView.as_view(), name='admin_category_edit'),
     path('categories/<int:pk>/delete/', CategoryDeleteView.as_view(), name='admin_category_delete'),
+    path('categories/<int:pk>/approve/', admin_pending_category_approve, name='admin_pending_category_approve'),
 
     # Tags (global) + einheitliche CRUD
     path('tags/', admin_tags_overview, name='admin_tags_overview'),
     path('tags/add/', ApplicationTagCreateView.as_view(), name='admin_tag_add'),
     path('tags/<int:pk>/edit/', ApplicationTagUpdateView.as_view(), name='admin_tag_edit'),
     path('tags/<int:pk>/delete/', ApplicationTagDeleteView.as_view(), name='admin_tag_delete'),
+    path('tags/<int:pk>/approve/', admin_pending_tag_approve, name='admin_pending_tag_approve'),
 
     # Items & Vorgänge
     path('items/', InventoryItemListView.as_view(), name='admin_items'),
