@@ -16,6 +16,6 @@ class InventoryConfig(AppConfig):
         from django.core.signals import request_started
         from .threadlocal import clear_global_settings_cache
         request_started.connect(
-            clear_global_settings_cache,
+            lambda **kwargs: clear_global_settings_cache(),
             dispatch_uid="clear_global_settings_cache",
         )
