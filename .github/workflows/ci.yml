@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, fix/*, optimierung/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    name: Lint & Syntax-Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Abhängigkeiten installieren
+        run: |
+          python -m pip install --upgrade pip
+          pip install django python-barcode qrcode pillow openpyxl requests
+          pip install ruff
+
+      - name: Ruff lint
+        run: ruff check inventory/ inventory_management/ --ignore=E501,F403,F405
+
+  test:
+    name: Tests
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Abhängigkeiten installieren
+        run: |
+          python -m pip install --upgrade pip
+          pip install django python-barcode qrcode pillow openpyxl requests
+          pip install django-jazzmin  # optional, aber im settings.py referenziert
+
+      - name: Tests ausführen
+        run: |
+          cd inventory
+          python manage.py test inventory --verbosity=2
+
+  build:
+    name: Build-Prüfung (collectstatic)
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Abhängigkeiten installieren
+        run: |
+          python -m pip install --upgrade pip
+          pip install django python-barcode qrcode pillow openpyxl requests
+
+      - name: collectstatic
+        run: |
+          python manage.py collectstatic --noinput --clear
+        env:
+          DJANGO_SECRET_KEY: "ci-test-key-not-for-production"
+          DJANGO_DEBUG: "false"
+          HA_API_TOKEN: ""
+          HA_URL: ""
