@@ -47,6 +47,12 @@ class DashboardSelectorView(LoginRequiredMixin, TemplateView):
         allowed = _allowed_overviews_for_user(self.request.user)
         overviews = list(allowed)
         ctx["overviews"] = overviews
+        # Eigene angefragte Dashboards (inaktiv, von diesem User)
+        my_pending = Overview.objects.filter(
+            is_active=False,
+            requested_by=self.request.user,
+        ).order_by("-id")
+        ctx["pending_overviews"] = list(my_pending)
         if _feature_enabled("show_favorites"):
             profile = UserProfile.objects.filter(user=self.request.user).first()
             favorite_ids = set(

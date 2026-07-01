@@ -44,20 +44,6 @@
         <div class="text-danger small">{{ form.description.errors }}</div>
       </div>
 
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label fw-semibold">{{ form.order.label }}</label>
-          {{ form.order }}
-          <div class="text-danger small">{{ form.order.errors }}</div>
-        </div>
-        <div class="col-md-4 mb-3 form-check mt-4">
-          {{ form.is_active }}
-          <label class="form-check-label ms-1">{{ form.is_active.label }}</label>
-          <div class="form-text">Wird erst nach Admin-Freigabe aktiv.</div>
-          <div class="text-danger small">{{ form.is_active.errors }}</div>
-        </div>
-      </div>
-
       <div class="mb-3">
         <label class="form-label fw-semibold">{{ form.categories.label }}</label>
         <div class="d-flex flex-wrap gap-2 mb-2">
@@ -110,42 +96,6 @@
           </div>
           <div class="col">
             <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
-              {{ form.has_locations }}
-              <label class="form-check-label ms-1">{{ form.has_locations.label }}</label>
-            </div>
-          </div>
-          <div class="col">
-            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
-              {{ form.has_min_stock }}
-              <label class="form-check-label ms-1">{{ form.has_min_stock.label }}</label>
-            </div>
-          </div>
-          <div class="col">
-            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
-              {{ form.enable_borrow }}
-              <label class="form-check-label ms-1">{{ form.enable_borrow.label }}</label>
-            </div>
-          </div>
-          <div class="col">
-            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
-              {{ form.is_consumable_mode }}
-              <label class="form-check-label ms-1">{{ form.is_consumable_mode.label }}</label>
-            </div>
-          </div>
-          <div class="col">
-            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
-              {{ form.require_qr }}
-              <label class="form-check-label ms-1">{{ form.require_qr.label }}</label>
-            </div>
-          </div>
-          <div class="col">
-            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
-              {{ form.enable_quick_adjust }}
-              <label class="form-check-label ms-1">{{ form.enable_quick_adjust.label }}</label>
-            </div>
-          </div>
-          <div class="col">
-            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
               {{ form.show_images }}
               <label class="form-check-label ms-1">{{ form.show_images.label }}</label>
             </div>
@@ -158,14 +108,11 @@
           </div>
           <div class="col">
             <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
-              {{ form.enable_mark_button }}
-              <label class="form-check-label ms-1">{{ form.enable_mark_button.label }}</label>
-            </div>
-          </div>
-          <div class="col">
-            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
-              {{ form.enable_advanced_filters }}
-              <label class="form-check-label ms-1">{{ form.enable_advanced_filters.label }}</label>
+              {{ form.show_order_button }}
+              <label class="form-check-label ms-1">{{ form.show_order_button.label }}</label>
+              <div class="text-muted small mt-1">
+                Zeigt „Nachbestellen“ nur, wenn im Item ein Bestell-Link hinterlegt ist.
+              </div>
             </div>
           </div>
           <div class="col">
@@ -177,15 +124,6 @@
               </div>
             </div>
           </div>
-          <div class="col">
-            <div class="form-check border rounded p-2 h-100" style="border-color:var(--border);">
-              {{ form.show_order_button }}
-              <label class="form-check-label ms-1">{{ form.show_order_button.label }}</label>
-              <div class="text-muted small mt-1">
-                Zeigt „Nachbestellen“ nur, wenn im Item ein Bestell-Link hinterlegt ist.
-              </div>
-            </div>
-          </div>
         </div>
       </fieldset>
 
@@ -194,6 +132,10 @@
         {{ form.config }}
         <div class="form-text">Optionales JSON für individuelle Karten/Widgets.</div>
         <div class="text-danger small">{{ form.config.errors }}</div>
+      </div>
+
+      <div class="alert alert-warning mt-3">
+        ⏳ Nach dem Absenden ist dein Dashboard erst sichtbar, wenn ein Admin es freigeschaltet hat.
       </div>
     </div>
 

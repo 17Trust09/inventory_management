@@ -325,7 +325,17 @@
                             <form method="post" action="{% url 'admin_overview_approve' ov.id %}" class="d-inline">
                               {% csrf_token %}
                               <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                              <input type="hidden" name="action" value="approve">
                               <button type="submit" class="btn btn-outline-success">Freigeben</button>
+                            </form>
+                            <form method="post" action="{% url 'admin_overview_approve' ov.id %}" class="d-inline">
+                              {% csrf_token %}
+                              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                              <input type="hidden" name="action" value="reject">
+                              <button type="submit" class="btn btn-outline-danger"
+                                      onclick="return confirm('Dashboard-Anfrage wirklich ablehnen und löschen?')">
+                                Ablehnen
+                              </button>
                             </form>
                             <a href="{% url 'admin_overview_edit' ov.id %}" class="btn btn-outline-secondary">Bearbeiten</a>
                           </div>

@@ -41,6 +41,26 @@
       </div>
     {% endif %}
 
+    {% if pending_overviews %}
+      <div class="mb-5 mx-auto" style="max-width:860px;">
+        <div class="card border-warning shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:1rem;">
+          <div class="card-header border-warning fw-semibold" style="background:var(--surface-2); color:var(--text);">
+            ⏳ Wartet auf Freigabe
+          </div>
+          <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+              {% for ov in pending_overviews %}
+                <span class="btn btn-sm btn-outline-warning opacity-75" style="cursor:default;">
+                  {{ ov.icon_emoji|default:"📊" }} {{ ov.name }}
+                  <span class="badge bg-warning text-dark ms-1">Ausstehend</span>
+                </span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
     {% if overviews %}
       <div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
         {% for ov in overviews %}

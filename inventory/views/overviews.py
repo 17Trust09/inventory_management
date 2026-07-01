@@ -39,6 +39,8 @@ from .helpers import _get_overview_and_features, _feature_enabled
 # Overview-Request-Form (inline in views.py war)
 # ---------------------------------------------------------------------------
 class OverviewRequestForm(forms.ModelForm):
+    """Formular für normale User – nur die wichtigsten Felder."""
+
     class Meta:
         model = Overview
         fields = [
@@ -46,21 +48,12 @@ class OverviewRequestForm(forms.ModelForm):
             "slug",
             "icon_emoji",
             "description",
-            "order",
             "categories",
             "show_quantity",
-            "has_locations",
-            "has_min_stock",
-            "enable_borrow",
-            "is_consumable_mode",
-            "require_qr",
-            "enable_quick_adjust",
             "show_images",
             "show_tags",
-            "enable_mark_button",
-            "enable_advanced_filters",
-            "enable_comments",
             "show_order_button",
+            "enable_comments",
             "config",
         ]
         labels = {
@@ -68,21 +61,12 @@ class OverviewRequestForm(forms.ModelForm):
             "slug": "Slug (URL-Kürzel)",
             "icon_emoji": "Icon (Emoji)",
             "description": "Beschreibung",
-            "order": "Reihenfolge",
             "categories": "Kategorien",
             "show_quantity": "Mengen anzeigen",
-            "has_locations": "Lagerorte verwenden",
-            "has_min_stock": "Mindestbestand verwenden",
-            "enable_borrow": "Verleih/Return verwenden",
-            "is_consumable_mode": "Verbrauchsmaterial-Logik",
-            "require_qr": "QR/Barcode Pflicht",
-            "enable_quick_adjust": "Schnellbestand +/- erlauben",
             "show_images": "Bilder anzeigen",
             "show_tags": "Tags anzeigen",
-            "enable_mark_button": "Markieren-Button anzeigen",
-            "enable_advanced_filters": "Erweiterte Suche/Filter",
-            "enable_comments": "Kommentare/Feedback erlauben",
             "show_order_button": "Nachbestellen-Button anzeigen",
+            "enable_comments": "Kommentare/Feedback erlauben",
             "config": "JSON-Konfiguration",
         }
         widgets = {
@@ -90,7 +74,6 @@ class OverviewRequestForm(forms.ModelForm):
             "slug": forms.TextInput(attrs={"class": "form-control", "placeholder": "z. B. werkstatt"}),
             "icon_emoji": forms.TextInput(attrs={"class": "form-control", "placeholder": "z. B. 🔧"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-            "order": forms.NumberInput(attrs={"class": "form-control"}),
             "categories": forms.CheckboxSelectMultiple(),
             "config": forms.Textarea(attrs={"class": "form-control font-monospace", "rows": 4, "placeholder": '{\n  "layout": "grid",\n  "columns": 3\n}'}),
         }
