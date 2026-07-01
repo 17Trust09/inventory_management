@@ -11,9 +11,6 @@ from .api import FeedbackSummaryAPI, HAStatusAPI, SystemHealthAPI, MarkedItemsAP
 urlpatterns = [
     # 1) Frontend-Views
     path('', views.Index.as_view(), name='index'),
-    path('dashboard/', views.DashboardLanding.as_view(), name='dashboard'),
-    path('dashboard/equipment/', views.EquipmentDashboardView.as_view(), name='dashboard-equipment'),
-    path('dashboard/verbrauch/', views.ConsumableDashboardView.as_view(), name='dashboard-consumables'),
 
     path('add-equipment/', views.AddEquipmentItem.as_view(), name='add-equipment'),
     path('add-verbrauch/', views.AddConsumableItem.as_view(), name='add-consumables'),
@@ -59,8 +56,7 @@ urlpatterns = [
     path('borrow/<int:item_id>/', views.BorrowedItemsView.as_view(), name='borrow-item'),
     path('return/<int:borrow_id>/', views.ReturnItemView.as_view(), name='return-item'),
 
-    # Test-Form
-    path('testform/', views.TestFormView.as_view(), name='test-form'),
+    # Test-Form (entfernt – war Legacy)
 
     # 2) Eigenes Admin-Frontend
     path('manage/', include('inventory.admin_urls')),
