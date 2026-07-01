@@ -39,7 +39,7 @@ from .helpers import _get_overview_and_features, _feature_enabled
 # Overview-Request-Form (inline in views.py war)
 # ---------------------------------------------------------------------------
 class OverviewRequestForm(forms.ModelForm):
-    """Formular für normale User – nur die wichtigsten Felder."""
+    """Formular für Dashboard-Anfrage – alle möglichen Optionen."""
 
     class Meta:
         model = Overview
@@ -50,10 +50,18 @@ class OverviewRequestForm(forms.ModelForm):
             "description",
             "categories",
             "show_quantity",
+            "has_locations",
+            "has_min_stock",
+            "enable_borrow",
+            "is_consumable_mode",
+            "require_qr",
+            "enable_quick_adjust",
             "show_images",
             "show_tags",
-            "show_order_button",
+            "enable_mark_button",
+            "enable_advanced_filters",
             "enable_comments",
+            "show_order_button",
             "config",
         ]
         labels = {
@@ -63,10 +71,18 @@ class OverviewRequestForm(forms.ModelForm):
             "description": "Beschreibung",
             "categories": "Kategorien",
             "show_quantity": "Mengen anzeigen",
+            "has_locations": "Lagerorte verwenden",
+            "has_min_stock": "Mindestbestand verwenden",
+            "enable_borrow": "Verleih/Return verwenden",
+            "is_consumable_mode": "Verbrauchsmaterial-Logik",
+            "require_qr": "QR/Barcode Pflicht",
+            "enable_quick_adjust": "Schnellbestand +/- erlauben",
             "show_images": "Bilder anzeigen",
             "show_tags": "Tags anzeigen",
-            "show_order_button": "Nachbestellen-Button anzeigen",
+            "enable_mark_button": "Markieren-Button anzeigen",
+            "enable_advanced_filters": "Erweiterte Suche/Filter",
             "enable_comments": "Kommentare/Feedback erlauben",
+            "show_order_button": "Nachbestellen-Button anzeigen",
             "config": "JSON-Konfiguration",
         }
         widgets = {
