@@ -168,6 +168,28 @@
     activeMode = null;
   });
 
+  // --- Globale Funktion für Kategorie-Quick-Add (von Button geklickt) ---
+  window.openQuickAddCategory = function() {
+    // Das Kategorie-<select> finden
+    const selects = document.querySelectorAll('select[name="category"]');
+    activeSelect = selects.length ? selects[0] : null;
+    activeMode = 'category';
+
+    BODY.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Name der neuen Kategorie</label>
+        <input type="text" class="form-control" id="quickAddName"
+               placeholder="z. B. Elektronik" autofocus>
+      </div>
+    `;
+    document.querySelector('.modal-title').textContent = '➕ Neue Kategorie anlegen';
+    SAVE_BTN.textContent = 'Anlegen';
+
+    const modal = new bootstrap.Modal(MODAL);
+    modal.show();
+    setTimeout(() => document.getElementById('quickAddName')?.focus(), 300);
+  };
+
   // --- Globale Funktion für Tag-Quick-Add (von Button geklickt) ---
   window.openQuickAddTag = function(typeName) {
     activeSelect = null; // Tags sind Checkboxen, kein Select

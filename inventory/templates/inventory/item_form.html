@@ -73,7 +73,13 @@
 
         <div class="col-md-6">
           <label class="form-label">Kategorie{% if form.fields.category.required %}*{% endif %}</label>
-          {{ form.category }}
+          <div class="d-flex gap-2">
+            {{ form.category }}
+            <button type="button" class="btn btn-outline-primary flex-shrink-0"
+                    onclick="openQuickAddCategory()">
+              ➕
+            </button>
+          </div>
         </div>
 
         {% if features.has_locations %}
