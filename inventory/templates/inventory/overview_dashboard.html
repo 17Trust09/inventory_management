@@ -1,5 +1,6 @@
 {% extends 'inventory/base.html' %}
 {% load static %}
+{% load inventory_extras %}
 
 {% block content %}
 <div class="container mt-4">
@@ -292,24 +293,24 @@
               <input class="form-check-input" type="checkbox" id="select-all-items">
             </th>
           {% endif %}
-          <th><a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=name&order={{ next_order.name }}">Name</a></th>
+          <th><a href="{% query_string sort='name' order=next_order.name %}">Name</a></th>
 
           {% if features.has_locations %}
-            <th><a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=location&order={{ next_order.location }}">Ort</a></th>
+            <th><a href="{% query_string sort='location' order=next_order.location %}">Ort</a></th>
           {% endif %}
 
-          <th><a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=category&order={{ next_order.category }}">Kategorie</a></th>
+          <th><a href="{% query_string sort='category' order=next_order.category %}">Kategorie</a></th>
 
           {% if features.show_quantity %}
-            <th class="text-end"><a class="text-decoration-none" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=quantity&order={{ next_order.quantity }}">Ist</a></th>
+            <th class="text-end"><a class="text-decoration-none" href="{% query_string sort='quantity' order=next_order.quantity %}">Ist</a></th>
           {% endif %}
 
           {% if features.has_min_stock %}
-            <th class="text-end"><a class="text-decoration-none" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=min&order={{ next_order.min }}">Min.</a></th>
+            <th class="text-end"><a class="text-decoration-none" href="{% query_string sort='min' order=next_order.min %}">Min.</a></th>
           {% endif %}
 
           {% if features.enable_borrow %}
-            <th class="text-end"><a class="text-decoration-none" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}sort=borrowed&order={{ next_order.borrowed }}">Verliehen</a></th>
+            <th class="text-end"><a class="text-decoration-none" href="{% query_string sort='borrowed' order=next_order.borrowed %}">Verliehen</a></th>
           {% endif %}
 
           <th class="text-end">Aktion</th>
@@ -638,7 +639,7 @@
     <ul class="pagination justify-content-center">
       {% if page_obj.has_previous %}
         <li class="page-item">
-          <a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">«</a>
+          <a class="page-link" href="{% query_string page=page_obj.previous_page_number %}">«</a>
         </li>
       {% else %}
         <li class="page-item disabled"><span class="page-link">«</span></li>
@@ -648,7 +649,7 @@
 
       {% if page_obj.has_next %}
         <li class="page-item">
-          <a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">»</a>
+          <a class="page-link" href="{% query_string page=page_obj.next_page_number %}">»</a>
         </li>
       {% else %}
         <li class="page-item disabled"><span class="page-link">»</span></li>

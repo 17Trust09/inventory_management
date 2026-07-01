@@ -1112,3 +1112,64 @@ class ItemMark(models.Model):
     def is_active(self) -> bool:
         """True, solange die Markierung nicht aufgehoben wurde."""
         return self.cleared_at is None
+
+
+class PendingCategoryRequest(models.Model):
+    """
+    Anfrage eines normalen Users, eine neue Kategorie anzulegen.
+    Admin muss diese freigeben oder ablehnen.
+    """
+    name = models.CharField(max_length=100, verbose_name="Gewünschter Name")
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        verbose_name="Angefragt von",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    approved = models.BooleanField(default=None, null=True, blank=True,
+                                   verbose_name="Freigegeben")
+    reviewed_at = models.DateTimeField(null=True, blank=True,
+                                       verbose_name="Bearbeitet am")
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="reviewed_category_requests",
+        verbose_name="Bearbeitet von",
+    )
+
+    class Meta:
+        verbose_name = "Kategorie-Anfrage"
+        verbose_name_plural = "Kategorie-Anfragen"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Kategorie-Anfrage: {self.name} (von {self.requested_by})"
+
+
+class PendingTagRequest(models.Model):
+    """
+    Anfrage eines normalen Users, einen neuen Tag anzulegen.
+    """
+    name = models.CharField(max_length=50, verbose_name="Gewünschter Name")
+    type_name = models.CharField(max_length=50, blank=True,
+                                 verbose_name="Tag-Typ (optional)")
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        verbose_name="Angefragt von",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    approved = models.BooleanField(default=None, null=True, blank=True,
+                                   verbose_name="Freigegeben")
+    reviewed_at = models.DateTimeField(null=True, blank=True,
+                                       verbose_name="Bearbeitet am")
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="reviewed_tag_requests",
+        verbose_name="Bearbeitet von",
+    )
+
+    class Meta:
+        verbose_name = "Tag-Anfrage"
+        verbose_name_plural = "Tag-Anfragen"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Tag-Anfrage: {self.name} (von {self.requested_by})"

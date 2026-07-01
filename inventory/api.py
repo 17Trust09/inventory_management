@@ -9,7 +9,7 @@ from django.views import View
 from django.http import JsonResponse, HttpResponseForbidden
 from django.utils.timezone import localtime, now
 
-from .models import Feedback, ItemMark
+from .models import Feedback, ItemMark, Category, ApplicationTag, TagType, Overview
 from .admin_views import _get_tailscale_status, _get_global_settings
 from .integrations.homeassistant import check_available, get_status_tuple, get_diagnostics
 
@@ -216,3 +216,121 @@ class MarkedItemsAPI(View):
             "count": len(data),
             "checked_at": now_ts.isoformat(),
         }, json_dumps_params={"ensure_ascii": False})
+
+
+# ---------------------------------------------------------------------------
+# Quick-Add API: Neue Kategorie / neuer Tag direkt aus dem Item-Formular
+# ---------------------------------------------------------------------------
+
+class QuickAddCategoryAPI(View):
+    """
+    POST /api/categories/quick-add/
+    Body: { "name": "Elektronik" }
+    Response (Admin):  { "success": true, "id": 42, "name": "Elektronik", "status": "created" }
+    Response (User):   { "success": true, "id": null, "name": "Elektronik", "status": "requested" }
+    """
+
+    def post(self, request):
+        import json
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Ungültiges JSON"}, status=400)
+
+        name = data.get("name", "").strip()
+        if not name:
+            return JsonResponse({"success": False, "error": "Name ist erforderlich"}, status=400)
+
+        if Category.objects.filter(name__iexact=name).exists():
+            existing = Category.objects.get(name__iexact=name)
+            return JsonResponse({
+                "success": True,
+                "id": existing.id,
+                "name": existing.name,
+                "status": "exists",
+            })
+
+        if request.user.is_superuser:
+            cat = Category.objects.create(name=name)
+            return JsonResponse({
+                "success": True,
+                "id": cat.id,
+                "name": cat.name,
+                "status": "created",
+            })
+        else:
+            # PendingRequest für normale User
+            from .models import PendingCategoryRequest
+            PendingCategoryRequest.objects.create(
+                name=name,
+                requested_by=request.user,
+            )
+            return JsonResponse({
+                "success": True,
+                "id": None,
+                "name": name,
+                "status": "requested",
+                "message": "Deine Anfrage wurde an den Admin weitergeleitet.",
+            })
+
+
+class QuickAddTagAPI(View):
+    """
+    POST /api/tags/quick-add/
+    Body: { "name": "Sensor", "type_name": "Equipment" }
+    Response (Admin):  { "success": true, "id": 7, "name": "Sensor", "status": "created" }
+    Response (User):   { "success": true, "id": null, "name": "Sensor", "status": "requested" }
+    """
+
+    def post(self, request):
+        import json
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Ungültiges JSON"}, status=400)
+
+        name = data.get("name", "").strip()
+        type_name = data.get("type_name", "").strip()
+
+        if not name:
+            return JsonResponse({"success": False, "error": "Name ist erforderlich"}, status=400)
+
+        if ApplicationTag.objects.filter(name__iexact=name).exists():
+            existing = ApplicationTag.objects.get(name__iexact=name)
+            return JsonResponse({
+                "success": True,
+                "id": existing.id,
+                "name": existing.name,
+                "status": "exists",
+            })
+
+        tag_type = None
+        if type_name:
+            try:
+                tag_type = TagType.objects.get(name=type_name)
+            except TagType.DoesNotExist:
+                pass
+
+        if request.user.is_superuser:
+            tag = ApplicationTag.objects.create(name=name, type=tag_type)
+            return JsonResponse({
+                "success": True,
+                "id": tag.id,
+                "name": tag.name,
+                "status": "created",
+            })
+        else:
+            # PendingRequest für normale User
+            from .models import PendingTagRequest
+            PendingTagRequest.objects.create(
+                name=name,
+                type_name=type_name,
+                requested_by=request.user,
+            )
+            return JsonResponse({
+                "success": True,
+                "id": None,
+                "name": name,
+                "status": "requested",
+                "message": "Deine Anfrage wurde an den Admin weitergeleitet.",
+            })

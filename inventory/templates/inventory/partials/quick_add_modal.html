@@ -1,0 +1,161 @@
+<!-- Quick-Add Modal für Kategorien und Tags -->
+<div class="modal fade" id="quickAddModal" tabindex="-1" aria-labelledby="quickAddModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:var(--surface); color:var(--text); border:1px solid var(--border);">
+      <div class="modal-header">
+        <h5 class="modal-title" id="quickAddModalLabel">➕ Neu anlegen</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="quickAddModalBody">
+          <!-- Dynamischer Inhalt per JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Abbrechen</button>
+        <button type="button" class="btn btn-success" id="quickAddSaveBtn">Anlegen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const MODAL = document.getElementById('quickAddModal');
+  if (!MODAL) return;
+
+  const BODY = document.getElementById('quickAddModalBody');
+  const SAVE_BTN = document.getElementById('quickAddSaveBtn');
+
+  let activeMode = null;  // 'category' | 'tag'
+  let activeSelect = null; // das <select>-Element
+
+  // --- Öffnen bei Auswahl von "__new__" ---
+  document.addEventListener('change', function(e) {
+    const select = e.target;
+    if (select.tagName !== 'SELECT') return;
+    if (select.value !== '__new__') return;
+
+    e.preventDefault();
+    activeSelect = select;
+    activeMode = select.dataset.quickAddType || 'category';
+
+    // Welches Label?
+    const labelEl = select.closest('.mb-3')?.querySelector('label');
+    const label = labelEl ? labelEl.innerText.trim() : (activeMode === 'category' ? 'Kategorie' : 'Tag');
+
+    // Modal-Body befüllen
+    if (activeMode === 'category') {
+      BODY.innerHTML = `
+        <div class="mb-3">
+          <label class="form-label">Name der neuen Kategorie</label>
+          <input type="text" class="form-control" id="quickAddName"
+                 placeholder="z. B. Elektronik" autofocus>
+        </div>
+      `;
+    } else {
+      BODY.innerHTML = `
+        <div class="mb-3">
+          <label class="form-label">Name des neuen Tags</label>
+          <input type="text" class="form-control" id="quickAddName"
+                 placeholder="z. B. Sensor" autofocus>
+        </div>
+        <input type="hidden" id="quickAddTypeName" value="${select.dataset.tagType || ''}">
+      `;
+    }
+
+    document.querySelector('.modal-title').textContent = `➕ Neue ${label} anlegen`;
+    SAVE_BTN.textContent = 'Anlegen';
+
+    // Modal öffnen (Bootstrap)
+    const modal = new bootstrap.Modal(MODAL);
+    modal.show();
+
+    // Fokus nach kurzer Verzögerung auf das Input-Feld
+    setTimeout(() => document.getElementById('quickAddName')?.focus(), 300);
+  });
+
+  // --- Speichern ---
+  SAVE_BTN.addEventListener('click', function() {
+    const name = document.getElementById('quickAddName')?.value?.trim();
+    if (!name) {
+      alert('Bitte einen Namen eingeben.');
+      return;
+    }
+
+    const url = activeMode === 'category'
+      ? '/api/categories/quick-add/'
+      : '/api/tags/quick-add/';
+
+    const body = { name: name };
+    if (activeMode === 'tag') {
+      const typeName = document.getElementById('quickAddTypeName')?.value || '';
+      if (typeName) body.type_name = typeName;
+    }
+
+    SAVE_BTN.disabled = true;
+    SAVE_BTN.textContent = '⏳ Wird angelegt...';
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+      },
+      body: JSON.stringify(body)
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success && data.id) {
+        // Option in Select einfügen
+        if (activeSelect) {
+          const opt = document.createElement('option');
+          opt.value = data.id;
+          opt.textContent = data.name;
+          opt.selected = true;
+
+          // Vor "__new__"-Option einfügen
+          const newOpt = activeSelect.querySelector('option[value="__new__"]');
+          if (newOpt) {
+            activeSelect.insertBefore(opt, newOpt);
+          } else {
+            activeSelect.appendChild(opt);
+          }
+
+          // Auf die neue Option setzen
+          activeSelect.value = data.id;
+        }
+
+        // Modal schließen
+        const modal = bootstrap.Modal.getInstance(MODAL);
+        modal.hide();
+
+        const statusText = data.status === 'created' ? '✅ angelegt' : '✅ bereits vorhanden';
+        // Kurze Erfolgsmeldung per Toast/Flash (optional)
+      } else {
+        alert(data.error || 'Fehler beim Anlegen.');
+      }
+    })
+    .catch(err => {
+      alert('Fehler: ' + err.message);
+    })
+    .finally(() => {
+      SAVE_BTN.disabled = false;
+      SAVE_BTN.textContent = 'Anlegen';
+    });
+  });
+
+  // --- Modal schließen → Select zurücksetzen ---
+  MODAL.addEventListener('hidden.bs.modal', function() {
+    if (activeSelect && activeSelect.value === '__new__') {
+      // Auf leeren Wert zurücksetzen, damit der User nicht versehentlich
+      // "__new__" als Wert abschickt
+      activeSelect.value = '';
+    }
+    activeSelect = null;
+    activeMode = null;
+  });
+})();
+</script>

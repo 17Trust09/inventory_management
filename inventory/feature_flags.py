@@ -4,6 +4,29 @@ from types import SimpleNamespace
 
 from .utils import get_global_settings
 
+# Nur diese Felder aus GlobalSettings gelten als Feature-Flags.
+# Alle BooleanField-Namen, die NICHT in diesem Set sind, werden ignoriert
+# (z. B. tailscale_setup_complete, maintenance_mode_enabled).
+FEATURE_FLAG_FIELDS = {
+    "show_patch_notes",
+    "show_feedback",
+    "show_movement_report",
+    "show_admin_history",
+    "show_scheduled_exports",
+    "show_mark_button",
+    "show_favorites",
+    "show_system_settings",
+    "enable_user_overview_requests",
+    "enable_bulk_actions",
+    "enable_item_move",
+    "enable_item_history",
+    "enable_attachments",
+    "enable_image_upload",
+    "enable_image_library",
+    "enable_qr_actions",
+    "enable_nfc_fields",
+    "enable_unit_fields",
+}
 
 DEFAULT_FEATURE_FLAGS = {
     "show_patch_notes": True,
@@ -28,31 +51,18 @@ DEFAULT_FEATURE_FLAGS = {
 
 
 def get_feature_flags() -> dict[str, bool]:
+    """
+    Baut das Feature-Flags-Dict aus DEFAULT_FEATURE_FLAGS
+    und überschreibt mit Werten aus DB (GlobalSettings), falls vorhanden.
+    Neue Boolean-Felder in GlobalSettings werden automatisch erkannt,
+    sobald sie in FEATURE_FLAG_FIELDS aufgenommen werden.
+    """
     flags = DEFAULT_FEATURE_FLAGS.copy()
     settings = get_global_settings()
     if settings:
-        flags.update(
-            {
-                "show_patch_notes": settings.show_patch_notes,
-                "show_feedback": settings.show_feedback,
-                "show_movement_report": settings.show_movement_report,
-                "show_admin_history": settings.show_admin_history,
-                "show_scheduled_exports": settings.show_scheduled_exports,
-                "show_mark_button": settings.show_mark_button,
-                "show_favorites": settings.show_favorites,
-                "show_system_settings": settings.show_system_settings,
-                "enable_user_overview_requests": settings.enable_user_overview_requests,
-                "enable_bulk_actions": settings.enable_bulk_actions,
-                "enable_item_move": settings.enable_item_move,
-                "enable_item_history": settings.enable_item_history,
-                "enable_attachments": settings.enable_attachments,
-                "enable_image_upload": settings.enable_image_upload,
-                "enable_image_library": settings.enable_image_library,
-                "enable_qr_actions": settings.enable_qr_actions,
-                "enable_nfc_fields": settings.enable_nfc_fields,
-                "enable_unit_fields": settings.enable_unit_fields,
-            }
-        )
+        for field_name in FEATURE_FLAG_FIELDS:
+            if hasattr(settings, field_name):
+                flags[field_name] = getattr(settings, field_name)
     return flags
 
 

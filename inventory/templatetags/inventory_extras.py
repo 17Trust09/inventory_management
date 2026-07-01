@@ -2,14 +2,45 @@ from django import template
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils import timezone
+from urllib.parse import urlencode
 
 register = template.Library()
+
+
+@register.simple_tag(takes_context=True)
+def query_string(context, **kwargs):
+    """
+    Erzeugt einen Query-String für Sortier-/Seiten-Links, der vorhandene
+    GET-Parameter erhält, aber gezielt einzelne überschreibt oder entfernt.
+    Entfernt automatisch 'page' (Seitenwechsel bei Sortierung = zurück zu Seite 1).
+
+    Verwendung: {% query_string sort='name' order='asc' %}
+    Zum Entfernen: {% query_string page=None %}
+    """
+    request = context.get("request")
+    if not request:
+        return ""
+
+    params = request.GET.copy()
+
+    # Standardmäßig page entfernen (außer es wird explizit gesetzt)
+    if "page" not in kwargs:
+        params.pop("page", None)
+
+    for key, value in kwargs.items():
+        if value is None:
+            params.pop(key, None)
+        else:
+            params[key] = str(value)
+
+    if params:
+        return "?" + params.urlencode()
+    return ""
+
 
 @register.simple_tag(takes_context=True)
 def borrowed_info(context, item):
     borrowed = item.borrowed_items.filter(returned=False)
-    if not borrowed.exists():
-        return "-"
 
     request = context['request']
     csrf_token = f"<input type='hidden' name='csrfmiddlewaretoken' value='{request.META.get('CSRF_COOKIE', '')}'>"
