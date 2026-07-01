@@ -64,6 +64,26 @@
 
     /* Helfer */
     .text-muted{ color: var(--muted) !important; }
+
+    /* Breadcrumbs */
+    .breadcrumb{
+      background: transparent;
+      padding: 0;
+      margin-bottom: .75rem;
+    }
+    .breadcrumb-item + .breadcrumb-item::before{
+      color: var(--muted);
+    }
+    .breadcrumb-item a{
+      color: #8bb8ff;
+      text-decoration: none;
+    }
+    .breadcrumb-item a:hover{
+      text-decoration: underline;
+    }
+    .breadcrumb-item.active{
+      color: var(--text);
+    }
   </style>
   <link href="{% static 'css/styles.css' %}?v=2" rel="stylesheet">
 </head>

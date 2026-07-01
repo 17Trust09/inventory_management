@@ -3,6 +3,7 @@
 
 {% block content %}
 <div class="container mt-5">
+  {% include 'inventory/partials/breadcrumbs.html' %}
   <a href="{{ next|default:'#' }}"
      onclick="if(this.getAttribute('href')==='#'){ window.location='{% url 'dashboards' %}'; }"
      class="btn btn-outline-primary my-3">← Zurück</a>
@@ -137,6 +138,10 @@
                style="background:#2a2a2a; color:var(--text); border:1px solid var(--border);">
             {{ form.application_tags }}
           </div>
+          <button type="button" class="btn btn-sm btn-outline-primary mt-1"
+                  onclick="openQuickAddTag('{{ tag_type_name|default:'Equipment' }}')">
+            ➕ Neuen Tag anlegen
+          </button>
         </div>
 
         {% if global_features.enable_image_upload or global_features.enable_image_library or form.instance.pk and global_features.enable_attachments %}

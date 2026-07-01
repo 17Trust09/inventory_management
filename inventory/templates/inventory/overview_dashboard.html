@@ -115,6 +115,7 @@
   <!-- Kopfzeile -->
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div class="d-flex align-items-center">
+      {% include 'inventory/partials/breadcrumbs.html' %}
       <a class="btn btn-outline-primary me-3" href="{% url 'dashboards' %}">← Zurück</a>
       <h2 class="m-0">{{ overview.icon_emoji }} {{ overview.name }}</h2>
     </div>

@@ -135,6 +135,10 @@
           <div class="d-flex flex-wrap border rounded p-2" style="max-height:200px; overflow:auto; background:#2a2a2a; border:1px solid #444;">
             {{ form.application_tags }}
           </div>
+          <button type="button" class="btn btn-sm btn-outline-primary mt-1"
+                  onclick="openQuickAddTag('{{ tag_type_name|default:'Verbrauchsmaterial' }}')">
+            ➕ Neuen Tag anlegen
+          </button>
         </div>
         <div class="col-md-12 mb-3">
           <label for="{{ form.image.id_for_label }}">{{ form.image.label }} (optional)</label>

@@ -654,6 +654,7 @@ class AddEquipmentItem(LoginRequiredMixin, View):
                 "overview": ov,
                 "item_type": "equipment",
                 "o": slug,
+                "tag_type_name": "Equipment",
             },
         )
 
@@ -693,6 +694,7 @@ class AddEquipmentItem(LoginRequiredMixin, View):
                 "overview": ov,
                 "item_type": "equipment",
                 "o": slug,
+                "tag_type_name": "Equipment",
             },
         )
 
@@ -711,6 +713,7 @@ class AddConsumableItem(LoginRequiredMixin, View):
                 "overview": ov,
                 "item_type": "consumable",
                 "o": slug,
+                "tag_type_name": "Verbrauchsmaterial",
             },
         )
 
@@ -750,6 +753,7 @@ class AddConsumableItem(LoginRequiredMixin, View):
                 "overview": ov,
                 "item_type": "consumable",
                 "o": slug,
+                "tag_type_name": "Verbrauchsmaterial",
             },
         )
 
@@ -851,7 +855,22 @@ class EditItem(LoginRequiredMixin, UpdateView):
                 "history_action_choices": InventoryHistory.Action.choices,
                 "history_users": history_users,
                 "attachments": item.attachments.all(),
+                "tag_type_name": "Equipment" if item.item_type == "equipment" else "Verbrauchsmaterial",
+                "breadcrumbs": [
+                    {"name": "Dashboards", "url": reverse("dashboards")},
+                ],
             }
+        )
+        # Overview-Breadcrumb hinzufügen, wenn das Item einem Dashboard zugeordnet ist
+        if item.overview:
+            ctx["breadcrumbs"].append(
+                {
+                    "name": f"{item.overview.icon_emoji} {item.overview.name}",
+                    "url": reverse("overview-dashboard", kwargs={"slug": item.overview.slug}),
+                }
+            )
+        ctx["breadcrumbs"].append(
+            {"name": item.name, "url": None}
         )
         return ctx
 
@@ -1857,6 +1876,10 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
                 "export_columns": [(key, label) for key, label, _ in EXPORT_COLUMNS],
                 "favorites": favorites,
                 "overview_is_favorite": overview_is_favorite,
+                "breadcrumbs": [
+                    {"name": "Dashboards", "url": reverse("dashboards")},
+                    {"name": f"{self.overview.icon_emoji} {self.overview.name}", "url": None},
+                ],
             }
         )
         return ctx

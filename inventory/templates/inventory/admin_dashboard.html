@@ -229,6 +229,57 @@
       </div>
     </div>
     {% endif %}
+    {% if pending_cat_count or pending_tag_count %}
+    <!-- Kategorie-/Tag-Anfragen -->
+    <div class="row g-4 mt-3">
+      <div class="col-12">
+        <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+          <div class="card-header d-flex justify-content-between align-items-center fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+            <span>
+              🏷️ Kategorie-/Tag-Anfragen
+              <span class="badge bg-warning text-dark ms-2">{{ pending_cat_count|add:pending_tag_count }}</span>
+            </span>
+          </div>
+          <div class="card-body p-0">
+            {% if pending_cat_reqs or pending_tag_reqs %}
+              <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle" style="background:var(--surface); color:var(--text);">
+                  <thead style="background:var(--surface-2); color:var(--text);">
+                    <tr>
+                      <th>Typ</th>
+                      <th>Name</th>
+                      <th class="d-none d-md-table-cell">Angefragt von</th>
+                      <th class="d-none d-md-table-cell">Datum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for req in pending_cat_reqs %}
+                      <tr>
+                        <td><span class="badge bg-info text-dark">Kategorie</span></td>
+                        <td class="fw-semibold">{{ req.name }}</td>
+                        <td class="d-none d-md-table-cell">{{ req.requested_by.username }}</td>
+                        <td class="d-none d-md-table-cell">{{ req.created_at|date:"d.m.Y H:i" }}</td>
+                      </tr>
+                    {% endfor %}
+                    {% for req in pending_tag_reqs %}
+                      <tr>
+                        <td><span class="badge bg-secondary">Tag</span></td>
+                        <td class="fw-semibold">{{ req.name }}</td>
+                        <td class="d-none d-md-table-cell">{{ req.requested_by.username }}</td>
+                        <td class="d-none d-md-table-cell">{{ req.created_at|date:"d.m.Y H:i" }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="p-3 text-muted">Keine offenen Anfragen.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
     {% if global_features.enable_user_overview_requests %}
     <!-- Dashboard-Anfragen -->
     <div class="row g-4 mt-3">

@@ -200,7 +200,7 @@ class CategoryForm(forms.ModelForm):
 def dashboard(request):
     """
     Admin-Dashboard mit Schnellüberblick.
-    Letzte Feedbacks + Quick-Actions.
+    Letzte Feedbacks + Quick-Actions + Pending-Requests.
     """
     latest_feedback = Feedback.objects.select_related("created_by").order_by("-created_at")[:8]
     pending_overview_qs = Overview.objects.filter(is_active=False, requested_by__isnull=False)
@@ -214,11 +214,23 @@ def dashboard(request):
         or settings_obj.tailscale_setup_ignored
         or settings_obj.tailscale_setup_step >= 4
     )
+
+    # Ausstehende Kategorie-/Tag-Anfragen
+    from .models import PendingCategoryRequest, PendingTagRequest
+    pending_cat_count = PendingCategoryRequest.objects.filter(approved__isnull=True).count()
+    pending_tag_count = PendingTagRequest.objects.filter(approved__isnull=True).count()
+    pending_cat_reqs = PendingCategoryRequest.objects.filter(approved__isnull=True).select_related("requested_by").order_by("-created_at")[:5]
+    pending_tag_reqs = PendingTagRequest.objects.filter(approved__isnull=True).select_related("requested_by").order_by("-created_at")[:5]
+
     return render(request, 'inventory/admin_dashboard.html', {
         "latest_feedback": latest_feedback,
         "pending_overviews": pending_overviews,
         "pending_overview_count": pending_overview_qs.count(),
         "tailscale_setup_complete": tailscale_setup_complete,
+        "pending_cat_count": pending_cat_count,
+        "pending_tag_count": pending_tag_count,
+        "pending_cat_reqs": pending_cat_reqs,
+        "pending_tag_reqs": pending_tag_reqs,
     })
 
 

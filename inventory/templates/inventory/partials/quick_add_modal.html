@@ -134,6 +134,16 @@
 
         const statusText = data.status === 'created' ? '✅ angelegt' : '✅ bereits vorhanden';
         // Kurze Erfolgsmeldung per Toast/Flash (optional)
+
+        // Bei Tags: Seite neu laden, damit die Checkbox-Liste aktualisiert wird
+        if (activeMode === 'tag' && data.status === 'created') {
+          window.location.reload();
+        }
+      } else if (data.success && data.status === 'requested') {
+        // Pending-Request
+        const modal = bootstrap.Modal.getInstance(MODAL);
+        modal.hide();
+        alert(data.message || 'Deine Anfrage wurde an den Admin weitergeleitet.');
       } else {
         alert(data.error || 'Fehler beim Anlegen.');
       }
@@ -157,5 +167,33 @@
     activeSelect = null;
     activeMode = null;
   });
+
+  // --- Globale Funktion für Tag-Quick-Add (von Button geklickt) ---
+  window.openQuickAddTag = function(typeName) {
+    activeSelect = null; // Tags sind Checkboxen, kein Select
+    activeMode = 'tag';
+
+    BODY.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Name des neuen Tags</label>
+        <input type="text" class="form-control" id="quickAddName"
+               placeholder="z. B. Sensor" autofocus>
+      </div>
+      <input type="hidden" id="quickAddTypeName" value="${typeName || ''}">
+    `;
+    document.querySelector('.modal-title').textContent = '➕ Neuen Tag anlegen';
+    SAVE_BTN.textContent = 'Anlegen';
+
+    const modal = new bootstrap.Modal(MODAL);
+    modal.show();
+    setTimeout(() => document.getElementById('quickAddName')?.focus(), 300);
+  };
+
+  // Anpassung des Speichern-Buttons für Tags: nach erfolgreichem Anlegen die Seite neu laden
+  // (weil Tag-Checkboxen via AJAX zu ersetzen aufwändig ist)
+  const origClick = SAVE_BTN.click;
+  // Wir patchen den Event-Listener nicht, sondern erweitern die save-Logik
+
+  // Originalen Event-Listener ersetzen
 })();
 </script>
