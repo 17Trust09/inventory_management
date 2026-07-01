@@ -43,15 +43,61 @@ class OverviewRequestForm(forms.ModelForm):
         model = Overview
         fields = [
             "name",
+            "slug",
+            "icon_emoji",
+            "description",
+            "order",
+            "categories",
+            "show_quantity",
+            "has_locations",
+            "has_min_stock",
+            "enable_borrow",
+            "is_consumable_mode",
+            "require_qr",
+            "enable_quick_adjust",
+            "show_images",
+            "show_tags",
+            "enable_mark_button",
+            "enable_advanced_filters",
+            "enable_comments",
+            "show_order_button",
+            "config",
         ]
         labels = {
             "name": "Dashboard-Name",
+            "slug": "Slug (URL-Kürzel)",
+            "icon_emoji": "Icon (Emoji)",
+            "description": "Beschreibung",
+            "order": "Reihenfolge",
+            "categories": "Kategorien",
+            "show_quantity": "Mengen anzeigen",
+            "has_locations": "Lagerorte verwenden",
+            "has_min_stock": "Mindestbestand verwenden",
+            "enable_borrow": "Verleih/Return verwenden",
+            "is_consumable_mode": "Verbrauchsmaterial-Logik",
+            "require_qr": "QR/Barcode Pflicht",
+            "enable_quick_adjust": "Schnellbestand +/- erlauben",
+            "show_images": "Bilder anzeigen",
+            "show_tags": "Tags anzeigen",
+            "enable_mark_button": "Markieren-Button anzeigen",
+            "enable_advanced_filters": "Erweiterte Suche/Filter",
+            "enable_comments": "Kommentare/Feedback erlauben",
+            "show_order_button": "Nachbestellen-Button anzeigen",
+            "config": "JSON-Konfiguration",
         }
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control form-control-lg", "placeholder": "z. B. Werkstatt, Keller, Garage"}),
+            "slug": forms.TextInput(attrs={"class": "form-control", "placeholder": "z. B. werkstatt"}),
+            "icon_emoji": forms.TextInput(attrs={"class": "form-control", "placeholder": "z. B. 🔧"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "order": forms.NumberInput(attrs={"class": "form-control"}),
+            "config": forms.Textarea(attrs={"class": "form-control font-monospace", "rows": 4, "placeholder": '{\n  "layout": "grid",\n  "columns": 3\n}'}),
         }
         help_texts = {
             "name": "Wähle einen aussagekräftigen Namen für dein neues Dashboard.",
+            "slug": "Optional – wird automatisch erzeugt, wenn leer.",
+            "icon_emoji": "Ein einzelnes Emoji als Icon.",
+            "config": "Optionales JSON für individuelle Karten/Widgets.",
         }
 
 
@@ -69,7 +115,8 @@ class OverviewRequestCreateView(LoginRequiredMixin, View):
             overview.is_active = False
             overview.requested_by = request.user
             overview.save()
-            # Overview-User zu Admin-Overview hinzufügen?
+            # M2M-Felder speichern (v. a. categories)
+            form.save_m2m()
             messages.success(
                 request,
                 "Dein Dashboard wurde angefragt. Ein Admin wird es freischalten.",
