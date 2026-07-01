@@ -25,6 +25,7 @@ from ..models import (
 from .helpers import (
     _get_overview_and_features,
     safe_redirect_or,
+    _resolve_nfc_base_url,
     extract_next,
     _snapshot_item,
     _build_changes,
@@ -222,8 +223,6 @@ class EditItem(LoginRequiredMixin, UpdateView):
                 profile.allowed_overviews.filter(is_active=True)
                 if profile else Overview.objects.none()
             )
-
-        from ..helpers import _resolve_nfc_base_url
 
         ctx.update({
             "features": features,
