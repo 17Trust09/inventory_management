@@ -91,6 +91,7 @@ class OverviewRequestForm(forms.ModelForm):
             "icon_emoji": forms.TextInput(attrs={"class": "form-control", "placeholder": "z. B. 🔧"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "order": forms.NumberInput(attrs={"class": "form-control"}),
+            "categories": forms.CheckboxSelectMultiple(),
             "config": forms.Textarea(attrs={"class": "form-control font-monospace", "rows": 4, "placeholder": '{\n  "layout": "grid",\n  "columns": 3\n}'}),
         }
         help_texts = {

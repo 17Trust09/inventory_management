@@ -73,14 +73,19 @@
           </button>
         </div>
         <div class="border rounded p-3" style="border-color:var(--border);">
-          {% if form.categories %}
+          {% if form.categories.field.queryset.exists %}
             <div class="row g-2">
-              {% for checkbox in form.categories %}
+              {% for value, label in form.categories.field.choices %}
                 <div class="col-6 col-md-4">
-                  <div class="form-check category-option" data-label="{{ checkbox.choice_label|lower }}">
-                    {{ checkbox.tag }}
-                    <label class="form-check-label ms-1" for="{{ checkbox.id_for_label }}">
-                      {{ checkbox.choice_label }}
+                  <div class="form-check category-option" data-label="{{ label|lower }}">
+                    <input type="checkbox" name="{{ form.categories.html_name }}"
+                           value="{{ value }}"
+                           class="form-check-input"
+                           id="id_{{ form.categories.html_name }}_{{ forloop.counter0 }}"
+                           {% if value in form.categories.value %}checked{% endif %}>
+                    <label class="form-check-label ms-1"
+                           for="id_{{ form.categories.html_name }}_{{ forloop.counter0 }}">
+                      {{ label }}
                     </label>
                   </div>
                 </div>
