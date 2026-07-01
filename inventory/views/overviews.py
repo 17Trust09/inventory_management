@@ -62,7 +62,6 @@ class OverviewRequestForm(forms.ModelForm):
             "enable_advanced_filters",
             "enable_comments",
             "show_order_button",
-            "config",
         ]
         labels = {
             "name": "Dashboard-Name",
@@ -83,7 +82,6 @@ class OverviewRequestForm(forms.ModelForm):
             "enable_advanced_filters": "Erweiterte Suche/Filter",
             "enable_comments": "Kommentare/Feedback erlauben",
             "show_order_button": "Nachbestellen-Button anzeigen",
-            "config": "JSON-Konfiguration",
         }
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control form-control-lg", "placeholder": "z. B. Werkstatt, Keller, Garage"}),
@@ -91,13 +89,11 @@ class OverviewRequestForm(forms.ModelForm):
             "icon_emoji": forms.TextInput(attrs={"class": "form-control", "placeholder": "z. B. 🔧"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "categories": forms.CheckboxSelectMultiple(),
-            "config": forms.Textarea(attrs={"class": "form-control font-monospace", "rows": 4, "placeholder": '{\n  "layout": "grid",\n  "columns": 3\n}'}),
         }
         help_texts = {
             "name": "Wähle einen aussagekräftigen Namen für dein neues Dashboard.",
             "slug": "Optional – wird automatisch erzeugt, wenn leer.",
             "icon_emoji": "Ein einzelnes Emoji als Icon.",
-            "config": "Optionales JSON für individuelle Karten/Widgets.",
         }
 
 
