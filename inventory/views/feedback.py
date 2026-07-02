@@ -66,10 +66,11 @@ class FeedbackVoteView(LoginRequiredMixin, View):
         if existing:
             existing.delete()
 
-        FeedbackVote.objects.create(feedback=feedback, user=request.user, vote=vote_value)
+        value = 1 if vote_value == "up" else -1
+        FeedbackVote.objects.create(feedback=feedback, user=request.user, value=value)
         return JsonResponse({
-            "upvotes": FeedbackVote.objects.filter(feedback=feedback, vote="up").count(),
-            "downvotes": FeedbackVote.objects.filter(feedback=feedback, vote="down").count(),
+            "upvotes": FeedbackVote.objects.filter(feedback=feedback, value=1).count(),
+            "downvotes": FeedbackVote.objects.filter(feedback=feedback, value=-1).count(),
         })
 
 

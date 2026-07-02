@@ -497,10 +497,13 @@ class InventoryHistory(models.Model):
     class Action(models.TextChoices):
         CREATED = "created", "Erstellt"
         UPDATED = "updated", "Geändert"
+        EDITED = "edited", "Bearbeitet"
         MOVEMENT = "movement", "Lagerbewegung"
         QUANTITY = "quantity_adjusted", "Bestand angepasst"
+        ADJUSTED = "adjusted", "Manuell angepasst"
         BORROWED = "borrowed", "Ausgeliehen"
         RETURNED = "returned", "Zurückgegeben"
+        DELETED = "deleted", "Gelöscht"
         ROLLBACK = "rollback", "Rollback"
 
     item = models.ForeignKey(

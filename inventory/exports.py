@@ -51,11 +51,12 @@ def calculate_next_run(frequency: str, base_time=None):
 
 
 def export_overview_to_file(
-    *,
     overview: Overview,
-    export_format: str,
+    export_format: str | None = None,
     columns: Iterable[str] | None = None,
 ) -> str:
+    if export_format is None:
+        export_format = "csv"
     selected_columns = get_export_columns(columns)
     delimiter = ";" if export_format == "csv" else "\t"
     extension = "csv" if export_format == "csv" else "xls"

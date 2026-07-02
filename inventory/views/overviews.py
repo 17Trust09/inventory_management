@@ -3,6 +3,7 @@ Overview-bezogene Views: Request, Export, ScheduledExport, MovementReport.
 """
 from datetime import timedelta
 import csv
+import os
 from types import SimpleNamespace
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -13,6 +14,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q, F, Sum, Prefetch
 from django import forms
+from django.conf import settings
 
 from ..forms import (
     ScheduledExportForm,
@@ -150,13 +152,15 @@ class OverviewExportView(LoginRequiredMixin, View):
         elif export_format == "excel":
             result = export_overview_to_file(
                 overview,
-                get_export_columns(request),
+                export_format="excel",
+                columns=get_export_columns(request),
             )
             if isinstance(result, dict) and "error" in result:
                 messages.error(request, f"Export fehlgeschlagen: {result['error']}")
                 return redirect("overview-dashboard", slug=slug)
-            filepath, filename = result
-            with open(filepath, "rb") as f:
+            full_path = os.path.join(settings.MEDIA_ROOT, result)
+            filename = result.split("/")[-1]
+            with open(full_path, "rb") as f:
                 response = HttpResponse(
                     f.read(),
                     content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -197,13 +201,14 @@ class ScheduledExportRunView(LoginRequiredMixin, View):
         export = get_object_or_404(ScheduledExport, pk=pk)
         run = ExportRun.objects.create(export=export)
         try:
-            filepath, filename = export_overview_to_file(
-                export.overview,
-                [],
+            result = export_overview_to_file(
+                overview=export.overview,
+                export_format=export.export_format,
+                columns=export.columns,
             )
             run.finished_at = timezone.now()
             run.success = True
-            run.file.name = filepath
+            run.file.name = result
             run.save()
             messages.success(request, f"Export „{export.name}“ erfolgreich ausgeführt.")
         except Exception as exc:

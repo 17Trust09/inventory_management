@@ -7,3 +7,6 @@ requests
 django-jazzmin
 django-crispy-forms
 crispy-bootstrap5
+python-dotenv
+djangorestframework
+psycopg2-binary

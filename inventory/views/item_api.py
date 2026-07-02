@@ -176,7 +176,7 @@ class ItemAttachmentUploadView(LoginRequiredMixin, View):
             messages.error(request, "Datei zu groß (max. 100 MB).")
             return redirect("edit-item", pk=item_id)
 
-        ItemAttachment.objects.create(item=item, uploaded_by=request.user, file=file)
+        ItemAttachment.objects.create(item=item, file=file)
         messages.success(request, "Anhang hochgeladen.")
         return redirect("edit-item", pk=item_id)
 
