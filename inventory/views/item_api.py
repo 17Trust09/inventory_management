@@ -67,6 +67,7 @@ class MarkItemAPI(LoginRequiredMixin, View):
                 mark.marked_by = request.user
                 mark.marked_at = now
                 mark.location = leaf
+                mark.cleared_at = None
                 mark.save()
             try:
                 notify_item_marked(item, request.user)
