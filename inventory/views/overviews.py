@@ -176,7 +176,7 @@ class ScheduledExportView(LoginRequiredMixin, View):
     template_name = "inventory/scheduled_exports.html"
 
     def get(self, request):
-        exports = ScheduledExport.objects.select_related("overview").order_by("name")
+        exports = ScheduledExport.objects.select_related("overview").order_by("overview__name")
         runs = ExportRun.objects.select_related("export").order_by("-started_at")[:20]
         return render(request, self.template_name, {
             "exports": exports, "runs": runs,
@@ -189,7 +189,7 @@ class ScheduledExportView(LoginRequiredMixin, View):
             form.save()
             messages.success(request, "Geplanter Export wurde angelegt.")
             return redirect("scheduled-exports")
-        exports = ScheduledExport.objects.select_related("overview").order_by("name")
+        exports = ScheduledExport.objects.select_related("overview").order_by("overview__name")
         runs = ExportRun.objects.select_related("export").order_by("-started_at")[:20]
         return render(request, self.template_name, {
             "exports": exports, "runs": runs, "form": form,
