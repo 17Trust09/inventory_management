@@ -54,7 +54,7 @@ class DashboardSelectorView(LoginRequiredMixin, TemplateView):
         ).order_by("-id")
         ctx["pending_overviews"] = list(my_pending)
         if _feature_enabled("show_favorites"):
-            profile = UserProfile.objects.filter(user=self.request.user).first()
+            profile = UserProfile.objects.filter(user_id=self.request.user.pk).first()
             favorite_ids = set(
                 profile.favorite_overviews.values_list("id", flat=True)
             ) if profile else set()
@@ -102,7 +102,7 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         self.overview = get_object_or_404(Overview, slug=kwargs["slug"], is_active=True)
         if not request.user.is_superuser:
-            profile = UserProfile.objects.filter(user=request.user).first()
+            profile = UserProfile.objects.filter(user_id=self.request.user.pk).first()
             allowed = profile.allowed_overviews.filter(pk=self.overview.pk).exists() if profile else False
             if not allowed:
                 messages.error(request, "Du hast keinen Zugriff auf dieses Dashboard.")
@@ -232,7 +232,7 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
                 .only("id", "name", "overview")
                 .order_by("name")[:6]
             )
-            profile = UserProfile.objects.filter(user=self.request.user).first()
+            profile = UserProfile.objects.filter(user_id=self.request.user.pk).first()
             overview_is_favorite = bool(
                 profile and profile.favorite_overviews.filter(pk=self.overview.pk).exists()
             )
