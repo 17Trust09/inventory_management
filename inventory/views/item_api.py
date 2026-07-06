@@ -49,13 +49,24 @@ class MarkItemAPI(LoginRequiredMixin, View):
         auto_clear = getattr(gs, "esp_mark_auto_clear_seconds", None)
 
         if action == "mark":
+            # Untersten StorageLocation ermitteln (Blattknoten)
+            leaf = item.storage_location
+            if leaf:
+                while leaf.children.exists():
+                    leaf = leaf.children.first()
+
             mark, created = ItemMark.objects.get_or_create(
                 item=item,
-                defaults={"marked_by": request.user, "marked_at": now},
+                defaults={
+                    "marked_by": request.user,
+                    "marked_at": now,
+                    "location": leaf,
+                },
             )
             if not created:
                 mark.marked_by = request.user
                 mark.marked_at = now
+                mark.location = leaf
                 mark.save()
             try:
                 notify_item_marked(item, request.user)

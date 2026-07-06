@@ -319,7 +319,7 @@
       </thead>
       <tbody>
         {% for it in items %}
-          <tr>
+          <tr{% if it.id in marked_ids %} class="table-active" style="background:rgba(13,110,253,0.12) !important;"{% endif %}>
             {% if global_features.enable_bulk_actions %}
               <td>
                 <input class="form-check-input"

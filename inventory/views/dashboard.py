@@ -237,10 +237,18 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
                 profile and profile.favorite_overviews.filter(pk=self.overview.pk).exists()
             )
 
+        from ..models import ItemMark
+        marked_ids = set(
+            ItemMark.objects.filter(
+                item__overview=self.overview, cleared_at__isnull=True
+            ).values_list("item_id", flat=True)
+        )
+
         ctx.update({
             "overview": self.overview,
             "features": features,
             "items": page_obj.object_list,
+            "marked_ids": marked_ids,
             "page_obj": page_obj,
             "paginator": paginator,
             "per_page": per_page,

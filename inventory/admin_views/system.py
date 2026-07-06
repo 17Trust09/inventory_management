@@ -71,6 +71,24 @@ def admin_tailscale_setup(request):
 def admin_esp32_setup(request):
     from ..models import ItemMark
     settings_obj = _get_global_settings()
+
+    if request.method == "POST":
+        secs_str = request.POST.get("esp_mark_auto_clear_seconds", "").strip()
+        if secs_str:
+            try:
+                secs = int(secs_str)
+                if secs >= 0:
+                    settings_obj.esp_mark_auto_clear_seconds = secs
+                    settings_obj.save(update_fields=["esp_mark_auto_clear_seconds"])
+                    messages.success(request, f"Auto-Clear auf {secs} Sekunden gesetzt.")
+                else:
+                    messages.error(request, "Wert muss >= 0 sein.")
+            except ValueError:
+                messages.error(request, "Ungültige Zahl.")
+        else:
+            messages.error(request, "Bitte einen Wert eingeben.")
+        return redirect("admin_esp32_setup")
+
     marks = ItemMark.objects.select_related("item", "marked_by").order_by("-marked_at")[:50]
     return render(request, 'inventory/admin_esp32_setup.html', {
         "marks": marks,
