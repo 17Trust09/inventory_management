@@ -61,14 +61,25 @@ class MarkItemAPI(LoginRequiredMixin, View):
                 notify_item_marked(item, request.user)
             except Exception:
                 pass
-            return JsonResponse({
-                "status": "marked",
-                "item": item.name,
-                "auto_clear_seconds": auto_clear,
-            })
+
+            is_ajax = request.headers.get("Accept", "").startswith("application/json")
+            if is_ajax:
+                return JsonResponse({
+                    "status": "marked",
+                    "item": item.name,
+                    "auto_clear_seconds": auto_clear,
+                })
+            next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards"
+            messages.success(request, f"„{item.name}“ markiert.")
+            return redirect(next_url)
+
         elif action == "unmark":
             ItemMark.objects.filter(item=item).delete()
-            return JsonResponse({"status": "unmarked", "item": item.name})
+            if request.headers.get("Accept", "").startswith("application/json"):
+                return JsonResponse({"status": "unmarked", "item": item.name})
+            next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "dashboards"
+            messages.success(request, f"„{item.name}“ Markierung entfernt.")
+            return redirect(next_url)
         return JsonResponse({"error": "Unbekannte Aktion"}, status=400)
 
 
