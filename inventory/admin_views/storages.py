@@ -15,7 +15,7 @@ from .helpers import StaffRequiredMixin
 class StorageLocationListView(StaffRequiredMixin, ListView):
     model = StorageLocation
     template_name = 'inventory/admin_storagelocations_list.html'
-    context_object_name = 'storagelocations'
+    context_object_name = 'locations'
 
 
 class StorageLocationCreateView(StaffRequiredMixin, CreateView):
