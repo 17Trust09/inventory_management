@@ -10,6 +10,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q, F, Sum, Prefetch
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from ..forms import (
     EquipmentItemForm,
@@ -161,10 +162,20 @@ class EditItem(LoginRequiredMixin, UpdateView):
         nxt = extract_next(self.request)
         item = self.get_object()
         if item.overview:
-            return safe_redirect_or(self.request, nxt,
-                fallback_view="overview-dashboard",
-                fallback_kwargs={"slug": item.overview.slug})
-        return safe_redirect_or(self.request, nxt, fallback_view="dashboards")
+            if nxt and url_has_allowed_host_and_scheme(
+                nxt,
+                allowed_hosts={self.request.get_host()},
+                require_https=self.request.is_secure(),
+            ):
+                return nxt
+            return reverse("overview-dashboard", kwargs={"slug": item.overview.slug})
+        if nxt and url_has_allowed_host_and_scheme(
+            nxt,
+            allowed_hosts={self.request.get_host()},
+            require_https=self.request.is_secure(),
+        ):
+            return nxt
+        return reverse("dashboards")
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
