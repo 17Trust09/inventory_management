@@ -86,6 +86,29 @@
     }
   </style>
   <link href="{% static 'css/styles.css' %}?v=2" rel="stylesheet">
+<style>
+  .form-switch .form-check-input {
+    width: 2.5em !important;
+    height: 1.25em !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
+    background-position: left center !important;
+    border-radius: 2em !important;
+    transition: background-position .15s ease-in-out !important;
+    cursor: pointer !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background-color: #6c757d !important;
+    border: 1px solid rgba(0,0,0,.25) !important;
+  }
+  .form-switch .form-check-input:checked {
+    background-position: right center !important;
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+  }
+  .form-switch .form-check-input:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
+  }
+</style>
 </head>
 <body class="text-light">
 
@@ -174,27 +197,3 @@
   {% block extra_js %}{% endblock %}
 </body>
 </html>
-
-<style>
-  .form-switch .form-check-input {
-    width: 2.5em !important;
-    height: 1.25em !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
-    background-position: left center !important;
-    border-radius: 2em !important;
-    transition: background-position .15s ease-in-out !important;
-    cursor: pointer !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    background-color: #6c757d !important;
-    border: 1px solid rgba(0,0,0,.25) !important;
-  }
-  .form-switch .form-check-input:checked {
-    background-position: right center !important;
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
-  }
-  .form-switch .form-check-input:focus {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
-  }
-</style>
