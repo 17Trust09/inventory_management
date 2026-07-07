@@ -15,7 +15,7 @@ from ..models import Feedback, FeedbackComment, FeedbackVote
 class FeedbackListView(LoginRequiredMixin, ListView):
     model = Feedback
     template_name = "inventory/feedback_list.html"
-    context_object_name = "feedbacks"
+    context_object_name = "feedback_list"
     paginate_by = 20
 
     def get_queryset(self):
