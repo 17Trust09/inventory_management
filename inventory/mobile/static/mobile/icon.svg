@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" role="img" aria-labelledby="title desc">
+  <title id="title">Icekey Inventory Icon</title>
+  <desc id="desc">Geometric red and white Icekey inventory logo</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#1a1a2e"/>
+      <stop offset="1" stop-color="#10101f"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="192" height="192" rx="42" fill="url(#bg)"/>
+  <g filter="url(#shadow)">
+    <path d="M96 30 148 60v60l-52 30-52-30V60z" fill="#e94560"/>
+    <path d="M96 48 132 69v42l-36 21-36-21V69z" fill="#ffffff" opacity="0.96"/>
+    <path d="M96 64 119 77v27l-23 14-23-14V77z" fill="#e94560"/>
+    <path d="M96 80 106 86v12l-10 6-10-6V86z" fill="#ffffff"/>
+  </g>
+  <path d="M96 44v104M51 70l90 52M141 70l-90 52" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.55"/>
+  <circle cx="96" cy="96" r="12" fill="#1a1a2e" stroke="#ffffff" stroke-width="5"/>
+</svg>

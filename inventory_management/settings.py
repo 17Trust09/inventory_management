@@ -93,6 +93,7 @@ ROOT_URLCONF = 'inventory_management.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'inventory' / 'mobile' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -178,7 +179,7 @@ USE_TZ = True
 # ──────────────────────────────────────────────────────────────────────────────
 STATIC_URL = '/static/'
 STATIC_ROOT = os.getenv('STATIC_ROOT', str(BASE_DIR / 'staticfiles'))
-STATICFILES_DIRS = []
+STATICFILES_DIRS = [BASE_DIR / 'inventory' / 'mobile' / 'static']
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

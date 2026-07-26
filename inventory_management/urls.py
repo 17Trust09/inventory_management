@@ -16,6 +16,9 @@ urlpatterns = [
     # 🔄 API-Endpunkt für externe Steuerung
     path('api/mark-item/<int:item_id>/', views.MarkItemAPI.as_view(), name='mark-item-api'),
 
+    # 📱 Mobile App-Routen
+    path('m/', include('inventory.mobile.urls')),
+
     # 🌐 App-Routen
     path('', include('inventory.urls')),
 ]

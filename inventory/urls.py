@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import RedirectView, TemplateView
 from . import views
 from .views import CustomAuthForm
 # API-Views
@@ -61,7 +62,12 @@ urlpatterns = [
     # 2) Eigenes Admin-Frontend
     path('manage/', include('inventory.admin_urls')),
 
-    # 3) Modulares Dashboard (Overview)
+    # 3) Mobile/PWA shell
+    path('m/dashboards/', RedirectView.as_view(pattern_name='dashboards', permanent=False), name='mobile-dashboards'),
+    path('m/offline/', TemplateView.as_view(template_name='mobile/offline.html'), name='mobile-offline'),
+    path('m/service-worker.js', TemplateView.as_view(template_name='mobile/service-worker.js', content_type='application/javascript'), name='mobile-service-worker'),
+
+    # 4) Modulares Dashboard (Overview)
     path('dashboards/', views.DashboardSelectorView.as_view(), name='dashboards'),
     path('overview/add/', views.OverviewRequestCreateView.as_view(), name='overview-request-add'),
     path('dashboards/<slug:slug>/', views.OverviewDashboardView.as_view(), name='overview-dashboard'),
@@ -72,24 +78,24 @@ urlpatterns = [
     path('exports/scheduled/<int:pk>/run/', views.ScheduledExportRunView.as_view(), name='scheduled-export-run'),
     path('reports/movements/', views.MovementReportView.as_view(), name='movement-report'),
 
-    # 4) Feedback
+    # 5) Feedback
     path('feedback/', views.FeedbackListView.as_view(), name='feedback-list'),
     path('feedback/add/', views.FeedbackCreateView.as_view(), name='feedback-add'),
     path('feedback/<int:pk>/', views.FeedbackDetailView.as_view(), name='feedback-detail'),
     path('feedback/<int:pk>/vote/', views.FeedbackVoteView.as_view(), name='feedback-vote'),
     path('feedback/<int:pk>/comment/', views.FeedbackCommentCreateView.as_view(), name='feedback-comment'),
 
-    # 5) API für Home Assistant Dashboard
+    # 6) API für Home Assistant Dashboard
     path('api/feedback/summary/', FeedbackSummaryAPI.as_view(), name='feedback-summary'),
 
-    # 6) Health / HA-Status
+    # 7) Health / HA-Status
     path('api/health/ha/', HAStatusAPI.as_view(), name='ha-health'),
     path('api/health/system/', SystemHealthAPI.as_view(), name='system-health'),
 
-    # 7) ESP-LED: aktuelle Markierungen abrufen
+    # 8) ESP-LED: aktuelle Markierungen abrufen
     path('api/marked-items/', MarkedItemsAPI.as_view(), name='marked-items'),
 
-    # 8) Quick-Add API für Item-Formular (Kategorien + Tags + Lagerorte)
+    # 9) Quick-Add API für Item-Formular (Kategorien + Tags + Lagerorte)
     path('api/categories/quick-add/', QuickAddCategoryAPI.as_view(), name='api-quick-add-category'),
     path('api/tags/quick-add/', QuickAddTagAPI.as_view(), name='api-quick-add-tag'),
     path('api/storage-locations/quick-add/', QuickAddStorageLocationAPI.as_view(), name='api-quick-add-storage-location'),

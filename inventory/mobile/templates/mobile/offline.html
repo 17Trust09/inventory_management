@@ -1,0 +1,16 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}Du bist offline · Icekey Inventory{% endblock %}
+
+{% block content %}
+  <section class="mobile-card" aria-labelledby="offline-title">
+    <h1 id="offline-title">Du bist offline</h1>
+    <p class="mobile-muted">
+      Icekey Inventory kann gerade keine Verbindung zum Server herstellen.
+      Prüfe deine Verbindung und versuche es erneut.
+    </p>
+    <button class="mobile-button" type="button" onclick="window.location.reload()">
+      Erneut versuchen
+    </button>
+  </section>
+{% endblock %}

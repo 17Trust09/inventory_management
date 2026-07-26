@@ -1,0 +1,9 @@
+{% extends 'mobile/base.html' %}
+{% block title %}Dashboards{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3"><div><div class="muted small">Zum Aktualisieren nach unten ziehen</div><h1 class="h3 mb-0">Dashboards</h1></div><a class="btn btn-sm btn-outline-accent" href="/m/overview/add/">Neu</a></div>
+{% if favorite_overviews %}<h2 class="h6 muted mt-3">Favoriten</h2>{% for overview in favorite_overviews %}<a class="mobile-card d-block p-3 mb-3 text-decoration-none" href="/m/dashboards/{{ overview.slug }}/"><div class="d-flex align-items-center gap-3"><div class="fs-1">{{ overview.icon_emoji|default:'*' }}</div><div class="flex-grow-1"><h3 class="h5 mb-1">{{ overview.name }}</h3><div class="muted small">{{ overview.items.count }} Artikel</div></div><span class="accent">›</span></div></a>{% endfor %}{% endif %}
+<h2 class="h6 muted mt-3">Alle Dashboards</h2>
+{% for overview in overviews %}<a class="mobile-card d-block p-3 mb-3 text-decoration-none" href="/m/dashboards/{{ overview.slug }}/"><div class="d-flex align-items-center gap-3"><div class="fs-1">{{ overview.icon_emoji|default:'*' }}</div><div class="flex-grow-1"><h3 class="h5 mb-1">{{ overview.name }}</h3>{% if overview.description %}<div class="muted small">{{ overview.description|truncatechars:80 }}</div>{% endif %}<div class="muted small mt-1">{{ overview.items.count }} Artikel</div></div><span class="accent">›</span></div></a>{% empty %}<div class="mobile-card p-4 text-center muted">Keine Dashboards verfügbar.</div>{% endfor %}
+{% if pending_overviews %}<h2 class="h6 muted mt-4">Angefragt</h2>{% for overview in pending_overviews %}<div class="mobile-card p-3 mb-2"><strong>{{ overview.name }}</strong><div class="muted small">Wartet auf Freigabe</div></div>{% endfor %}{% endif %}
+{% endblock %}
