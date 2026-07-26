@@ -91,7 +91,9 @@ def admin_import_export(request):
             )
             request.session["admin_import_file"] = saved_path
             full_path = Path(settings.MEDIA_ROOT) / saved_path
-            preview = preview_import(str(full_path))
+            overview_id = request.POST.get("overview_id")
+            overview = Overview.objects.filter(pk=overview_id, is_active=True).first() if overview_id else None
+            preview = preview_import(str(full_path), overview=overview)
             preview["counts"] = {
                 "valid": preview["total_valid"],
                 "warning": sum(1 for r in preview["rows"] if r["status"] == "warning"),

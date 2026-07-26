@@ -92,11 +92,25 @@ def generate_import_template(output_path, overview=None):
     _setup_sheet(worksheet, overview)
 
     example_dashboard = Overview.objects.order_by("name").values_list("name", flat=True).first() or "Dashboard-Name"
-    worksheet.append([
-        "Beispielartikel", example_dashboard, "Werkzeug", 1, "Stück", 3,
-        "Regal A > Fach 1", "Bohrer, Metall", "https://example.com/bestellen",
-        "Standard", date.today().isoformat(), "Kurze Beschreibung des Artikels",
-    ])
+    cols = get_columns_for_overview(overview)
+    example_values = {
+        "Name": "Beispielartikel",
+        "Dashboard": example_dashboard,
+        "Kategorie": "Werkzeug",
+        "Ist-Bestand": 1,
+        "Einheit": "Stück",
+        "Tags": "Bohrer, Metall",
+        "Bestell-Link": "https://example.com/bestellen",
+        "Variante": "Standard",
+        "Beschreibung": "Kurze Beschreibung des Artikels",
+        "Mindestbestand": 3,
+        "Lagerort": "Regal A > Fach 1",
+        "Verleihbar": "–",
+        "Bild-URL": "",
+        "Notizen": "",
+        "Wartungsdatum": date.today().isoformat(),
+    }
+    worksheet.append([example_values.get(c, "") for c in cols])
 
     _style_rows(worksheet, zebra=False)
     _add_validations(workbook, worksheet)
@@ -155,9 +169,9 @@ def export_items_to_excel(output_path, overview=None):
     _save_workbook(workbook, output_path)
 
 
-def preview_import(file_path):
+def preview_import(file_path, overview=None):
     """Read Excel, return {rows: [...preview...], warnings: [...], errors: [...], total_valid: N}."""
-    result = _parse_workbook(file_path, include_duplicate_warnings=True)
+    result = _parse_workbook(file_path, include_duplicate_warnings=True, overview=overview)
     preview_rows = []
     total_valid = 0
 
@@ -177,9 +191,9 @@ def preview_import(file_path):
     return {"rows": preview_rows, "warnings": result["warnings"], "errors": result["errors"], "total_valid": total_valid}
 
 
-def execute_import(file_path, user, dry_run=False, override_overview=None):
+def execute_import(file_path, user, dry_run=False, override_overview=None, overview=None):
     """Actually import items. Returns {imported: N, skipped: N, errors: [...]}"""
-    parsed = _parse_workbook(file_path, include_duplicate_warnings=False)
+    parsed = _parse_workbook(file_path, include_duplicate_warnings=False, overview=overview)
     imported = 0
     skipped = 0
     # _parse_workbook returns row-level errors both globally and on each row for
@@ -302,7 +316,7 @@ def _item_to_row(item: InventoryItem, overview=None):
     return [col_map.get(c, "") for c in cols]
 
 
-def _parse_workbook(file_path, include_duplicate_warnings: bool):
+def _parse_workbook(file_path, include_duplicate_warnings: bool, overview=None):
     workbook = load_workbook(file_path, data_only=True)
     worksheet = workbook.active
     header_map = _header_map(worksheet)
@@ -310,7 +324,7 @@ def _parse_workbook(file_path, include_duplicate_warnings: bool):
     warnings = []
     errors = []
 
-    cols = get_columns_for_overview()
+    cols = get_columns_for_overview(overview)
     missing_headers = [header for header in cols if header not in header_map]
     if missing_headers:
         errors.append({"row": 1, "message": f"Fehlende Spalten: {', '.join(missing_headers)}"})
