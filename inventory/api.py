@@ -2,18 +2,30 @@
 from __future__ import annotations
 
 import os
+import json
 from typing import Any, Dict
 
 from django.conf import settings
 from django.views import View
 from django.http import JsonResponse, HttpResponseForbidden
 from django.utils.timezone import localtime, now
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .models import Feedback, ItemMark, Category, ApplicationTag, TagType, Overview, StorageLocation
 from .admin_views import _get_tailscale_status, _get_global_settings
 from .integrations.homeassistant import check_available, get_status_tuple, get_diagnostics
 
 API_KEY = os.getenv("FEEDBACK_API_KEY", "").strip()  # optionaler Schutz (?key=...)
+
+
+def _parse_json_body(request):
+    try:
+        data = json.loads(request.body or b"{}")
+    except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
+        return None, JsonResponse({"success": False, "error": "Ungültiges JSON"}, status=400)
+    if not isinstance(data, dict):
+        return None, JsonResponse({"success": False, "error": "JSON-Objekt erwartet"}, status=400)
+    return data, None
 
 
 def _is_local(request) -> bool:
@@ -222,7 +234,7 @@ class MarkedItemsAPI(View):
 # Quick-Add API: Neue Kategorie / neuer Tag direkt aus dem Item-Formular
 # ---------------------------------------------------------------------------
 
-class QuickAddCategoryAPI(View):
+class QuickAddCategoryAPI(LoginRequiredMixin, View):
     """
     POST /api/categories/quick-add/
     Body: { "name": "Elektronik" }
@@ -231,18 +243,16 @@ class QuickAddCategoryAPI(View):
     """
 
     def post(self, request):
-        import json
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return JsonResponse({"success": False, "error": "Ungültiges JSON"}, status=400)
+        data, error_response = _parse_json_body(request)
+        if error_response is not None:
+            return error_response
 
         name = data.get("name", "").strip()
         if not name:
             return JsonResponse({"success": False, "error": "Name ist erforderlich"}, status=400)
 
-        if Category.objects.filter(name__iexact=name).exists():
-            existing = Category.objects.get(name__iexact=name)
+        existing = Category.objects.filter(name__iexact=name).first()
+        if existing:
             return JsonResponse({
                 "success": True,
                 "id": existing.id,
@@ -274,7 +284,7 @@ class QuickAddCategoryAPI(View):
             })
 
 
-class QuickAddTagAPI(View):
+class QuickAddTagAPI(LoginRequiredMixin, View):
     """
     POST /api/tags/quick-add/
     Body: { "name": "Sensor", "type_name": "Equipment" }
@@ -283,11 +293,9 @@ class QuickAddTagAPI(View):
     """
 
     def post(self, request):
-        import json
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return JsonResponse({"success": False, "error": "Ungültiges JSON"}, status=400)
+        data, error_response = _parse_json_body(request)
+        if error_response is not None:
+            return error_response
 
         name = data.get("name", "").strip()
         type_name = data.get("type_name", "").strip()
@@ -295,8 +303,8 @@ class QuickAddTagAPI(View):
         if not name:
             return JsonResponse({"success": False, "error": "Name ist erforderlich"}, status=400)
 
-        if ApplicationTag.objects.filter(name__iexact=name).exists():
-            existing = ApplicationTag.objects.get(name__iexact=name)
+        existing = ApplicationTag.objects.filter(name__iexact=name).first()
+        if existing:
             return JsonResponse({
                 "success": True,
                 "id": existing.id,
@@ -336,7 +344,7 @@ class QuickAddTagAPI(View):
             })
 
 
-class QuickAddStorageLocationAPI(View):
+class QuickAddStorageLocationAPI(LoginRequiredMixin, View):
     """
     POST /api/storage-locations/quick-add/
     Body: { "name": "Regal A" }
@@ -344,11 +352,9 @@ class QuickAddStorageLocationAPI(View):
     """
 
     def post(self, request):
-        import json
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return JsonResponse({"success": False, "error": "Ungültiges JSON"}, status=400)
+        data, error_response = _parse_json_body(request)
+        if error_response is not None:
+            return error_response
 
         name = data.get("name", "").strip()
         if not name:

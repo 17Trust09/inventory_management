@@ -273,10 +273,9 @@
     <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
       <div class="fw-semibold">Bulk-Aktionen</div>
       <div class="d-flex align-items-center gap-2">
-        <select class="form-select form-select-sm" name="action" style="width:auto;">
+        <select class="form-select form-select-sm" name="bulk_action" style="width:auto;">
           <option value="">Aktion wählen…</option>
           <option value="favorite">Als Favorit markieren</option>
-          <option value="unfavorite">Favorit entfernen</option>
         </select>
         <button class="btn btn-sm btn-outline-light" type="submit">Ausführen</button>
       </div>
@@ -324,7 +323,7 @@
               <td>
                 <input class="form-check-input"
                        type="checkbox"
-                       name="item_ids"
+                       name="selected_items"
                        value="{{ it.id }}"
                        form="bulk-action-form">
               </td>
@@ -689,6 +688,7 @@
           const response = await fetch(form.action, {
             method: "POST",
             headers: {
+              "Accept": "application/json",
               "X-Requested-With": "XMLHttpRequest",
             },
             body: new FormData(form),
@@ -714,7 +714,6 @@
     });
   })();
 </script>
-{% endblock %}
   <div class="card mb-3" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
     <div class="card-body">
       <form method="get" action="{{ export_csv_url }}" class="row g-2 align-items-end">
@@ -741,3 +740,4 @@
       </form>
     </div>
   </div>
+{% endblock %}

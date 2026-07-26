@@ -199,23 +199,27 @@ class ScheduledExportView(LoginRequiredMixin, View):
 class ScheduledExportRunView(LoginRequiredMixin, View):
     def post(self, request, pk):
         export = get_object_or_404(ScheduledExport, pk=pk)
-        run = ExportRun.objects.create(export=export)
         try:
             result = export_overview_to_file(
                 overview=export.overview,
                 export_format=export.export_format,
                 columns=export.columns,
             )
-            run.finished_at = timezone.now()
-            run.success = True
-            run.file.name = result
-            run.save()
-            messages.success(request, f"Export „{export.name}“ erfolgreich ausgeführt.")
+            ExportRun.objects.create(
+                scheduled_export=export,
+                status=ExportRun.Status.SUCCESS,
+                file_path=result,
+            )
+            export.last_run_at = timezone.now()
+            export.next_run_at = calculate_next_run(export.frequency, export.last_run_at)
+            export.save(update_fields=["last_run_at", "next_run_at"])
+            messages.success(request, f"Export „{export.overview.name}“ erfolgreich ausgeführt.")
         except Exception as exc:
-            run.finished_at = timezone.now()
-            run.success = False
-            run.error_message = str(exc)
-            run.save()
+            ExportRun.objects.create(
+                scheduled_export=export,
+                status=ExportRun.Status.FAILED,
+                error_message=str(exc),
+            )
             messages.error(request, f"Export fehlgeschlagen: {exc}")
         return redirect("scheduled-exports")
 

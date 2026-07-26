@@ -12,7 +12,7 @@ from .helpers import staff_required
 
 @staff_required
 def permissions_matrix(request):
-    pages = Page.objects.all().order_by("order")
+    pages = Page.objects.all().order_by("name")
     groups = Group.objects.all().order_by("name")
     return render(request, 'inventory/../a1_OLD/permissions_matrix.html', {
         "pages": pages,
@@ -30,16 +30,9 @@ def toggle_permission(request):
     if not all([page_id, group_id, column]):
         return JsonResponse({"error": "Fehlende Parameter"}, status=400)
     perm, _ = RolePermission.objects.get_or_create(page_id=page_id, group_id=group_id)
-    if column == "view":
-        perm.can_view = not perm.can_view
-    elif column == "create":
-        perm.can_create = not perm.can_create
-    elif column == "edit":
-        perm.can_edit = not perm.can_edit
-    elif column == "delete":
-        perm.can_delete = not perm.can_delete
-    else:
+    if column != "view":
         return JsonResponse({"error": "Unbekannte Spalte"}, status=400)
+    perm.can_view = not perm.can_view
     perm.save()
     return JsonResponse({"success": True})
 

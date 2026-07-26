@@ -115,12 +115,9 @@
             </div>
           </details>
           {% if form.instance.pk %}
-            <form method="post" action="{% url 'regenerate-nfc' form.instance.id %}" class="mt-2">
-              {% csrf_token %}
-              {% if o %}<input type="hidden" name="o" value="{{ o }}">{% endif %}
-              {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-              <button class="btn btn-sm btn-outline-primary">NFC-Token neu erzeugen</button>
-            </form>
+            <button class="btn btn-sm btn-outline-primary mt-2" type="submit" form="regenerate-nfc-form">
+              NFC-Token neu erzeugen
+            </button>
           {% endif %}
         </div>
         <div class="col-md-12 mb-3">
@@ -181,6 +178,12 @@
           action="{% url 'regenerate-qr' form.instance.id %}" style="display:none;">
       {% csrf_token %}
     </form>
+    <form id="regenerate-nfc-form" method="post"
+          action="{% url 'regenerate-nfc' form.instance.id %}" style="display:none;">
+      {% csrf_token %}
+      {% if o %}<input type="hidden" name="o" value="{{ o }}">{% endif %}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    </form>
   {% endif %}
 </div>
 
@@ -214,7 +217,6 @@ document.addEventListener("DOMContentLoaded",()=>{
     storageSelect.dataset.quickAddType = 'storage_location';
   }
 });
-
-{% include 'inventory/partials/quick_add_modal.html' %}
 </script>
+{% include 'inventory/partials/quick_add_modal.html' %}
 {% endblock %}

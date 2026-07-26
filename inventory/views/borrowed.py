@@ -19,7 +19,7 @@ from ..models import InventoryHistory
 class BorrowedItemsView(LoginRequiredMixin, View):
     def get(self, request, item_id):
         item = get_object_or_404(InventoryItem, pk=item_id)
-        form = BorrowItemForm()
+        form = BorrowItemForm(item=item)
         return render(request, "inventory/borrow_item.html", {
             "item": item,
             "form": form,
@@ -32,7 +32,7 @@ class BorrowedItemsView(LoginRequiredMixin, View):
 
     def post(self, request, item_id):
         item = get_object_or_404(InventoryItem, pk=item_id)
-        form = BorrowItemForm(request.POST)
+        form = BorrowItemForm(request.POST, item=item)
         if form.is_valid():
             borrowed = form.save(commit=False)
             borrowed.item = item

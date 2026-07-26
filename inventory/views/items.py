@@ -1,6 +1,7 @@
 """
 Item-CRUD-Views: Add, Edit, Delete, RegenerateQR/NFC, History-Rollback, Move, BulkActions.
 """
+import os
 from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -402,8 +403,8 @@ class RegenerateQRView(LoginRequiredMixin, View):
     def post(self, request, pk):
         from ..models import InventoryItem
         item = get_object_or_404(InventoryItem, pk=pk)
-        qr_code = item.generate_qr_code(regenerate=True)
-        if qr_code:
+        item.generate_qr_code()
+        if os.path.exists(item.qr_file_path):
             messages.success(request, f"QR-Code für „{item.name}“ neu generiert.")
         else:
             messages.warning(request, f"QR-Code-Generierung für „{item.name}“ fehlgeschlagen.")

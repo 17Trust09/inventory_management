@@ -221,7 +221,7 @@
                       </div>
                       <div class="col-12 col-md-8">
                         <label class="form-label small text-muted mb-1">Datei</label>
-                        <input class="form-control" type="file" name="attachment" required form="attachment-upload-form">
+                        <input class="form-control" type="file" name="file" required form="attachment-upload-form">
                       </div>
                       <div class="col-12 col-md-4 d-grid">
                         <button class="btn btn-outline-light" type="submit" form="attachment-upload-form">Hinzufügen</button>
@@ -390,7 +390,7 @@
         <div class="row g-3 align-items-end">
           <div class="col-md-6">
             <label class="form-label">Ziel-Dashboard</label>
-            <select name="target_overview"
+            <select name="overview_id"
                     class="form-select"
                     required>
               {% for ov in overview_list %}

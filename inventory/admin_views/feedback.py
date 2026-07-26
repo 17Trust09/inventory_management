@@ -14,7 +14,7 @@ def admin_feedback_set_status(request, pk):
         return redirect('admin_dashboard')
     feedback = get_object_or_404(Feedback, pk=pk)
     new_status = request.POST.get("status", "").strip()
-    if new_status in dict(Feedback.STATUS_CHOICES):
+    if new_status in dict(Feedback.Status.choices):
         feedback.status = new_status
         feedback.save(update_fields=["status"])
         messages.success(request, "Status aktualisiert.")

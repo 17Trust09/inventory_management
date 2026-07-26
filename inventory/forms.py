@@ -350,6 +350,12 @@ class EquipmentItemForm(forms.ModelForm):
         kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
+        self._system_tag_ids = []
+        if self.instance and self.instance.pk:
+            self._system_tag_ids = list(
+                self.instance.application_tags.filter(SYSTEM_TAG_FILTER).values_list('pk', flat=True)
+            )
+
         if not unit_fields_enabled():
             self.fields.pop('unit', None)
 
@@ -401,15 +407,8 @@ class EquipmentItemForm(forms.ModelForm):
             instance.save()
             self.save_m2m()
 
-        # existierendes Objekt? -> System-Tags wieder hinzufügen
-        if instance.pk:
-            try:
-                before = InventoryItem.objects.get(pk=instance.pk)
-                system_tags = before.application_tags.filter(SYSTEM_TAG_FILTER)
-                if system_tags.exists():
-                    instance.application_tags.add(*system_tags)
-            except InventoryItem.DoesNotExist:
-                pass
+            if self._system_tag_ids:
+                instance.application_tags.add(*self._system_tag_ids)
         return instance
 
 
@@ -470,6 +469,12 @@ class ConsumableItemForm(forms.ModelForm):
         kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
+        self._system_tag_ids = []
+        if self.instance and self.instance.pk:
+            self._system_tag_ids = list(
+                self.instance.application_tags.filter(SYSTEM_TAG_FILTER).values_list('pk', flat=True)
+            )
+
         if not unit_fields_enabled():
             self.fields.pop('unit', None)
 
@@ -507,14 +512,8 @@ class ConsumableItemForm(forms.ModelForm):
             instance.save()
             self.save_m2m()
 
-        if instance.pk:
-            try:
-                before = InventoryItem.objects.get(pk=instance.pk)
-                system_tags = before.application_tags.filter(SYSTEM_TAG_FILTER)
-                if system_tags.exists():
-                    instance.application_tags.add(*system_tags)
-            except InventoryItem.DoesNotExist:
-                pass
+            if self._system_tag_ids:
+                instance.application_tags.add(*self._system_tag_ids)
         return instance
 
     def clean_low_quantity(self):
