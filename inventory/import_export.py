@@ -21,10 +21,34 @@ from .duplicate_check import find_similar_items
 from .models import ApplicationTag, Category, InventoryItem, Overview, StorageLocation
 
 
-COLUMNS = [
-    "Name", "Dashboard", "Kategorie", "Ist-Bestand", "Einheit", "Mindestbestand",
-    "Lagerort", "Tags", "Bestell-Link", "Variante", "Wartungsdatum", "Beschreibung",
+BASE_COLUMNS = [
+    "Name", "Dashboard", "Kategorie", "Ist-Bestand", "Einheit", "Tags",
+    "Bestell-Link", "Variante", "Beschreibung",
 ]
+
+FEATURE_COLUMNS = [
+    ("has_min_stock", "Mindestbestand"),
+    ("has_locations", "Lagerort"),
+    ("enable_borrow", "Verleihbar"),
+    ("show_images", "Bild-URL"),
+    ("enable_comments", "Notizen"),
+]
+
+OPTIONAL_COLUMNS = [
+    "Wartungsdatum",
+]
+
+def get_columns_for_overview(overview=None):
+    """Spalten basierend auf Dashboard-Features."""
+    cols = list(BASE_COLUMNS)
+    if overview:
+        for attr, name in FEATURE_COLUMNS:
+            if getattr(overview, attr, False):
+                cols.append(name)
+    else:
+        cols.extend(name for _, name in FEATURE_COLUMNS)
+    cols.extend(OPTIONAL_COLUMNS)
+    return cols
 
 UNIT_DISPLAY_BY_CODE = {
     "pcs": "Stück", "set": "Set", "pack": "Packung", "box": "Box", "m": "Meter",
@@ -60,12 +84,12 @@ HEADER_ALIASES = {
 }
 
 
-def generate_import_template(output_path):
+def generate_import_template(output_path, overview=None):
     """Generate an XLSX template with headers and data validation dropdowns."""
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "Import"
-    _setup_sheet(worksheet)
+    _setup_sheet(worksheet, overview)
 
     example_dashboard = Overview.objects.order_by("name").values_list("name", flat=True).first() or "Dashboard-Name"
     worksheet.append([
@@ -112,7 +136,7 @@ def export_items_to_excel(output_path, overview=None):
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "Import"
-    _setup_sheet(worksheet)
+    _setup_sheet(worksheet, overview)
 
     queryset = (
         InventoryItem.objects.select_related("overview", "category", "storage_location")
@@ -123,7 +147,7 @@ def export_items_to_excel(output_path, overview=None):
         queryset = queryset.filter(overview=overview)
 
     for item in queryset:
-        worksheet.append(_item_to_row(item))
+        worksheet.append(_item_to_row(item, overview))
 
     _style_rows(worksheet, zebra=True)
     _add_validations(workbook, worksheet)
@@ -197,8 +221,9 @@ def execute_import(file_path, user, dry_run=False, override_overview=None):
     return {"imported": imported, "skipped": skipped, "errors": errors}
 
 
-def _setup_sheet(worksheet):
-    worksheet.append(COLUMNS)
+def _setup_sheet(worksheet, overview=None):
+    cols = get_columns_for_overview(overview)
+    worksheet.append(cols)
     worksheet.freeze_panes = "A2"
     worksheet.auto_filter.ref = f"A1:{get_column_letter(len(COLUMNS))}1"
 
@@ -255,21 +280,26 @@ def _save_workbook(workbook, output_path):
     workbook.save(output)
 
 
-def _item_to_row(item: InventoryItem):
-    return [
-        item.name,
-        item.overview.name if item.overview else "",
-        item.category.name if item.category else "",
-        item.quantity,
-        UNIT_DISPLAY_BY_CODE.get(item.unit, item.get_unit_display() if item.unit else ""),
-        item.low_quantity,
-        item.storage_location.get_full_path() if item.storage_location else "",
-        ", ".join(sorted(item.application_tags.values_list("name", flat=True))),
-        item.order_link or "",
-        item.variant or "",
-        item.maintenance_date.isoformat() if item.maintenance_date else "",
-        item.description or "",
-    ]
+def _item_to_row(item: InventoryItem, overview=None):
+    cols = get_columns_for_overview(overview or item.overview)
+    col_map = {
+        "Name": item.name,
+        "Dashboard": item.overview.name if item.overview else "",
+        "Kategorie": item.category.name if item.category else "",
+        "Ist-Bestand": item.quantity,
+        "Einheit": UNIT_DISPLAY_BY_CODE.get(item.unit, item.get_unit_display() if item.unit else ""),
+        "Tags": ", ".join(sorted(item.application_tags.values_list("name", flat=True))),
+        "Bestell-Link": item.order_link or "",
+        "Variante": item.variant or "",
+        "Beschreibung": item.description or "",
+        "Mindestbestand": item.low_quantity,
+        "Lagerort": item.storage_location.get_full_path() if item.storage_location else "",
+        "Verleihbar": "✓" if item.is_active else "–",
+        "Bild-URL": item.image.url if item.image else "",
+        "Notizen": "",
+        "Wartungsdatum": item.maintenance_date.isoformat() if item.maintenance_date else "",
+    }
+    return [col_map.get(c, "") for c in cols]
 
 
 def _parse_workbook(file_path, include_duplicate_warnings: bool):
@@ -280,13 +310,14 @@ def _parse_workbook(file_path, include_duplicate_warnings: bool):
     warnings = []
     errors = []
 
-    missing_headers = [header for header in COLUMNS if header not in header_map]
+    cols = get_columns_for_overview()
+    missing_headers = [header for header in cols if header not in header_map]
     if missing_headers:
         errors.append({"row": 1, "message": f"Fehlende Spalten: {', '.join(missing_headers)}"})
         return {"rows": rows, "warnings": warnings, "errors": errors}
 
     for row_idx in range(2, worksheet.max_row + 1):
-        raw = {header: _cell_value(worksheet.cell(row=row_idx, column=header_map[header])) for header in COLUMNS}
+        raw = {header: _cell_value(worksheet.cell(row=row_idx, column=header_map[header])) for header in cols if header in header_map}
         if not any(value not in (None, "") for value in raw.values()):
             continue
 

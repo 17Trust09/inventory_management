@@ -17,9 +17,23 @@
         <form method="post" class="mb-4">
           {% csrf_token %}
           <input type="hidden" name="download_template" value="1">
-          <button type="submit" class="btn btn-primary">
-            📊 Excel-Vorlage herunterladen
-          </button>
+          <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Dashboard für Vorlage wählen</label>
+              <select class="form-select" name="overview_id">
+                <option value="">Alle Spalten (generisch)</option>
+                {% for overview in overviews %}
+                  <option value="{{ overview.id }}">{{ overview.icon_emoji }} {{ overview.name }} ({{ overview.is_consumable_mode|yesno:'Verbrauch,Equipment' }})</option>
+                {% endfor %}
+              </select>
+              <div class="form-text text-muted">Ohne Auswahl: alle möglichen Spalten. Mit Auswahl: nur die Spalten, die das Dashboard wirklich nutzt.</div>
+            </div>
+            <div class="col-md-6">
+              <button type="submit" class="btn btn-primary">
+                📊 Excel-Vorlage herunterladen
+              </button>
+            </div>
+          </div>
         </form>
 
         <form method="post" enctype="multipart/form-data" class="border rounded p-3" style="border-color:var(--border);" id="preview-form">

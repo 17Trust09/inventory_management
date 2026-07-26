@@ -23,9 +23,9 @@ from ..models import Overview
 from .helpers import staff_required
 
 
-def _template_response():
+def _template_response(overview=None):
     with NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
-        generate_import_template(tmp.name)
+        generate_import_template(tmp.name, overview=overview)
         tmp.seek(0)
         data = tmp.read()
     response = HttpResponse(data, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -68,7 +68,11 @@ def admin_import_export(request):
         action = request.POST.get("action")
 
         if request.POST.get("download_template") or action == "download_template":
-            return _template_response()
+            overview_id = request.POST.get("overview_id")
+            overview = None
+            if overview_id:
+                overview = Overview.objects.filter(pk=overview_id, is_active=True).first()
+            return _template_response(overview)
 
         if action == "export_backup":
             overview_id = request.POST.get("overview_id") or None
