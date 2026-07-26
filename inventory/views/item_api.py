@@ -120,6 +120,15 @@ class QuickAdjustQuantityView(LoginRequiredMixin, View):
             before=before, after=after,
             meta={"source": "quick-adjust", "delta": change},
         )
+
+        is_ajax = request.headers.get("Accept", "").startswith("application/json")
+        if is_ajax:
+            return JsonResponse({
+                "success": True,
+                "quantity": item.quantity,
+                "delta": change,
+            })
+
         direction = "erhöht" if change > 0 else "reduziert"
         messages.success(request, f"Bestand von „{item.name}“ um {abs(change)} {direction}.")
         return redirect(request.META.get("HTTP_REFERER", "dashboards"))
