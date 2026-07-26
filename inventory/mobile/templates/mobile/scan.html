@@ -1,3 +1,27 @@
 {% extends 'mobile/base.html' %}
 {% block title %}Scannen{% endblock %}
-{% block content %}<h1 class="h3 mb-3">QR / Barcode scannen</h1><div class="mobile-card p-4 text-center mb-3"><div class="display-1 mb-3">[]</div><p class="muted">Scanner-Platzhalter. Kamera-Unterstützung kann hier angebunden werden.</p><form method="get" action="/m/scan-barcode/"><input class="form-control form-control-lg text-center" name="code" placeholder="Code manuell eingeben"><button class="btn btn-accent btn-lg w-100 mt-3" type="submit">Code suchen</button></form></div><a class="btn btn-outline-accent w-100" href="/m/barcodes/">Barcode-Liste</a>{% endblock %}
+{% block page_name %}scan{% endblock %}
+{% block content %}
+<header class="app-header">
+  <h1>Scannen</h1>
+</header>
+
+<section class="section">
+  <div class="card scanner-landing">
+    <div class="card-icon" aria-hidden="true">[SCAN]</div>
+    <h2 class="card-title">QR / Barcode scannen</h2>
+    <p class="card-subtitle">Kamera-Unterstützung kann hier angebunden werden. Du kannst den Code auch manuell eingeben.</p>
+    <form method="get" action="{% url 'mobile-scan-barcode' %}">
+      <div class="input-group">
+        <label for="manual-code">Code</label>
+        <div class="search-bar"><input id="manual-code" class="search-input" name="code" placeholder="Code manuell eingeben" autocomplete="off" inputmode="text"></div>
+      </div>
+      <button class="btn btn-primary" type="submit">Code suchen</button>
+    </form>
+  </div>
+</section>
+
+<section class="section">
+  <a class="btn btn-secondary" href="{% url 'mobile-barcode-list' %}">Barcode-Liste</a>
+</section>
+{% endblock %}

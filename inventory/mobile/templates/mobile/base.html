@@ -5,11 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}Inventarverwaltung{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'mobile/mobile.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'mobile/mobile.css' %}">
   {% block extra_css %}{% endblock %}
 </head>
-<body class="mobile-body" data-page="{% block page_name %}{% endblock %}">
-  <main class="mobile-safe-container">
+<body data-page="{% block page_name %}{% endblock %}">
+  <main class="content">
     {% block content %}{% endblock %}
   </main>
 
@@ -17,26 +17,31 @@
   {% with current=request.resolver_match.url_name %}
   <nav class="bottom-nav" aria-label="Hauptnavigation">
     <a class="nav-item{% if current == 'mobile-dashboards' or current == 'mobile-overview-dashboard' %} active{% endif %}" href="{% url 'mobile-dashboards' %}" data-nav="dashboards"{% if current == 'mobile-dashboards' or current == 'mobile-overview-dashboard' %} aria-current="page"{% endif %}>
-      <span class="nav-icon" aria-hidden="true">▦</span><span class="nav-label">Dashboards</span>
+      <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v6H4V5Zm9 0h7v6h-7V5ZM4 13h7v6H4v-6Zm9 0h7v6h-7v-6Z" fill="currentColor"/></svg>
+      <span class="nav-label">Dashboards</span>
     </a>
     <a class="nav-item{% if current == 'mobile-scan' or current == 'mobile-scan-barcode' %} active{% endif %}" href="{% url 'mobile-scan' %}" data-nav="scan"{% if current == 'mobile-scan' or current == 'mobile-scan-barcode' %} aria-current="page"{% endif %}>
-      <span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">Scannen</span>
+      <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h5v2H7v3H5V3Zm9 0h5v5h-2V5h-3V3ZM5 16h2v3h3v2H5v-5Zm12 0h2v5h-5v-2h3v-3ZM4 11h16v2H4v-2Z" fill="currentColor"/></svg>
+      <span class="nav-label">Scannen</span>
     </a>
-    <a class="nav-item nav-item-primary{% if current == 'mobile-add-equipment' or current == 'mobile-add-consumable' or current == 'mobile-add-consumables' or current == 'mobile-quick-add' %} active{% endif %}" href="{% url 'mobile-add-equipment' %}" data-nav="add"{% if current == 'mobile-add-equipment' or current == 'mobile-add-consumable' or current == 'mobile-add-consumables' or current == 'mobile-quick-add' %} aria-current="page"{% endif %}>
-      <span class="nav-icon" aria-hidden="true">＋</span><span class="nav-label">Neu</span>
+    <a class="nav-item{% if current == 'mobile-add-equipment' or current == 'mobile-add-consumable' or current == 'mobile-add-consumables' or current == 'mobile-quick-add' %} active{% endif %}" href="{% url 'mobile-add-equipment' %}" data-nav="add"{% if current == 'mobile-add-equipment' or current == 'mobile-add-consumable' or current == 'mobile-add-consumables' or current == 'mobile-quick-add' %} aria-current="page"{% endif %}>
+      <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" fill="currentColor"/></svg>
+      <span class="nav-label">Neu</span>
     </a>
     <a class="nav-item{% if current == 'mobile-search' %} active{% endif %}" href="{% url 'mobile-search' %}" data-nav="search"{% if current == 'mobile-search' %} aria-current="page"{% endif %}>
-      <span class="nav-icon" aria-hidden="true">⌕</span><span class="nav-label">Suchen</span>
+      <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 5a5.5 5.5 0 1 0 3.43 9.8l4.13 4.14 1.42-1.42-4.14-4.13A5.5 5.5 0 0 0 10.5 5Zm0 2a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" fill="currentColor"/></svg>
+      <span class="nav-label">Suchen</span>
     </a>
-    <a class="nav-item{% if current == 'mobile-settings' %} active{% endif %}" href="{% url 'mobile-settings' %}" data-nav="more"{% if current == 'mobile-settings' %} aria-current="page"{% endif %}>
-      <span class="nav-icon" aria-hidden="true">⋯</span><span class="nav-label">Mehr</span>
+    <a class="nav-item{% if current == 'mobile-settings' %} active{% endif %}" href="{% url 'mobile-settings' %}" data-nav="settings"{% if current == 'mobile-settings' %} aria-current="page"{% endif %}>
+      <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm7.2 2a7.2 7.2 0 0 0-.08-1.08l2.04-1.58-2-3.46-2.4.96a7.56 7.56 0 0 0-1.88-1.08L14.5 3h-5l-.38 2.76c-.68.27-1.31.64-1.88 1.08l-2.4-.96-2 3.46 2.04 1.58a7.2 7.2 0 0 0 0 2.16L2.84 14.66l2 3.46 2.4-.96c.57.44 1.2.81 1.88 1.08L9.5 21h5l.38-2.76c.68-.27 1.31-.64 1.88-1.08l2.4.96 2-3.46-2.04-1.58c.05-.35.08-.71.08-1.08Z" fill="currentColor"/></svg>
+      <span class="nav-label">Mehr</span>
     </a>
   </nav>
   {% endwith %}
   {% endblock %}
 
-  <div class="pull-to-refresh-indicator" aria-hidden="true"></div>
-  <script src="{% static 'mobile/mobile.js' %}?v=2" defer></script>
+  <div class="pull-indicator" aria-hidden="true"></div>
+  <script src="{% static 'mobile/mobile.js' %}" defer></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

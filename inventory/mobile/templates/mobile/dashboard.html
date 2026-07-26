@@ -2,86 +2,78 @@
 {% block title %}Dashboards{% endblock %}
 {% block page_name %}dashboard{% endblock %}
 {% block content %}
-<section class="mobile-page dashboard-mobile" data-mobile-pull-refresh>
-  <header class="mobile-page-header">
-    <div>
-      <div class="muted small">Zum Aktualisieren nach unten ziehen</div>
-      <h1>Alle Dashboards</h1>
-    </div>
-    <a class="btn-accent btn-compact" href="{% url 'mobile-overview-request-add' %}" aria-label="Dashboard anfragen">＋</a>
-  </header>
-
-  <label class="mobile-search-wrap" for="dashboard-filter">
-    <span aria-hidden="true">⌕</span>
-    <input id="dashboard-filter" class="search-bar" type="search" placeholder="Dashboard suchen" autocomplete="off" data-dashboard-filter>
-  </label>
-
-  <div class="skeleton-list" aria-hidden="true" hidden>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
+<header class="app-header" data-mobile-pull-refresh>
+  <div>
+    <p class="card-subtitle">Zum Aktualisieren nach unten ziehen</p>
+    <h1>Dashboards</h1>
   </div>
+</header>
 
-  {% if favorite_overviews %}
-    <h2 class="section-title">Favoriten</h2>
-    <div class="card-list" data-dashboard-list>
-      {% for overview in favorite_overviews %}
-        <a class="dashboard-card" href="{% url 'mobile-overview-dashboard' overview.slug %}" data-dashboard-card data-name="{{ overview.name|lower }}">
-          <span class="dashboard-icon" aria-hidden="true">{{ overview.icon_emoji|default:'📦' }}</span>
-          <span class="dashboard-main">
-            <span class="dashboard-title">{{ overview.name }}</span>
-            <span class="dashboard-subtitle">{% if overview.is_consumable_mode %}Verbrauchsmaterial{% else %}Equipment{% endif %}{% if overview.description %} · {{ overview.description|truncatechars:56 }}{% endif %}</span>
-          </span>
-          <span class="badge-count" aria-label="{{ overview.items.count }} Artikel">{{ overview.items.count }}</span>
-        </a>
-      {% endfor %}
-    </div>
-  {% endif %}
+<section class="section">
+  <div class="search-bar"><input id="dashboard-filter" class="search-input" type="search" placeholder="Dashboard suchen" autocomplete="off" data-dashboard-filter></div>
+</section>
 
+<div class="skeleton" aria-hidden="true" hidden></div>
+
+{% if favorite_overviews %}
+<section class="section">
+  <h2 class="section-title">Favoriten</h2>
+  {% for overview in favorite_overviews %}
+    <a class="card" href="{% url 'mobile-overview-dashboard' overview.slug %}" data-dashboard-card data-name="{{ overview.name|lower }}">
+      <span class="card-icon" aria-hidden="true">{{ overview.icon_emoji|default:'[BOX]' }}</span>
+      <span class="card-content">
+        <span class="card-title">{{ overview.name }}</span>
+        <span class="card-subtitle">{% if overview.is_consumable_mode %}Verbrauchsmaterial{% else %}Equipment{% endif %}{% if overview.description %} · {{ overview.description|truncatechars:56 }}{% endif %}</span>
+      </span>
+      <span class="badge" aria-label="{{ overview.items.count }} Artikel">{{ overview.items.count }}</span>
+    </a>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="section">
   <h2 class="section-title">Alle Dashboards</h2>
   {% if overviews %}
-    <div class="card-list" data-dashboard-list>
-      {% for overview in overviews %}
-        <a class="dashboard-card" href="{% url 'mobile-overview-dashboard' overview.slug %}" data-dashboard-card data-name="{{ overview.name|lower }}">
-          <span class="dashboard-icon" aria-hidden="true">{{ overview.icon_emoji|default:'📦' }}</span>
-          <span class="dashboard-main">
-            <span class="dashboard-title">{{ overview.name }}</span>
-            <span class="dashboard-subtitle">{% if overview.is_consumable_mode %}Verbrauchsmaterial{% else %}Equipment{% endif %}{% if overview.description %} · {{ overview.description|truncatechars:56 }}{% endif %}</span>
-          </span>
-          <span class="badge-count" aria-label="{{ overview.items.count }} Artikel">{{ overview.items.count }}</span>
-        </a>
-      {% endfor %}
-    </div>
+    {% for overview in overviews %}
+      <a class="card" href="{% url 'mobile-overview-dashboard' overview.slug %}" data-dashboard-card data-name="{{ overview.name|lower }}">
+        <span class="card-icon" aria-hidden="true">{{ overview.icon_emoji|default:'[BOX]' }}</span>
+        <span class="card-content">
+          <span class="card-title">{{ overview.name }}</span>
+          <span class="card-subtitle">{% if overview.is_consumable_mode %}Verbrauchsmaterial{% else %}Equipment{% endif %}{% if overview.description %} · {{ overview.description|truncatechars:56 }}{% endif %}</span>
+        </span>
+        <span class="badge" aria-label="{{ overview.items.count }} Artikel">{{ overview.items.count }}</span>
+      </a>
+    {% endfor %}
     <div class="empty-state" data-filter-empty hidden>
-      <div class="empty-icon">🔎</div>
+      <div class="empty-icon">[?]</div>
       <h2>Kein Dashboard gefunden</h2>
       <p>Ändere den Suchbegriff oder lege ein neues Dashboard an.</p>
-      <a class="btn-accent" href="{% url 'mobile-overview-request-add' %}">Dashboard erstellen</a>
     </div>
   {% else %}
     <div class="empty-state">
-      <div class="empty-icon">▦</div>
+      <div class="empty-icon">[ ]</div>
       <h2>Keine Dashboards vorhanden</h2>
       <p>Erstelle oder beantrage dein erstes Dashboard.</p>
-      <a class="btn-accent" href="{% url 'mobile-overview-request-add' %}">Dashboard erstellen</a>
-    </div>
-  {% endif %}
-
-  {% if pending_overviews %}
-    <h2 class="section-title">Angefragt</h2>
-    <div class="card-list">
-      {% for overview in pending_overviews %}
-        <div class="dashboard-card dashboard-card-static">
-          <span class="dashboard-icon" aria-hidden="true">{{ overview.icon_emoji|default:'⏳' }}</span>
-          <span class="dashboard-main">
-            <span class="dashboard-title">{{ overview.name }}</span>
-            <span class="dashboard-subtitle">Wartet auf Freigabe</span>
-          </span>
-        </div>
-      {% endfor %}
     </div>
   {% endif %}
 </section>
+
+{% if pending_overviews %}
+<section class="section">
+  <h2 class="section-title">Angefragt</h2>
+  {% for overview in pending_overviews %}
+    <div class="card">
+      <span class="card-icon" aria-hidden="true">{{ overview.icon_emoji|default:'[...]' }}</span>
+      <span class="card-content">
+        <span class="card-title">{{ overview.name }}</span>
+        <span class="card-subtitle">Wartet auf Freigabe</span>
+      </span>
+    </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<a class="fab" href="{% url 'mobile-overview-request-add' %}" aria-label="Neues Dashboard beantragen">+ Neu</a>
 {% endblock %}
 {% block extra_js %}
 <script>

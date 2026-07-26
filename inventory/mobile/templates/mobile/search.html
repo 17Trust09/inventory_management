@@ -1,3 +1,45 @@
 {% extends 'mobile/base.html' %}
 {% block title %}Suchen{% endblock %}
-{% block content %}<h1 class="h3 mb-3">Suche</h1><form class="mobile-card p-3 mb-3" method="get" action="/m/search/"><input class="form-control form-control-lg" name="q" value="{{ q|default:request.GET.q }}" placeholder="Artikel, Barcode, Ort"><button class="btn btn-accent w-100 mt-3" type="submit">Suchen</button></form>{% if q %}<div class="muted small mb-2">Ergebnisse für „{{ q }}“</div>{% for item in items %}<a class="mobile-card d-block p-3 mb-3 text-decoration-none" href="/m/edit-item/{{ item.id }}/?next={{ request.get_full_path|urlencode }}"><div class="d-flex justify-content-between gap-2"><div><strong>{{ item.name }}</strong><div class="muted small">{% if item.overview %}{{ item.overview.name }}{% endif %}{% if item.category %} · {{ item.category.name }}{% endif %}</div><div class="muted small">{% if item.storage_location %}{{ item.storage_location.get_full_path }}{% else %}{{ item.location_letter }} {{ item.location_number }} {{ item.location_shelf }}{% endif %}</div></div><div class="text-end"><div class="fw-bold">{{ item.quantity }}</div></div></div>{% if item.application_tags.all %}<div class="mt-2">{% for tag in item.application_tags.all %}<span class="badge badge-soft me-1">{{ tag.name }}</span>{% endfor %}</div>{% endif %}</a>{% empty %}<div class="mobile-card p-4 text-center muted">Keine Treffer gefunden.</div>{% endfor %}{% else %}<div class="mobile-card p-3 muted">Suche über alle für dich freigegebenen Dashboards.</div>{% endif %}{% endblock %}
+{% block page_name %}search{% endblock %}
+{% block content %}
+<header class="app-header">
+  <h1>Suchen</h1>
+</header>
+
+<section class="section">
+  <form method="get" action="{% url 'mobile-search' %}">
+    <div class="search-bar"><input class="search-input" type="search" name="q" value="{{ q|default:request.GET.q }}" placeholder="Artikel, Barcode, Ort" autocomplete="off" autofocus data-mobile-search></div>
+    <button class="btn btn-primary" type="submit">Suchen</button>
+  </form>
+</section>
+
+<section class="section">
+  {% if q %}
+    <h2 class="section-title">Ergebnisse für „{{ q }}“</h2>
+    {% for item in items %}
+      <a class="list-item" href="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}">
+        <span class="list-icon" aria-hidden="true">[BOX]</span>
+        <span class="list-content">
+          <span class="list-title">{{ item.name }}</span>
+          <span class="list-sub">{% if item.overview %}{{ item.overview.name }}{% endif %}{% if item.category %} · {{ item.category.name }}{% endif %}</span>
+          <span class="list-sub">Ort: {% if item.storage_location %}{{ item.storage_location.get_full_path }}{% else %}{{ item.location_letter }} {{ item.location_number }} {{ item.location_shelf }}{% endif %}</span>
+          {% if item.application_tags.all %}<span class="tag-row">{% for tag in item.application_tags.all %}<span class="badge">{{ tag.name }}</span>{% endfor %}</span>{% endif %}
+        </span>
+        <span class="badge">{{ item.quantity }}</span>
+      </a>
+    {% empty %}
+      <div class="empty-state">
+        <div class="empty-icon">[?]</div>
+        <h2>Keine Treffer gefunden</h2>
+        <p>Versuche einen anderen Suchbegriff.</p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">[?]</div>
+      <h2>Wonach suchst du?</h2>
+      <p>Suche über alle für dich freigegebenen Dashboards.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,51 +1,44 @@
 {% extends 'mobile/base.html' %}
-{% block title %}Mehr{% endblock %}
+{% block title %}Einstellungen{% endblock %}
 {% block page_name %}settings{% endblock %}
 {% block content %}
-<section class="mobile-page settings-page">
-  <header class="mobile-page-header">
-    <div>
-      <div class="muted small">App & Server</div>
-      <h1>Mehr</h1>
-    </div>
-  </header>
+<header class="app-header">
+  <h1>Einstellungen</h1>
+</header>
 
-  <article class="settings-card">
-    <h2>Server-Info</h2>
-    <div class="settings-row">
-      <span>Aktueller Server</span>
-      <strong>{{ request.scheme }}://{{ request.get_host }}</strong>
-    </div>
-    <div class="settings-row">
-      <span>Version</span>
-      <strong>{{ APP_VERSION|default:'unbekannt' }}</strong>
-    </div>
-  </article>
+<section class="section">
+  <h2 class="section-title">Server</h2>
+  <div class="card">
+    <span class="card-title">Aktueller Server</span>
+    <span class="card-subtitle">{{ request.scheme }}://{{ request.get_host }}</span>
+  </div>
+</section>
 
-  <article class="settings-card">
-    <h2>Installation</h2>
-    <a class="settings-action" href="#" id="install-pwa-link">
-      <span>📲</span><span><strong>App installieren (PWA)</strong><small>Zum Home-Bildschirm hinzufügen</small></span>
-    </a>
-    <a class="settings-action" href="/static/mobile/icekey-inventory.apk" download>
-      <span>🤖</span><span><strong>APK herunterladen</strong><small>Android-App direkt installieren</small></span>
-    </a>
-    <a class="settings-action" href="/m/server-select/" data-server-switch>
-      <span>🔁</span><span><strong>Server wechseln</strong><small>Für APK-Nutzer: zurück zur Serverauswahl</small></span>
-    </a>
-  </article>
-
-  <article class="settings-card">
-    <h2>Darstellung</h2>
-    <label class="toggle-row">
-      <span><strong>Theme</strong><small>Hell/Dunkel-Umschaltung folgt später</small></span>
-      <input type="checkbox" disabled aria-label="Theme Toggle Platzhalter">
-    </label>
-  </article>
-
-  <a class="settings-action muted-action" href="/m/manage/">
-    <span>⚙</span><span><strong>Verwaltung</strong><small>Admin-Bereich öffnen</small></span>
+<section class="section">
+  <h2 class="section-title">App</h2>
+  <a class="list-item" href="#" id="install-pwa-link">
+    <span class="list-icon" aria-hidden="true">[PWA]</span>
+    <span class="list-content"><span class="list-title">App installieren (PWA)</span><span class="list-sub">Zum Home-Bildschirm hinzufügen</span></span>
   </a>
+  <a class="list-item" href="/static/mobile/icekey-inventory.apk" download>
+    <span class="list-icon" aria-hidden="true">[APK]</span>
+    <span class="list-content"><span class="list-title">APK herunterladen</span><span class="list-sub">Android-App direkt installieren</span></span>
+  </a>
+  <a class="list-item" href="/m/server-select/" data-server-switch>
+    <span class="list-icon" aria-hidden="true">[SW]</span>
+    <span class="list-content"><span class="list-title">Server wechseln</span><span class="list-sub">Zur Serverauswahl zurückkehren</span></span>
+  </a>
+  <a class="list-item" href="/m/manage/">
+    <span class="list-icon" aria-hidden="true">[CFG]</span>
+    <span class="list-content"><span class="list-title">Verwaltung</span><span class="list-sub">Admin-Bereich öffnen</span></span>
+  </a>
+</section>
+
+<section class="section">
+  <div class="card">
+    <span class="card-title">Version</span>
+    <span class="badge">{{ APP_VERSION|default:'unbekannt' }}</span>
+  </div>
 </section>
 {% endblock %}
 {% block extra_js %}

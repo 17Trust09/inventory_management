@@ -1,208 +1,146 @@
-(function () {
+(() => {
   'use strict';
 
-  var SWIPE_THRESHOLD = 72;
-  var SWIPE_RESTRAINT = 80;
-  var DOUBLE_TAP_DELAY = 300;
-  var SEARCH_DELAY = 300;
-  var PULL_DISTANCE = 82;
-  var MAX_PULL = 120;
+  const ready = (fn) => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    } else {
+      fn();
+    }
+  };
 
-  function debounce(fn, delay) {
-    var timer;
-    return function debounced() {
-      var context = this;
-      var args = arguments;
-      window.clearTimeout(timer);
-      timer = window.setTimeout(function () { fn.apply(context, args); }, delay);
-    };
-  }
+  const normalizePath = (value) => {
+    try {
+      const url = new URL(value, window.location.origin);
+      return url.pathname.replace(/\/$/, '') || '/';
+    } catch (_) {
+      return String(value || '').split(/[?#]/)[0].replace(/\/$/, '') || '/';
+    }
+  };
 
-  function getActionUrl(card, action) {
-    var explicit = card.getAttribute('data-' + action + '-url');
-    if (explicit) return explicit;
-    var selector = action === 'edit'
-      ? 'a[href*="edit"], a[data-mobile-action="edit"]'
-      : 'a[href*="adjust"], button[data-mobile-action="quick-adjust"], a[data-mobile-action="quick-adjust"]';
-    var target = card.querySelector(selector);
-    if (!target) return null;
-    return target.href || target.getAttribute('formaction') || target.getAttribute('data-url');
-  }
-
-  function dispatchMobileAction(card, action) {
-    var event = new CustomEvent('mobile:swipe', { bubbles: true, cancelable: true, detail: { action: action, card: card } });
-    card.dispatchEvent(event);
-    if (event.defaultPrevented) return;
-    var actionButton = card.querySelector('[data-mobile-action="' + action + '"]');
-    if (actionButton) { actionButton.click(); return; }
-    var url = getActionUrl(card, action);
-    if (url) window.location.href = url;
-  }
-
-  function resetCard(card) {
-    card.classList.remove('is-swiping', 'swipe-left', 'swipe-right');
-    card.style.transform = '';
-  }
-
-  function initSwipeDetection() {
-    document.querySelectorAll('.card-mobile').forEach(function (card) {
-      var startX = 0, startY = 0, deltaX = 0, deltaY = 0, tracking = false;
-      card.addEventListener('touchstart', function (event) {
-        if (event.touches.length !== 1) return;
-        startX = event.touches[0].clientX;
-        startY = event.touches[0].clientY;
-        deltaX = 0;
-        deltaY = 0;
-        tracking = true;
-        card.classList.add('is-swiping');
-      }, { passive: true });
-      card.addEventListener('touchmove', function (event) {
-        if (!tracking || event.touches.length !== 1) return;
-        deltaX = event.touches[0].clientX - startX;
-        deltaY = event.touches[0].clientY - startY;
-        if (Math.abs(deltaY) > Math.abs(deltaX) || Math.abs(deltaY) > SWIPE_RESTRAINT) return;
-        var clamped = Math.max(-MAX_PULL, Math.min(MAX_PULL, deltaX));
-        card.style.transform = 'translateX(' + clamped + 'px)';
-        card.classList.toggle('swipe-left', clamped < -SWIPE_THRESHOLD / 2);
-        card.classList.toggle('swipe-right', clamped > SWIPE_THRESHOLD / 2);
-      }, { passive: true });
-      card.addEventListener('touchend', function () {
-        if (!tracking) return;
-        tracking = false;
-        card.classList.remove('is-swiping');
-        if (Math.abs(deltaX) >= SWIPE_THRESHOLD && Math.abs(deltaY) <= SWIPE_RESTRAINT) {
-          var action = deltaX < 0 ? 'quick-adjust' : 'edit';
-          card.style.transform = 'translateX(' + (deltaX < 0 ? '-100%' : '100%') + ')';
-          window.setTimeout(function () { dispatchMobileAction(card, action); resetCard(card); }, 120);
-          return;
-        }
-        resetCard(card);
-      }, { passive: true });
-      card.addEventListener('touchcancel', function () { tracking = false; resetCard(card); }, { passive: true });
+  const setActiveNavigation = () => {
+    const currentPath = normalizePath(window.location.href);
+    document.querySelectorAll('.bottom-nav .nav-item[href]').forEach((item) => {
+      const itemPath = normalizePath(item.getAttribute('href'));
+      const isActive = itemPath === '/' ? currentPath === '/' : currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
+      item.classList.toggle('active', isActive);
+      if (isActive) item.setAttribute('aria-current', 'page');
+      else item.removeAttribute('aria-current');
     });
-  }
+  };
 
-  function ensurePullIndicator() {
-    var indicator = document.querySelector('.pull-to-refresh-indicator');
+  const setupPageTransitions = () => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const root = document.querySelector('.page-transition') || document.querySelector('main') || document.querySelector('.content');
+    if (!root || reduceMotion) return;
+
+    root.classList.add('page-transition', 'is-entering');
+    window.setTimeout(() => root.classList.remove('is-entering'), 260);
+
+    document.addEventListener('click', (event) => {
+      const link = event.target.closest('a[href]');
+      if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (link.target && link.target !== '_self') return;
+      if (link.hasAttribute('download')) return;
+
+      const url = new URL(link.href, window.location.href);
+      if (url.origin !== window.location.origin || url.pathname === window.location.pathname && url.search === window.location.search) return;
+
+      event.preventDefault();
+      root.classList.add('is-leaving');
+      window.setTimeout(() => { window.location.href = url.href; }, 160);
+    });
+  };
+
+  const setupPullToRefresh = () => {
+    const container = document.querySelector('.pull-to-refresh');
+    if (!container) return;
+
+    let startY = 0;
+    let distance = 0;
+    let tracking = false;
+    let refreshing = false;
+    const threshold = Number(container.dataset.refreshThreshold || 72);
+    let indicator = container.querySelector('.pull-indicator');
+
     if (!indicator) {
       indicator = document.createElement('div');
-      indicator.className = 'pull-to-refresh-indicator';
-      indicator.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(indicator);
+      indicator.className = 'pull-indicator';
+      indicator.textContent = 'Pull to refresh';
+      container.prepend(indicator);
     }
-    return indicator;
-  }
 
-  function isDashboardPage() {
-    return document.body.matches('[data-page="dashboard"], .dashboard-page') ||
-      document.querySelector('[data-mobile-pull-refresh], .dashboard-page, .dashboard-mobile') !== null ||
-      /(^|\/)dashboards?(\/|$)/.test(window.location.pathname);
-  }
-
-  function initPullToRefresh() {
-    if (!isDashboardPage()) return;
-    var indicator = ensurePullIndicator();
-    var startY = 0, pulling = false, distance = 0;
-    document.addEventListener('touchstart', function (event) {
-      if (window.scrollY !== 0 || event.touches.length !== 1) return;
-      startY = event.touches[0].clientY;
+    const reset = () => {
+      tracking = false;
       distance = 0;
-      pulling = true;
+      container.classList.remove('is-pulling');
+      if (!refreshing) indicator.textContent = 'Pull to refresh';
+    };
+
+    container.addEventListener('touchstart', (event) => {
+      if (window.scrollY !== 0 || refreshing || event.touches.length !== 1) return;
+      tracking = true;
+      startY = event.touches[0].clientY;
     }, { passive: true });
-    document.addEventListener('touchmove', function (event) {
-      if (!pulling || event.touches.length !== 1) return;
-      distance = event.touches[0].clientY - startY;
-      if (distance <= 0) return;
-      var visualDistance = Math.min(distance * 0.55, MAX_PULL);
-      indicator.classList.add('visible');
-      indicator.classList.toggle('ready', distance >= PULL_DISTANCE);
-      indicator.style.transform = 'translateY(' + visualDistance + 'px) scale(' + Math.min(1, 0.75 + visualDistance / 160) + ')';
+
+    container.addEventListener('touchmove', (event) => {
+      if (!tracking || refreshing) return;
+      distance = Math.max(0, event.touches[0].clientY - startY);
+      if (distance > 12) {
+        container.classList.add('is-pulling');
+        indicator.textContent = distance >= threshold ? 'Release to refresh' : 'Pull to refresh';
+      }
     }, { passive: true });
-    document.addEventListener('touchend', function () {
-      if (!pulling) return;
-      pulling = false;
-      if (distance >= PULL_DISTANCE) {
-        indicator.classList.add('visible', 'refreshing');
-        window.dispatchEvent(new CustomEvent('mobile:pull-to-refresh'));
-        window.setTimeout(function () { window.location.reload(); }, 150);
+
+    container.addEventListener('touchend', () => {
+      if (!tracking || refreshing) return;
+      if (distance >= threshold) {
+        refreshing = true;
+        container.classList.remove('is-pulling');
+        container.classList.add('is-refreshing');
+        indicator.textContent = 'Refreshing…';
+        window.location.reload();
       } else {
-        indicator.classList.remove('visible', 'ready', 'refreshing');
-        indicator.style.transform = '';
+        reset();
       }
     }, { passive: true });
-    document.addEventListener('touchcancel', function () {
-      pulling = false;
-      indicator.classList.remove('visible', 'ready', 'refreshing');
-      indicator.style.transform = '';
-    }, { passive: true });
-  }
 
-  function initActiveNavTracking() {
-    var path = window.location.pathname.replace(/\/$/, '') || '/';
-    var bestMatch = null, bestLength = -1;
-    document.querySelectorAll('.bottom-nav .nav-item[href], .bottom-nav a[href]').forEach(function (item) {
-      var itemPath = new URL(item.getAttribute('href'), window.location.origin).pathname.replace(/\/$/, '') || '/';
-      var isMatch = itemPath === '/' ? path === '/' : (path === itemPath || path.indexOf(itemPath + '/') === 0);
-      item.classList.remove('active');
-      item.removeAttribute('aria-current');
-      if (isMatch && itemPath.length > bestLength) { bestMatch = item; bestLength = itemPath.length; }
+    container.addEventListener('touchcancel', reset, { passive: true });
+  };
+
+  const setupLiveSearch = () => {
+    const inputs = document.querySelectorAll('[data-search], .search-bar input, input[type="search"]');
+    inputs.forEach((input) => {
+      const targetSelector = input.dataset.searchTarget || input.dataset.target || '[data-filter-item], .search-filter-item, .list-item, .card';
+      const scope = input.closest('[data-search-scope]') || document;
+      const emptySelector = input.dataset.emptyTarget;
+      const emptyEl = emptySelector ? document.querySelector(emptySelector) : null;
+
+      const filter = () => {
+        const query = input.value.trim().toLowerCase();
+        const items = Array.from(scope.querySelectorAll(targetSelector)).filter((item) => item !== input && !item.contains(input));
+        let visibleCount = 0;
+
+        items.forEach((item) => {
+          const haystack = (item.dataset.searchText || item.textContent || '').toLowerCase();
+          const visible = !query || haystack.includes(query);
+          item.classList.toggle('is-hidden', !visible);
+          item.hidden = !visible;
+          if (visible) visibleCount += 1;
+        });
+
+        if (emptyEl) emptyEl.hidden = visibleCount !== 0;
+      };
+
+      input.addEventListener('input', filter);
+      filter();
     });
-    if (bestMatch) { bestMatch.classList.add('active'); bestMatch.setAttribute('aria-current', 'page'); }
-  }
+  };
 
-  function initDoubleTapPrevention() {
-    var lastTap = 0;
-    document.addEventListener('click', function (event) {
-      var target = event.target.closest('button, .btn, .btn-accent, .btn-outline, [role="button"], input[type="submit"], input[type="button"]');
-      if (!target) return;
-      var now = Date.now();
-      if (now - lastTap < DOUBLE_TAP_DELAY) {
-        event.preventDefault();
-        event.stopPropagation();
-        return false;
-      }
-      lastTap = now;
-      return true;
-    }, true);
-  }
-
-  function initPageTransitions() {
-    document.body.classList.add('page-transition-in');
-    window.setTimeout(function () { document.body.classList.remove('page-transition-in'); }, 220);
-    document.addEventListener('click', function (event) {
-      var link = event.target.closest('a[href]');
-      if (!link || link.target || link.hasAttribute('download') || event.defaultPrevented) return;
-      var url = new URL(link.href, window.location.href);
-      if (url.origin !== window.location.origin || (url.pathname === window.location.pathname && url.hash)) return;
-      document.body.classList.add('page-transition-out');
-    }, true);
-  }
-
-  function initSearchDebounce() {
-    document.querySelectorAll('.search-bar, input[type="search"][data-mobile-search], input[data-search]').forEach(function (input) {
-      var form = input.form;
-      var dispatchSearch = debounce(function () {
-        input.dispatchEvent(new CustomEvent('mobile:search', { bubbles: true, detail: { query: input.value } }));
-        if (input.hasAttribute('data-auto-submit') && form) {
-          if (form.requestSubmit) form.requestSubmit();
-          else form.submit();
-        }
-      }, SEARCH_DELAY);
-      input.addEventListener('input', dispatchSearch);
-    });
-  }
-
-  function initMobileUI() {
-    initSwipeDetection();
-    initPullToRefresh();
-    initActiveNavTracking();
-    initDoubleTapPrevention();
-    initPageTransitions();
-    initSearchDebounce();
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMobileUI);
-  else initMobileUI();
-
-  window.MobileInventory = { init: initMobileUI, debounce: debounce };
-}());
+  ready(() => {
+    setActiveNavigation();
+    setupPageTransitions();
+    setupPullToRefresh();
+    setupLiveSearch();
+  });
+})();

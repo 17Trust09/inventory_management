@@ -2,97 +2,100 @@
 {% block title %}{{ overview.name }}{% endblock %}
 {% block page_name %}dashboard{% endblock %}
 {% block content %}
-<section class="mobile-page dashboard-mobile" data-mobile-pull-refresh>
-  <header class="mobile-page-header">
-    <div>
-      <a class="muted small text-decoration-none" href="{% url 'mobile-dashboards' %}">‹ Zurück</a>
-      <h1>{{ overview.icon_emoji|default:'📦' }} {{ overview.name }}</h1>
-    </div>
-    <a class="btn-accent btn-compact" href="{% if overview.is_consumable_mode %}{% url 'mobile-add-consumable' %}{% else %}{% url 'mobile-add-equipment' %}{% endif %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}" aria-label="Artikel hinzufügen">＋</a>
-  </header>
+<header class="app-header" data-mobile-pull-refresh>
+  <a class="btn-icon" href="{% url 'mobile-dashboards' %}" aria-label="Zurück">‹</a>
+  <div>
+    <p class="card-subtitle">Zum Aktualisieren nach unten ziehen</p>
+    <h1>{{ overview.name }}</h1>
+  </div>
+</header>
 
-  <form method="get" class="filter-card" data-filter-form>
-    <label class="mobile-search-wrap" for="item-search">
-      <span aria-hidden="true">⌕</span>
-      <input id="item-search" class="search-bar" type="search" name="q" value="{{ q }}" placeholder="Artikel suchen" autocomplete="off" data-mobile-search>
-    </label>
-    {% if categories or tags or storage_locations %}
-      <div class="filter-grid">
+<section class="section">
+  <form method="get" data-filter-form>
+    <div class="search-bar"><input id="item-search" class="search-input" type="search" name="q" value="{{ q }}" placeholder="Artikel suchen" autocomplete="off" data-mobile-search></div>
+    {% if categories or tags or storage_locations or features.has_min_stock %}
+      <div class="card">
         {% if categories %}
-          <select class="mobile-select" name="category" aria-label="Kategorie">
-            <option value="">Alle Kategorien</option>
-            {% for c in categories %}<option value="{{ c.id }}" {% if selected_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
-          </select>
+          <div class="input-group">
+            <label for="category-filter">Kategorie</label>
+            <select id="category-filter" name="category">
+              <option value="">Alle Kategorien</option>
+              {% for c in categories %}<option value="{{ c.id }}" {% if selected_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+            </select>
+          </div>
         {% endif %}
         {% if tags %}
-          <select class="mobile-select" name="tag" aria-label="Tag">
-            <option value="">Alle Tags</option>
-            {% for t in tags %}<option value="{{ t.name }}" {% if selected_tag == t.name %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
-          </select>
+          <div class="input-group">
+            <label for="tag-filter">Tag</label>
+            <select id="tag-filter" name="tag">
+              <option value="">Alle Tags</option>
+              {% for t in tags %}<option value="{{ t.name }}" {% if selected_tag == t.name %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+            </select>
+          </div>
         {% endif %}
         {% if storage_locations %}
-          <select class="mobile-select" name="storage_location" aria-label="Lagerort">
-            <option value="">Alle Lagerorte</option>
-            {% for loc in storage_locations %}<option value="{{ loc.id }}" {% if selected_storage_location == loc.id|stringformat:'s' %}selected{% endif %}>{{ loc.get_full_path }}</option>{% endfor %}
-          </select>
+          <div class="input-group">
+            <label for="location-filter">Lagerort</label>
+            <select id="location-filter" name="storage_location">
+              <option value="">Alle Lagerorte</option>
+              {% for loc in storage_locations %}<option value="{{ loc.id }}" {% if selected_storage_location == loc.id|stringformat:'s' %}selected{% endif %}>{{ loc.get_full_path }}</option>{% endfor %}
+            </select>
+          </div>
         {% endif %}
         {% if features.has_min_stock %}
-          <label class="toggle-row compact"><input type="checkbox" name="only_low" value="1" {% if only_low %}checked{% endif %}> Nur niedriger Bestand</label>
+          <label class="list-item"><input type="checkbox" name="only_low" value="1" {% if only_low %}checked{% endif %}> Nur niedriger Bestand</label>
         {% endif %}
+        <button class="btn btn-primary" type="submit">Filtern</button>
+        {% if q or selected_category or selected_tag or selected_storage_location or only_low %}<a class="btn btn-secondary" href="{% url 'mobile-overview-dashboard' overview.slug %}">Zurücksetzen</a>{% endif %}
       </div>
     {% endif %}
-    <div class="filter-actions">
-      <button class="btn-accent" type="submit">Filtern</button>
-      {% if q or selected_category or selected_tag or selected_storage_location or only_low %}<a class="btn-outline" href="{% url 'mobile-overview-dashboard' overview.slug %}">Zurücksetzen</a>{% endif %}
-    </div>
   </form>
+</section>
 
-  <div class="muted small mb-2">Zum Aktualisieren nach unten ziehen. Swipe rechts = bearbeiten, swipe links = Schnellanpassung.</div>
-
+<section class="section">
   {% if items %}
-    <div class="card-list">
-      {% for item in items %}
-        <article class="item-card card-mobile" data-edit-url="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}">
-          <div class="item-card-head">
-            <div class="item-card-title-wrap">
-              <h2>{{ item.name }}</h2>
-              {% if item.category %}<span class="category-tag">{{ item.category.name }}</span>{% endif %}
-            </div>
-            <span class="quantity-badge{% if features.has_min_stock and item.quantity <= item.low_quantity %} quantity-low{% endif %}">
-              {{ item.quantity }}{% if item.unit %} <small>{{ item.get_unit_display }}</small>{% endif %}
-            </span>
-          </div>
+    {% for item in items %}
+      <article class="list-item" data-edit-url="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}">
+        <span class="list-icon" aria-hidden="true">{% if item.category %}[TAG]{% else %}[BOX]{% endif %}</span>
+        <span class="list-content">
+          <span class="list-title">{{ item.name }}</span>
+          {% if item.category %}<span class="badge">{{ item.category.name }}</span>{% endif %}
           {% if item.application_tags.all %}
-            <div class="tag-row">{% for tag in item.application_tags.all %}<span class="badge-soft">{{ tag.name }}</span>{% endfor %}</div>
+            <span class="tag-row">{% for tag in item.application_tags.all %}<span class="badge">{{ tag.name }}</span>{% endfor %}</span>
           {% endif %}
-          <div class="item-location">📍 {% if item.storage_location %}{{ item.storage_location.get_full_path }}{% else %}{{ item.location_letter }} {{ item.location_number }} {{ item.location_shelf }}{% endif %}</div>
-          <div class="item-actions">
-            <a class="btn-outline" href="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}" data-mobile-action="edit">Bearbeiten</a>
-            <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="-1"><button class="btn-outline" type="submit" data-mobile-action="quick-adjust">−</button></form>
-            <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="1"><button class="btn-accent" type="submit">＋</button></form>
-          </div>
-        </article>
-      {% endfor %}
-    </div>
+          <span class="list-sub">Ort: {% if item.storage_location %}{{ item.storage_location.get_full_path }}{% else %}{{ item.location_letter }} {{ item.location_number }} {{ item.location_shelf }}{% endif %}</span>
+        </span>
+        <span class="badge">{{ item.quantity }}{% if item.unit %} {{ item.get_unit_display }}{% endif %}</span>
+        <span class="list-actions">
+          <a class="btn btn-secondary" href="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}" data-mobile-action="edit">Bearbeiten</a>
+          <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="-1"><button class="btn btn-secondary" type="submit" data-mobile-action="quick-adjust">−</button></form>
+          <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="1"><button class="btn btn-primary" type="submit">＋</button></form>
+        </span>
+      </article>
+    {% endfor %}
   {% else %}
     <div class="empty-state">
-      <div class="empty-icon">📦</div>
+      <div class="empty-icon">[BOX]</div>
       <h2>Keine Artikel gefunden</h2>
       {% if q or selected_category or selected_tag or selected_storage_location or only_low %}
         <p>Für deine Suche oder Filter gibt es keine Treffer.</p>
-        <a class="btn-outline" href="{% url 'mobile-overview-dashboard' overview.slug %}">Filter zurücksetzen</a>
+        <a class="btn btn-secondary" href="{% url 'mobile-overview-dashboard' overview.slug %}">Filter zurücksetzen</a>
       {% else %}
         <p>In diesem Dashboard sind noch keine Artikel vorhanden.</p>
-        <a class="btn-accent" href="{% if overview.is_consumable_mode %}{% url 'mobile-add-consumable' %}{% else %}{% url 'mobile-add-equipment' %}{% endif %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Ersten Artikel anlegen</a>
+        <a class="btn btn-primary" href="{% if overview.is_consumable_mode %}{% url 'mobile-add-consumable' %}{% else %}{% url 'mobile-add-equipment' %}{% endif %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Ersten Artikel anlegen</a>
       {% endif %}
     </div>
   {% endif %}
-
-  {% if page_obj.has_other_pages %}
-    <nav class="pagination-row" aria-label="Seitennavigation">
-      <span class="muted small">Seite {{ page_obj.number }} / {{ paginator.num_pages }}</span>
-      {% if page_obj.has_next %}<a class="btn-outline" href="?page={{ page_obj.next_page_number }}&q={{ q }}&category={{ selected_category }}&tag={{ selected_tag }}&storage_location={{ selected_storage_location }}{% if only_low %}&only_low=1{% endif %}">Mehr laden</a>{% endif %}
-    </nav>
-  {% endif %}
 </section>
+
+{% if page_obj.has_other_pages %}
+<section class="section">
+  <div class="card">
+    <span>Seite {{ page_obj.number }} / {{ paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="btn btn-secondary" href="?page={{ page_obj.next_page_number }}&q={{ q }}&category={{ selected_category }}&tag={{ selected_tag }}&storage_location={{ selected_storage_location }}{% if only_low %}&only_low=1{% endif %}">Mehr laden</a>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+<a class="fab" href="{% if overview.is_consumable_mode %}{% url 'mobile-add-consumable' %}{% else %}{% url 'mobile-add-equipment' %}{% endif %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}" aria-label="Artikel hinzufügen">+</a>
 {% endblock %}
