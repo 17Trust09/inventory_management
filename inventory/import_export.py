@@ -272,18 +272,18 @@ def _parse_workbook(file_path, include_duplicate_warnings: bool):
                 )
 
         data = {
-            "Name": parsed.get("name") or _string(raw["Name"]),
-            "Dashboard": _string(raw["Dashboard"]),
-            "Kategorie": _string(raw["Kategorie"]),
-            "Ist-Bestand": raw["Ist-Bestand"],
-            "Einheit": _string(raw["Einheit"]),
-            "Mindestbestand": raw["Mindestbestand"],
-            "Lagerort": _string(raw["Lagerort"]),
-            "Tags": _string(raw["Tags"]),
-            "Bestell-Link": _string(raw["Bestell-Link"]),
-            "Variante": _string(raw["Variante"]),
-            "Wartungsdatum": _format_date_for_preview(parsed.get("maintenance_date"), raw["Wartungsdatum"]),
-            "Beschreibung": _string(raw["Beschreibung"]),
+            "name": parsed.get("name") or _string(raw["Name"]),
+            "dashboard": _string(raw["Dashboard"]),
+            "kategorie": _string(raw["Kategorie"]),
+            "ist_bestand": raw["Ist-Bestand"],
+            "einheit": _string(raw["Einheit"]),
+            "mindestbestand": raw["Mindestbestand"],
+            "lagerort": _string(raw["Lagerort"]),
+            "tags": _string(raw["Tags"]),
+            "bestell_link": _string(raw["Bestell-Link"]),
+            "variante": _string(raw["Variante"]),
+            "wartungsdatum": _format_date_for_preview(parsed.get("maintenance_date"), raw["Wartungsdatum"]),
+            "beschreibung": _string(raw["Beschreibung"]),
         }
 
         for message in row_warnings:
