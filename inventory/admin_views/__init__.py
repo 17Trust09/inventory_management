@@ -31,6 +31,7 @@ from .system import (
 from .history import admin_history_list, admin_history_rollback
 from .overviews import OverviewListView, admin_overview_create, admin_overview_edit, admin_overview_delete, admin_overview_approve
 from .feedback import admin_feedback_set_status
+from .import_export import admin_import_export
 
 # TagType CRUD
 from .tags import (
@@ -69,7 +70,7 @@ __all__ = [
     "admin_history_list", "admin_history_rollback",
     "OverviewListView", "admin_overview_create", "admin_overview_edit",
     "admin_overview_delete", "admin_overview_approve",
-    "admin_feedback_set_status",
+    "admin_feedback_set_status", "admin_import_export",
     "permissions_matrix", "toggle_permission", "admin_manage_roles",
     "admin_user_roles_edit", "admin_user_delete_legacy",
 ]

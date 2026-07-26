@@ -73,6 +73,9 @@ from .admin_views import (
     # History
     admin_history_list,
     admin_history_rollback,
+
+    # Import / Export
+    admin_import_export,
 )
 
 urlpatterns = [
@@ -105,6 +108,7 @@ urlpatterns = [
     path('system-status/', admin_system_status, name='admin_system_status'),
     path('history/', admin_history_list, name='admin_history_list'),
     path('history/<int:pk>/rollback/', admin_history_rollback, name='admin_history_rollback'),
+    path('import-export/', admin_import_export, name='admin_import_export'),
 
     # User Profiles
     path('profiles/', UserProfileListView.as_view(), name='admin_userprofiles_list'),

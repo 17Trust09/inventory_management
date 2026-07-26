@@ -1,0 +1,174 @@
+{% extends 'inventory/admin_base.html' %}
+
+{% block admin_title %}Import / Export{% endblock %}
+
+{% block admin_content %}
+<div class="row g-4">
+  <div class="col-12 col-xl-7">
+    <div class="card shadow-sm h-100" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+      <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+        📥 Import
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">
+          Lade eine Excel-Vorlage herunter, fülle die Pflichtfelder <strong>Name</strong>, <strong>Bestand</strong> und <strong>Dashboard</strong> aus und prüfe die Datei vor dem Import.
+        </p>
+
+        <form method="post" class="mb-4">
+          {% csrf_token %}
+          <input type="hidden" name="download_template" value="1">
+          <button type="submit" class="btn btn-primary">
+            📊 Excel-Vorlage herunterladen
+          </button>
+        </form>
+
+        <form method="post" enctype="multipart/form-data" class="border rounded p-3" style="border-color:var(--border);">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="preview">
+          <label for="import_file" class="form-label fw-semibold">Excel-Datei hochladen</label>
+          <div class="input-group">
+            <input class="form-control" id="import_file" type="file" name="import_file" accept=".xlsx,.xlsm" required>
+            <button class="btn btn-outline-light" type="submit">Vorschau prüfen</button>
+          </div>
+          <div class="form-text text-muted">Unterstützt .xlsx-Dateien mit den Spalten aus der Vorlage.</div>
+        </form>
+
+        {% if preview %}
+          <div class="mt-4">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
+              <h5 class="mb-0">Import-Vorschau</h5>
+              <div class="d-flex gap-2 flex-wrap">
+                <span class="badge bg-success">{{ preview.counts.valid }} gültig</span>
+                <span class="badge bg-warning text-dark">{{ preview.counts.warning }} Warnungen</span>
+                <span class="badge bg-danger">{{ preview.counts.error }} Fehler</span>
+              </div>
+            </div>
+
+            {% if preview.rows %}
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="color:var(--text);">
+                  <thead style="background:var(--surface-2);">
+                    <tr>
+                      <th>Zeile</th>
+                      <th>Status</th>
+                      <th>Name</th>
+                      <th>Bestand</th>
+                      <th>Dashboard</th>
+                      <th>Kategorie</th>
+                      <th>Hinweise</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in preview.rows %}
+                      <tr class="{% if row.status == 'valid' %}table-success{% elif row.status == 'warning' %}table-warning{% else %}table-danger{% endif %}">
+                        <td>{{ row.row }}</td>
+                        <td>
+                          {% if row.status == 'valid' %}
+                            <span class="badge bg-success">gültig</span>
+                          {% elif row.status == 'warning' %}
+                            <span class="badge bg-warning text-dark">Warnung</span>
+                          {% else %}
+                            <span class="badge bg-danger">Fehler</span>
+                          {% endif %}
+                        </td>
+                        <td>{{ row.data.Name|default:"–" }}</td>
+                        <td>{{ row.data.Ist-Bestand|default:"–" }}</td>
+                        <td>{{ row.data.Dashboard|default:"–" }}</td>
+                        <td>{{ row.data.Kategorie|default:"–" }}</td>
+                        <td class="small">
+                          {% if row.errors %}
+                            <div class="text-danger">{{ row.errors|join:", " }}</div>
+                          {% endif %}
+                          {% if row.warnings %}
+                            <div class="text-warning">{{ row.warnings|join:", " }}</div>
+                          {% endif %}
+                          {% if not row.errors and not row.warnings %}
+                            <span class="text-muted">OK</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+              <form method="post" class="mt-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="execute">
+                <button type="submit" class="btn btn-success" {% if not preview.ok %}disabled{% endif %}>
+                  Jetzt importieren
+                </button>
+                {% if not preview.ok %}
+                  <span class="text-muted small ms-2">Import erst nach fehlerfreier Vorschau möglich.</span>
+                {% endif %}
+              </form>
+            {% else %}
+              <div class="alert alert-warning mb-0">Die Datei enthält keine Datenzeilen.</div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <div class="card shadow-sm mb-4" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+      <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+        📤 Backup
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">Exportiere Dashboard-Daten als Excel-Backup. Alle Dashboards werden als ZIP mit je einer XLSX-Datei bereitgestellt.</p>
+
+        <form method="post" class="mb-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="export_backup">
+          <button type="submit" class="btn btn-outline-light w-100">Alle Dashboards exportieren</button>
+        </form>
+
+        <form method="post" class="row g-2 align-items-end">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="export_backup">
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="overview_id">Ein Dashboard auswählen</label>
+            <select class="form-select" name="overview_id" id="overview_id" required>
+              <option value="">Bitte auswählen …</option>
+              {% for overview in overviews %}
+                <option value="{{ overview.id }}">{{ overview.icon_emoji }} {{ overview.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-outline-info w-100">Exportieren</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+      <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+        Ergebnisse
+      </div>
+      <div class="card-body">
+        {% if import_result %}
+          <div class="d-flex flex-column gap-2">
+            <div class="fs-5">✅ {{ import_result.imported }} importiert</div>
+            <div class="fs-5">🟡 {{ import_result.warnings|length }} Warnungen</div>
+            <div class="fs-5">🔴 {{ import_result.errors|length }} Fehler</div>
+            <div class="text-muted">{{ import_result.skipped }} übersprungen</div>
+          </div>
+          {% if import_result.errors %}
+            <hr style="border-color:var(--border);">
+            <ul class="small text-warning mb-0">
+              {% for error in import_result.errors %}
+                <li>Zeile {{ error.row }}: {{ error.message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% else %}
+          <div class="text-muted">Noch kein Import ausgeführt.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
