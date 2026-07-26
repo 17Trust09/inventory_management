@@ -1,4 +1,4 @@
-<!-- Quick-Add Modal für Kategorien und Tags -->
+<!-- Quick-Add Modal für Kategorien, Tags und Lagerorte -->
 <div class="modal fade" id="quickAddModal" tabindex="-1" aria-labelledby="quickAddModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="background:var(--surface); color:var(--text); border:1px solid var(--border);">
@@ -29,8 +29,134 @@
   const BODY = document.getElementById('quickAddModalBody');
   const SAVE_BTN = document.getElementById('quickAddSaveBtn');
 
-  let activeMode = null;  // 'category' | 'tag'
-  let activeSelect = null; // das <select>-Element
+  let activeMode = null;  // 'category' | 'tag' | 'storage_location'
+  let activeSelect = null; // das <select>-Element (Kategorien/Lagerorte) oder null (Checkbox-Felder)
+
+  function getModalInstance() {
+    return bootstrap.Modal.getInstance(MODAL) || new bootstrap.Modal(MODAL);
+  }
+
+  function nextCheckboxId(fieldName) {
+    const prefix = `id_${fieldName}_`;
+    const indexes = Array.from(document.querySelectorAll(`input[name="${fieldName}"]`))
+      .map(input => input.id && input.id.startsWith(prefix) ? parseInt(input.id.slice(prefix.length), 10) : -1)
+      .filter(Number.isFinite);
+    return `${prefix}${indexes.length ? Math.max(...indexes) + 1 : 0}`;
+  }
+
+  function checkedExistingCheckbox(fieldName, value) {
+    const existing = Array.from(document.querySelectorAll(`input[name="${fieldName}"]`))
+      .find(input => String(input.value) === String(value));
+    if (existing) {
+      existing.checked = true;
+      existing.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+    return false;
+  }
+
+  function addSelectOption(select, data) {
+    if (!select || !data?.id) return false;
+
+    const existing = Array.from(select.options)
+      .find(option => String(option.value) === String(data.id));
+    if (existing) {
+      existing.selected = true;
+      select.value = data.id;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+
+    const opt = document.createElement('option');
+    opt.value = data.id;
+    opt.textContent = data.name;
+    opt.selected = true;
+
+    // Vor "__new__"-Option einfügen
+    const newOpt = select.querySelector('option[value="__new__"]');
+    if (newOpt) {
+      select.insertBefore(opt, newOpt);
+    } else {
+      select.appendChild(opt);
+    }
+
+    select.value = data.id;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+
+  function addTagCheckbox(data) {
+    if (!data?.id) return false;
+    if (checkedExistingCheckbox('application_tags', data.id)) return true;
+
+    const firstInput = document.querySelector('input[name="application_tags"]');
+    const quickAddButton = document.querySelector('button[onclick^="openQuickAddTag"]');
+    const container = document.getElementById('id_application_tags')
+      || firstInput?.closest('[id^="id_application_tags"]')
+      || quickAddButton?.previousElementSibling;
+
+    if (!container) return false;
+
+    const id = nextCheckboxId('application_tags');
+    const item = document.createElement('div');
+    const label = document.createElement('label');
+    label.setAttribute('for', id);
+
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.name = 'application_tags';
+    input.value = data.id;
+    input.id = id;
+    input.checked = true;
+    if (firstInput?.className) input.className = firstInput.className;
+
+    label.appendChild(input);
+    label.appendChild(document.createTextNode(` ${data.name}`));
+    item.appendChild(label);
+    container.appendChild(item);
+
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+
+  function addOverviewCategoryCheckbox(data) {
+    // Übersicht-Anfrage nutzt Checkboxen (name="categories") statt category-Select.
+    if (!data?.id) return false;
+    if (checkedExistingCheckbox('categories', data.id)) return true;
+
+    const firstInput = document.querySelector('input[name="categories"]');
+    if (!firstInput) return false;
+
+    const row = firstInput.closest('.row') || firstInput.closest('.border') || firstInput.parentElement;
+    const id = nextCheckboxId('categories');
+    const col = document.createElement('div');
+    col.className = firstInput.closest('.col-6')?.className || 'col-6 col-md-4';
+
+    const check = document.createElement('div');
+    check.className = firstInput.closest('.form-check')?.className || 'form-check category-option';
+    check.dataset.label = (data.name || '').toLowerCase();
+
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.name = 'categories';
+    input.value = data.id;
+    input.id = id;
+    input.checked = true;
+    input.className = firstInput.className || 'form-check-input';
+
+    const label = document.createElement('label');
+    label.className = firstInput.parentElement?.querySelector('label')?.className || 'form-check-label ms-1';
+    label.setAttribute('for', id);
+    label.textContent = data.name;
+
+    check.appendChild(input);
+    check.appendChild(label);
+    col.appendChild(check);
+    row.appendChild(col);
+
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
 
   // --- Öffnen bei Auswahl von "__new__" ---
   document.addEventListener('change', function(e) {
@@ -44,7 +170,7 @@
 
     // Welches Label?
     const labelEl = select.closest('.mb-3')?.querySelector('label');
-    const label = labelEl ? labelEl.innerText.trim() : (activeMode === 'category' ? 'Kategorie' : 'Tag');
+    const label = labelEl ? labelEl.innerText.trim() : (activeMode === 'category' ? 'Kategorie' : (activeMode === 'storage_location' ? 'Lagerort' : 'Tag'));
 
     // Modal-Body befüllen
     if (activeMode === 'category') {
@@ -53,6 +179,14 @@
           <label class="form-label">Name der neuen Kategorie</label>
           <input type="text" class="form-control" id="quickAddName"
                  placeholder="z. B. Elektronik" autofocus>
+        </div>
+      `;
+    } else if (activeMode === 'storage_location') {
+      BODY.innerHTML = `
+        <div class="mb-3">
+          <label class="form-label">Name des neuen Lagerorts</label>
+          <input type="text" class="form-control" id="quickAddName"
+                 placeholder="z. B. Regal A" autofocus>
         </div>
       `;
     } else {
@@ -66,12 +200,11 @@
       `;
     }
 
-    document.querySelector('.modal-title').textContent = `➕ Neue ${label} anlegen`;
+    document.getElementById('quickAddModalLabel').textContent = `➕ Neue ${label} anlegen`;
     SAVE_BTN.textContent = 'Anlegen';
 
     // Modal öffnen (Bootstrap)
-    const modal = new bootstrap.Modal(MODAL);
-    modal.show();
+    getModalInstance().show();
 
     // Fokus nach kurzer Verzögerung auf das Input-Feld
     setTimeout(() => document.getElementById('quickAddName')?.focus(), 300);
@@ -87,7 +220,9 @@
 
     const url = activeMode === 'category'
       ? '/api/categories/quick-add/'
-      : '/api/tags/quick-add/';
+      : (activeMode === 'storage_location'
+        ? '/api/storage-locations/quick-add/'
+        : '/api/tags/quick-add/');
 
     const body = { name: name };
     if (activeMode === 'tag') {
@@ -109,40 +244,26 @@
     .then(r => r.json())
     .then(data => {
       if (data.success && data.id) {
-        // Option in Select einfügen
-        if (activeSelect) {
-          const opt = document.createElement('option');
-          opt.value = data.id;
-          opt.textContent = data.name;
-          opt.selected = true;
-
-          // Vor "__new__"-Option einfügen
-          const newOpt = activeSelect.querySelector('option[value="__new__"]');
-          if (newOpt) {
-            activeSelect.insertBefore(opt, newOpt);
-          } else {
-            activeSelect.appendChild(opt);
+        if (activeMode === 'tag') {
+          // Tags sind CheckboxSelectMultiple: neue Checkbox dynamisch ergänzen
+          // und direkt auswählen, damit vorhandene Form-Eingaben erhalten bleiben.
+          if (!addTagCheckbox(data)) {
+            alert('Tag wurde angelegt, konnte aber nicht automatisch zur Checkbox-Liste hinzugefügt werden. Bitte Seite manuell neu laden.');
+            return;
           }
-
-          // Auf die neue Option setzen
-          activeSelect.value = data.id;
+        } else if (activeSelect) {
+          // Kategorie/Lagerort in Select einfügen und auswählen.
+          addSelectOption(activeSelect, data);
+        } else if (activeMode === 'category') {
+          // Übersicht-Anfrage nutzt Kategorien als Checkboxliste.
+          addOverviewCategoryCheckbox(data);
         }
 
         // Modal schließen
-        const modal = bootstrap.Modal.getInstance(MODAL);
-        modal.hide();
-
-        const statusText = data.status === 'created' ? '✅ angelegt' : '✅ bereits vorhanden';
-        // Kurze Erfolgsmeldung per Toast/Flash (optional)
-
-        // Bei Tags: Seite neu laden, damit die Checkbox-Liste aktualisiert wird
-        if (activeMode === 'tag' && data.status === 'created') {
-          window.location.reload();
-        }
+        getModalInstance().hide();
       } else if (data.success && data.status === 'requested') {
         // Pending-Request
-        const modal = bootstrap.Modal.getInstance(MODAL);
-        modal.hide();
+        getModalInstance().hide();
         alert(data.message || 'Deine Anfrage wurde an den Admin weitergeleitet.');
       } else {
         alert(data.error || 'Fehler beim Anlegen.');
@@ -182,11 +303,10 @@
                placeholder="z. B. Elektronik" autofocus>
       </div>
     `;
-    document.querySelector('.modal-title').textContent = '➕ Neue Kategorie anlegen';
+    document.getElementById('quickAddModalLabel').textContent = '➕ Neue Kategorie anlegen';
     SAVE_BTN.textContent = 'Anlegen';
 
-    const modal = new bootstrap.Modal(MODAL);
-    modal.show();
+    getModalInstance().show();
     setTimeout(() => document.getElementById('quickAddName')?.focus(), 300);
   };
 
@@ -203,19 +323,32 @@
       </div>
       <input type="hidden" id="quickAddTypeName" value="${typeName || ''}">
     `;
-    document.querySelector('.modal-title').textContent = '➕ Neuen Tag anlegen';
+    document.getElementById('quickAddModalLabel').textContent = '➕ Neuen Tag anlegen';
     SAVE_BTN.textContent = 'Anlegen';
 
-    const modal = new bootstrap.Modal(MODAL);
-    modal.show();
+    getModalInstance().show();
     setTimeout(() => document.getElementById('quickAddName')?.focus(), 300);
   };
 
-  // Anpassung des Speichern-Buttons für Tags: nach erfolgreichem Anlegen die Seite neu laden
-  // (weil Tag-Checkboxen via AJAX zu ersetzen aufwändig ist)
-  const origClick = SAVE_BTN.click;
-  // Wir patchen den Event-Listener nicht, sondern erweitern die save-Logik
+  // --- Globale Funktion für Lagerort-Quick-Add (von Button geklickt) ---
+  window.openQuickAddStorageLocation = function() {
+    const selects = document.querySelectorAll('select[name="storage_location"]');
+    activeSelect = selects.length ? selects[0] : null;
+    activeMode = 'storage_location';
 
-  // Originalen Event-Listener ersetzen
+    BODY.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Name des neuen Lagerorts</label>
+        <input type="text" class="form-control" id="quickAddName"
+               placeholder="z. B. Regal A" autofocus>
+      </div>
+    `;
+    document.getElementById('quickAddModalLabel').textContent = '➕ Neuen Lagerort anlegen';
+    SAVE_BTN.textContent = 'Anlegen';
+
+    getModalInstance().show();
+    setTimeout(() => document.getElementById('quickAddName')?.focus(), 300);
+  };
+
 })();
 </script>

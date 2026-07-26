@@ -2,10 +2,10 @@
 Admin-Overviews: List, Create, Edit, Delete, Approve.
 """
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
 from django.views.generic import ListView
 from django.contrib import messages
 
+from ..forms import OverviewForm
 from ..models import Overview
 from .helpers import staff_required, StaffRequiredMixin
 
@@ -19,45 +19,34 @@ class OverviewListView(StaffRequiredMixin, ListView):
 @staff_required
 def admin_overview_create(request):
     if request.method == "POST":
-        name = request.POST.get("name", "").strip()
-        if not name:
-            messages.error(request, "Name darf nicht leer sein.")
-            return render(request, 'inventory/admin_overview_form.html')
-        overview = Overview.objects.create(
-            name=name,
-            is_active=request.POST.get("is_active") == "1",
-        )
-        messages.success(request, f"Dashboard „{overview.name}“ angelegt.")
-        return redirect('admin_overviews')
-    return render(request, 'inventory/admin_overview_form.html')
+        form = OverviewForm(request.POST)
+        if form.is_valid():
+            overview = form.save()
+            messages.success(request, f"Dashboard „{overview.name}“ angelegt.")
+            return redirect('admin_overviews')
+    else:
+        form = OverviewForm()
+    return render(request, 'inventory/admin_overview_form.html', {
+        "form": form,
+        "title": "Dashboard anlegen",
+    })
 
 
 @staff_required
 def admin_overview_edit(request, pk):
     overview = get_object_or_404(Overview, pk=pk)
     if request.method == "POST":
-        overview.name = request.POST.get("name", overview.name)
-        overview.is_active = request.POST.get("is_active") == "1"
-        overview.is_consumable_mode = request.POST.get("is_consumable_mode") == "1"
-        overview.enable_comments = request.POST.get("enable_comments") == "1"
-        overview.show_order_button = request.POST.get("show_order_button") == "1"
-        overview.save()
-        # Kategorien zuweisen
-        category_ids = request.POST.getlist("categories")
-        if category_ids:
-            from ..models import Category
-            overview.categories.set(Category.objects.filter(pk__in=category_ids))
-        else:
-            overview.categories.clear()
-        messages.success(request, f"Dashboard „{overview.name}“ gespeichert.")
-        return redirect('admin_overviews')
-    from ..models import Category
-    all_categories = Category.objects.all().order_by("name")
-    selected_ids = set(overview.categories.values_list("id", flat=True))
+        form = OverviewForm(request.POST, instance=overview)
+        if form.is_valid():
+            overview = form.save()
+            messages.success(request, f"Dashboard „{overview.name}“ gespeichert.")
+            return redirect('admin_overviews')
+    else:
+        form = OverviewForm(instance=overview)
     return render(request, 'inventory/admin_overview_form.html', {
+        "form": form,
         "overview": overview,
-        "all_categories": all_categories,
-        "selected_ids": selected_ids,
+        "title": f"Dashboard „{overview.name}“ bearbeiten",
     })
 
 

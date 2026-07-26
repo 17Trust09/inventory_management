@@ -91,6 +91,10 @@
         <div class="col-md-6 mb-3">
           <label for="{{ form.storage_location.id_for_label }}">{{ form.storage_location.label }}</label>
           {{ form.storage_location }}
+          <button type="button" class="btn btn-sm btn-outline-primary mt-1"
+                  onclick="openQuickAddStorageLocation()">
+            ➕ Neuen Lagerort anlegen
+          </button>
         </div>
         <div class="col-md-12 mb-3">
           <label for="{{ form.order_link.id_for_label }}">{{ form.order_link.label }}</label>
@@ -191,7 +195,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     sec.style.display=sec.style.display==="none"?"block":"none";
   });
 
-  // Quick-Add: __new__-Option in Kategorie-Select einfügen
+  // Quick-Add: __new__-Optionen in Kategorie- und Lagerort-Select einfügen
   const catSelect = document.getElementById('{{ form.category.auto_id }}');
   if (catSelect && !catSelect.querySelector('option[value="__new__"]')) {
     const opt = document.createElement('option');
@@ -199,6 +203,15 @@ document.addEventListener("DOMContentLoaded",()=>{
     opt.textContent = '➕ Neu anlegen...';
     catSelect.appendChild(opt);
     catSelect.dataset.quickAddType = 'category';
+  }
+
+  const storageSelect = document.getElementById('{{ form.storage_location.auto_id }}');
+  if (storageSelect && !storageSelect.querySelector('option[value="__new__"]')) {
+    const opt = document.createElement('option');
+    opt.value = '__new__';
+    opt.textContent = '➕ Neu anlegen...';
+    storageSelect.appendChild(opt);
+    storageSelect.dataset.quickAddType = 'storage_location';
   }
 });
 

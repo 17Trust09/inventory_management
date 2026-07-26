@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 from . import views
 from .views import CustomAuthForm
 # API-Views
-from .api import FeedbackSummaryAPI, HAStatusAPI, SystemHealthAPI, MarkedItemsAPI, QuickAddCategoryAPI, QuickAddTagAPI
+from .api import FeedbackSummaryAPI, HAStatusAPI, SystemHealthAPI, MarkedItemsAPI, QuickAddCategoryAPI, QuickAddTagAPI, QuickAddStorageLocationAPI
 
 urlpatterns = [
     # 1) Frontend-Views
@@ -88,9 +88,10 @@ urlpatterns = [
     # 7) ESP-LED: aktuelle Markierungen abrufen
     path('api/marked-items/', MarkedItemsAPI.as_view(), name='marked-items'),
 
-    # 8) Quick-Add API für Item-Formular (Kategorien + Tags)
+    # 8) Quick-Add API für Item-Formular (Kategorien + Tags + Lagerorte)
     path('api/categories/quick-add/', QuickAddCategoryAPI.as_view(), name='api-quick-add-category'),
     path('api/tags/quick-add/', QuickAddTagAPI.as_view(), name='api-quick-add-tag'),
+    path('api/storage-locations/quick-add/', QuickAddStorageLocationAPI.as_view(), name='api-quick-add-storage-location'),
 
     path("item/<int:pk>/move/",views.MoveItemToOverviewView.as_view(),name="move-item-to-overview",),
 

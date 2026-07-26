@@ -102,12 +102,12 @@ class QuickAdjustQuantityView(LoginRequiredMixin, View):
     def post(self, request, item_id):
         item = get_object_or_404(InventoryItem, pk=item_id)
         try:
-            change = int(request.POST.get("change", "0"))
+            change = int(request.POST.get("delta", "0"))
         except ValueError:
             messages.error(request, "Ungültiger Wert.")
             return redirect(request.META.get("HTTP_REFERER", "dashboards"))
         if change == 0:
-            messages.info(request, "Keine Änderung.")
+            messages.info(request, "Keine Bestandsänderung.")
             return redirect(request.META.get("HTTP_REFERER", "dashboards"))
 
         before = _snapshot_item(item)

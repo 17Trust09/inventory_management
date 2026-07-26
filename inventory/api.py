@@ -9,7 +9,7 @@ from django.views import View
 from django.http import JsonResponse, HttpResponseForbidden
 from django.utils.timezone import localtime, now
 
-from .models import Feedback, ItemMark, Category, ApplicationTag, TagType, Overview
+from .models import Feedback, ItemMark, Category, ApplicationTag, TagType, Overview, StorageLocation
 from .admin_views import _get_tailscale_status, _get_global_settings
 from .integrations.homeassistant import check_available, get_status_tuple, get_diagnostics
 
@@ -334,3 +334,39 @@ class QuickAddTagAPI(View):
                 "status": "requested",
                 "message": "Deine Anfrage wurde an den Admin weitergeleitet.",
             })
+
+
+class QuickAddStorageLocationAPI(View):
+    """
+    POST /api/storage-locations/quick-add/
+    Body: { "name": "Regal A" }
+    Response: { "success": true, "id": 42, "name": "Regal A", "status": "created" }
+    """
+
+    def post(self, request):
+        import json
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Ungültiges JSON"}, status=400)
+
+        name = data.get("name", "").strip()
+        if not name:
+            return JsonResponse({"success": False, "error": "Name ist erforderlich"}, status=400)
+
+        existing = StorageLocation.objects.filter(name__iexact=name, parent__isnull=True).first()
+        if existing:
+            return JsonResponse({
+                "success": True,
+                "id": existing.id,
+                "name": existing.get_full_path(),
+                "status": "exists",
+            })
+
+        location = StorageLocation.objects.create(name=name)
+        return JsonResponse({
+            "success": True,
+            "id": location.id,
+            "name": location.get_full_path(),
+            "status": "created",
+        })

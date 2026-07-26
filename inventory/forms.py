@@ -9,6 +9,7 @@ from django.db.models import Q
 
 from .models import (
     Category,
+    Overview,
     InventoryItem,
     ApplicationTag,
     BorrowedItem,
@@ -123,6 +124,102 @@ def unit_fields_enabled() -> bool:
 # -----------------------------
 # Forms
 # -----------------------------
+class OverviewForm(forms.ModelForm):
+    categories = forms.ModelMultipleChoiceField(
+        label="Kategorien",
+        queryset=Category.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "form-check-input"}),
+    )
+
+    class Meta:
+        model = Overview
+        fields = [
+            "name",
+            "slug",
+            "icon_emoji",
+            "description",
+            "order",
+            "is_active",
+            "categories",
+            "show_quantity",
+            "has_locations",
+            "has_min_stock",
+            "enable_borrow",
+            "is_consumable_mode",
+            "require_qr",
+            "enable_quick_adjust",
+            "show_images",
+            "show_tags",
+            "enable_mark_button",
+            "enable_advanced_filters",
+            "enable_comments",
+            "show_order_button",
+            "config",
+        ]
+        labels = {
+            "name": "Dashboard-Name",
+            "slug": "Slug (URL-Kürzel)",
+            "icon_emoji": "Icon (Emoji)",
+            "description": "Beschreibung",
+            "order": "Reihenfolge",
+            "is_active": "Aktiv",
+            "show_quantity": "Mengen anzeigen",
+            "has_locations": "Lagerorte verwenden",
+            "has_min_stock": "Mindestbestand verwenden",
+            "enable_borrow": "Verleih/Return verwenden",
+            "is_consumable_mode": "Verbrauchsmaterial-Logik",
+            "require_qr": "QR/Barcode Pflicht",
+            "enable_quick_adjust": "Schnellbestand +/- erlauben",
+            "show_images": "Bilder anzeigen",
+            "show_tags": "Tags anzeigen",
+            "enable_mark_button": "Markieren-Button anzeigen",
+            "enable_advanced_filters": "Erweiterte Suche/Filter",
+            "enable_comments": "Kommentare/Feedback erlauben",
+            "show_order_button": "Nachbestellen-Button anzeigen",
+            "config": "Konfiguration (JSON)",
+        }
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control form-control-lg", "placeholder": "z. B. Werkstatt, Keller, Garage"}),
+            "slug": forms.TextInput(attrs={"class": "form-control", "placeholder": "z. B. werkstatt"}),
+            "icon_emoji": forms.TextInput(attrs={"class": "form-control", "placeholder": "z. B. 🔧"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "order": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_quantity": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "has_locations": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "has_min_stock": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "enable_borrow": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "is_consumable_mode": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "require_qr": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "enable_quick_adjust": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_images": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_tags": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "enable_mark_button": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "enable_advanced_filters": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "enable_comments": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_order_button": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "config": forms.Textarea(attrs={"class": "form-control font-monospace", "rows": 5}),
+        }
+        help_texts = {
+            "slug": "URL-Kürzel für das Dashboard.",
+            "categories": "Optional: nur diese Kategorien anzeigen/filtern.",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            if table_exists(Category):
+                self.fields["categories"].queryset = Category.objects.all().order_by("name")
+        except (OperationalError, ProgrammingError):
+            self.fields["categories"].queryset = Category.objects.none()
+        except Exception:
+            self.fields["categories"].queryset = Category.objects.none()
+
+    def clean_config(self):
+        return self.cleaned_data.get("config") or {}
+
+
 class StorageLocationForm(forms.ModelForm):
     parent = forms.ModelChoiceField(
         queryset=StorageLocation.objects.none(),
