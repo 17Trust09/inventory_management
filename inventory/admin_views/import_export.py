@@ -107,7 +107,6 @@ def admin_import_export(request):
             overview_id = request.POST.get("overview_id")
             overview = None
             if overview_id:
-                from ..models import Overview
                 overview = Overview.objects.filter(pk=overview_id, is_active=True).first()
             if not overview:
                 messages.error(request, "Bitte ein gültiges Dashboard auswählen.")
