@@ -1,3 +1,4 @@
+import os
 from .feature_flags import get_feature_flags_namespace
 from .threadlocal import get_global_settings
 from .models import Overview
@@ -17,6 +18,15 @@ def active_overviews(request):
     ctx["active_nav"] = url_name
 
     return ctx
+
+
+def app_version(request):
+    try:
+        with open(os.path.join(settings.BASE_DIR, 'VERSION')) as f:
+            version = f.read().strip()
+    except Exception:
+        version = '2.0.0'
+    return {'APP_VERSION': version}
 
 
 def global_features(request):
