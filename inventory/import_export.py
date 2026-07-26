@@ -225,7 +225,7 @@ def _setup_sheet(worksheet, overview=None):
     cols = get_columns_for_overview(overview)
     worksheet.append(cols)
     worksheet.freeze_panes = "A2"
-    worksheet.auto_filter.ref = f"A1:{get_column_letter(len(COLUMNS))}1"
+    worksheet.auto_filter.ref = f"A1:{get_column_letter(len(cols))}1"
 
 
 def _style_rows(worksheet, zebra: bool):
