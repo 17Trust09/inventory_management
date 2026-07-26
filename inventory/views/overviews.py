@@ -1,8 +1,7 @@
 """
 Overview-bezogene Views: Request, Export, ScheduledExport, MovementReport.
 """
-from datetime import timedelta
-import csv
+from datetime import datetime, timedelta
 import json
 import os
 from types import SimpleNamespace
@@ -10,7 +9,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.http import HttpResponse, JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.views.generic import View, TemplateView
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -35,7 +34,8 @@ from ..models import (
     ExportRun,
     ItemMark,
 )
-from ..exports import EXPORT_COLUMNS, calculate_next_run, export_overview_to_file, get_export_columns
+from ..exports import EXPORT_COLUMNS, calculate_next_run, export_overview_to_file
+from ..pdf_export import export_overview_to_pdf
 from .helpers import _get_overview_and_features, _feature_enabled
 
 
@@ -174,31 +174,12 @@ class OverviewRequestCreateView(LoginRequiredMixin, View):
 class OverviewExportView(LoginRequiredMixin, View):
     def get(self, request, slug, export_format):
         overview = get_object_or_404(Overview, slug=slug, is_active=True)
-        items = InventoryItem.objects.filter(overview=overview).select_related(
-            "category", "storage_location"
-        ).prefetch_related("application_tags")
+        selected_columns = request.GET.getlist("cols") or None
 
-        if export_format == "csv":
-            response = HttpResponse(content_type="text/csv; charset=utf-8")
-            response["Content-Disposition"] = f'attachment; filename="{overview.slug}.csv"'
-            writer = csv.writer(response)
-            writer.writerow(["Name", "Kategorie", "Lagerort", "Bestand", "Einheit", "Tags"])
-            for item in items:
-                tag_str = ", ".join(t.name for t in item.application_tags.all())
-                writer.writerow([
-                    item.name,
-                    item.category.name if item.category else "",
-                    item.storage_location.get_full_path() if item.storage_location else "",
-                    item.quantity,
-                    item.unit or "",
-                    tag_str,
-                ])
-            return response
-        elif export_format == "excel":
-            selected_columns = request.GET.getlist("cols") or None
+        if export_format in {"csv", "excel"}:
             result = export_overview_to_file(
                 overview,
-                export_format="excel",
+                export_format=export_format,
                 columns=selected_columns,
             )
             if isinstance(result, dict) and "error" in result:
@@ -209,16 +190,25 @@ class OverviewExportView(LoginRequiredMixin, View):
             if not os.path.exists(full_path):
                 messages.error(request, "Export-Datei wurde nicht gefunden.")
                 return redirect("overview-dashboard", slug=slug)
-            with open(full_path, "rb") as f:
-                response = HttpResponse(
-                    f.read(),
-                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                )
-                response["Content-Disposition"] = f'attachment; filename="{filename}"'
-            return response
-        else:
-            messages.error(request, "Unbekanntes Export-Format.")
-            return redirect("overview-dashboard", slug=slug)
+            content_type = "text/csv; charset=utf-8"
+            if export_format == "excel":
+                content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            return FileResponse(open(full_path, "rb"), as_attachment=True, filename=filename, content_type=content_type)
+
+        if export_format == "pdf":
+            export_dir = os.path.join(settings.MEDIA_ROOT, "exports")
+            os.makedirs(export_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"overview_{overview.slug}_{timestamp}.pdf"
+            full_path = os.path.join(export_dir, filename)
+            export_overview_to_pdf(overview, selected_columns, full_path)
+            if not os.path.exists(full_path):
+                messages.error(request, "PDF-Export-Datei wurde nicht gefunden.")
+                return redirect("overview-dashboard", slug=slug)
+            return FileResponse(open(full_path, "rb"), as_attachment=True, filename=filename, content_type="application/pdf")
+
+        messages.error(request, "Unbekanntes Export-Format.")
+        return redirect("overview-dashboard", slug=slug)
 
 
 class ScheduledExportView(LoginRequiredMixin, View):

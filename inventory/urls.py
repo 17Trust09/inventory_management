@@ -66,6 +66,7 @@ urlpatterns = [
     path('overview/add/', views.OverviewRequestCreateView.as_view(), name='overview-request-add'),
     path('dashboards/<slug:slug>/', views.OverviewDashboardView.as_view(), name='overview-dashboard'),
     path('dashboards/<slug:slug>/favorite/', views.ToggleOverviewFavoriteView.as_view(), name='overview-favorite'),
+    path('dashboards/<slug:slug>/export/pdf/', views.OverviewExportView.as_view(), {'export_format': 'pdf'}, name='overview-export-pdf'),
     path('dashboards/<slug:slug>/export/<str:export_format>/', views.OverviewExportView.as_view(), name='overview-export'),
     path('exports/scheduled/', views.ScheduledExportView.as_view(), name='scheduled-exports'),
     path('exports/scheduled/<int:pk>/run/', views.ScheduledExportRunView.as_view(), name='scheduled-export-run'),

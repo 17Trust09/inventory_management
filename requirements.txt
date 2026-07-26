@@ -3,6 +3,7 @@ python-barcode
 qrcode
 Pillow
 openpyxl
+reportlab
 requests
 django-jazzmin
 django-crispy-forms

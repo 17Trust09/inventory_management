@@ -266,6 +266,7 @@ class OverviewDashboardView(LoginRequiredMixin, TemplateView):
             "tags": tags,
             "storage_locations": storage_locations,
             "add_url": self._compute_add_url(),
+            "export_pdf_url": reverse("overview-export-pdf", kwargs={"slug": self.overview.slug}),
             "export_csv_url": reverse("overview-export", kwargs={"slug": self.overview.slug, "export_format": "csv"}),
             "export_excel_url": reverse("overview-export", kwargs={"slug": self.overview.slug, "export_format": "excel"}),
             "export_columns": [(key, label) for key, label, _ in EXPORT_COLUMNS],
