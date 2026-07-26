@@ -1,0 +1,35 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:1rem;">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+        <div>
+          <div class="text-muted small">NFC-Scan</div>
+          <h2 class="mb-1">{{ item.name }}</h2>
+          <div class="text-muted">{{ item.get_item_type_display }}</div>
+        </div>
+        <span class="badge bg-primary">Bestand: {{ item.quantity }}</span>
+      </div>
+
+      {% if item.description %}<p>{{ item.description }}</p>{% endif %}
+
+      <dl class="row mb-0">
+        <dt class="col-sm-3">Kategorie</dt>
+        <dd class="col-sm-9">{{ item.category.name|default:'–' }}</dd>
+        <dt class="col-sm-3">Lagerort</dt>
+        <dd class="col-sm-9">
+          {% if item.storage_location %}{{ item.storage_location.get_full_path }}{% else %}–{% endif %}
+        </dd>
+        <dt class="col-sm-3">NFC-Token</dt>
+        <dd class="col-sm-9"><code>{{ nfc_token }}</code></dd>
+      </dl>
+    </div>
+    <div class="card-footer d-flex gap-2" style="background:var(--surface-2); border-top:1px solid var(--border);">
+      <a class="btn btn-outline-light" href="{% url 'edit-item' item.pk %}">Item öffnen</a>
+      <a class="btn btn-outline-secondary" href="{% url 'dashboards' %}">Dashboards</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="container mt-5">
-  <a href="{% url 'dashboard-equipment' %}" class="btn btn-outline-primary my-3">← Zurück zu Equipment</a>
+  <a href="{% url 'dashboards' %}" class="btn btn-outline-primary my-3">← Zurück zu Dashboards</a>
   <h2 class="mb-4">
     {% if form.instance.pk %}Equipment bearbeiten{% else %}Neues Equipment hinzufügen{% endif %}
   </h2>

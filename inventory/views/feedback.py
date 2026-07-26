@@ -19,7 +19,19 @@ class FeedbackListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        return Feedback.objects.select_related("created_by").order_by("-created_at")
+        qs = Feedback.objects.select_related("created_by").order_by("-created_at")
+        status_filter = self.request.GET.get("status", "")
+        valid_statuses = {choice[0] for choice in Feedback.Status.choices}
+        if status_filter in valid_statuses:
+            qs = qs.filter(status=status_filter)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        status_filter = self.request.GET.get("status", "")
+        valid_statuses = {choice[0] for choice in Feedback.Status.choices}
+        ctx["status_filter"] = status_filter if status_filter in valid_statuses else ""
+        return ctx
 
 
 class FeedbackDetailView(LoginRequiredMixin, TemplateView):
@@ -34,9 +46,10 @@ class FeedbackDetailView(LoginRequiredMixin, TemplateView):
         ctx["feedback"] = feedback
         ctx["comments"] = FeedbackComment.objects.filter(feedback=feedback).select_related("author")
         ctx["comment_form"] = FeedbackCommentForm()
-        ctx["user_vote"] = FeedbackVote.objects.filter(
+        user_vote = FeedbackVote.objects.filter(
             feedback=feedback, user=self.request.user
         ).first()
+        ctx["user_vote"] = user_vote.value if user_vote else None
         return ctx
 
 
@@ -58,9 +71,10 @@ class FeedbackCreateView(LoginRequiredMixin, View):
 class FeedbackVoteView(LoginRequiredMixin, View):
     def post(self, request, pk):
         feedback = get_object_or_404(Feedback, pk=pk)
-        vote_value = request.POST.get("vote")
+        vote_value = request.POST.get("vote") or request.GET.get("v")
         if vote_value not in ("up", "down"):
-            return JsonResponse({"error": "Ungültiger Vote"}, status=400)
+            messages.error(request, "Ungültiger Vote.")
+            return redirect("feedback-detail", pk=pk)
 
         existing = FeedbackVote.objects.filter(feedback=feedback, user=request.user).first()
         if existing:
@@ -68,10 +82,7 @@ class FeedbackVoteView(LoginRequiredMixin, View):
 
         value = 1 if vote_value == "up" else -1
         FeedbackVote.objects.create(feedback=feedback, user=request.user, value=value)
-        return JsonResponse({
-            "upvotes": FeedbackVote.objects.filter(feedback=feedback, value=1).count(),
-            "downvotes": FeedbackVote.objects.filter(feedback=feedback, value=-1).count(),
-        })
+        return redirect("feedback-detail", pk=pk)
 
 
 class FeedbackCommentCreateView(LoginRequiredMixin, View):

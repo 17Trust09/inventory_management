@@ -8,6 +8,7 @@ from django.views.generic import View
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils import timezone
 from django.db.models import Q, F, Sum, Prefetch
 
 from ..forms import BorrowItemForm
@@ -57,7 +58,8 @@ class ReturnItemView(LoginRequiredMixin, View):
         borrowed = get_object_or_404(BorrowedItem, pk=borrow_id, returned=False)
         item = borrowed.item
         borrowed.returned = True
-        borrowed.save()
+        borrowed.returned_at = timezone.now()
+        borrowed.save(update_fields=["returned", "returned_at"])
         item.quantity += borrowed.quantity_borrowed
         item.save(update_fields=["quantity"])
 

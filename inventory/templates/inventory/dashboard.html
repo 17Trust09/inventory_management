@@ -49,7 +49,7 @@
                 <a href="{% url 'add-equipment' %}" class="btn btn-primary">+</a>
 
                 <!-- Suchfunktion + Kategorie + Tag-Filter -->
-                <form method="GET" action="{% url 'dashboard' %}" class="d-flex">
+                <form method="GET" action="{% url 'dashboards' %}" class="d-flex">
                     <select name="category" class="form-select me-2">
                         <option value="all">Alle Kategorien</option>
                         {% for category in categories %}

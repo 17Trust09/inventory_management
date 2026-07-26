@@ -626,7 +626,7 @@
         const selectAll = document.getElementById("select-all-items");
         if (!selectAll) return;
         selectAll.addEventListener("change", () => {
-          document.querySelectorAll("input[name='item_ids'][form='bulk-action-form']").forEach((box) => {
+          document.querySelectorAll("input[name='selected_items'][form='bulk-action-form']").forEach((box) => {
             box.checked = selectAll.checked;
           });
         });

@@ -3,9 +3,10 @@ Admin-Dashboard-View.
 """
 from django.shortcuts import render
 from ..models import Overview, Feedback
-from .helpers import _get_global_settings, _feature_enabled
+from .helpers import _get_global_settings, _feature_enabled, staff_required
 
 
+@staff_required
 def dashboard(request):
     """Admin-Dashboard mit Schnellüberblick."""
     from ..models import PendingCategoryRequest, PendingTagRequest

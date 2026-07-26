@@ -189,7 +189,11 @@ class DrawerItemsAPI(LoginRequiredMixin, View):
 
 class QRCodeListAdminView(LoginRequiredMixin, View):
     def get(self, request):
-        items = InventoryItem.objects.filter(qr_code__isnull=False).order_by("name")
+        items = [
+            item
+            for item in InventoryItem.objects.filter(is_active=True).order_by("name")
+            if item.qr_exists
+        ]
         return render(request, "inventory/barcode_list.html", {"items": items})
 
 
@@ -208,7 +212,16 @@ class ItemAttachmentUploadView(LoginRequiredMixin, View):
             messages.error(request, "Datei zu groß (max. 100 MB).")
             return redirect("edit-item", pk=item_id)
 
-        ItemAttachment.objects.create(item=item, file=file)
+        attachment_type = request.POST.get("attachment_type") or ItemAttachment.AttachmentType.OTHER
+        valid_types = {choice[0] for choice in ItemAttachment.AttachmentType.choices}
+        if attachment_type not in valid_types:
+            attachment_type = ItemAttachment.AttachmentType.OTHER
+        ItemAttachment.objects.create(
+            item=item,
+            file=file,
+            label=request.POST.get("label", "").strip(),
+            attachment_type=attachment_type,
+        )
         messages.success(request, "Anhang hochgeladen.")
         return redirect("edit-item", pk=item_id)
 

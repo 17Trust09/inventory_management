@@ -59,7 +59,7 @@
   <div class="card mb-4" style="background:var(--surface); border:1px solid var(--border); color:var(--text);">
     <div class="card-body">
       <h5 class="mb-3">Geplante Exporte</h5>
-      {% if schedules %}
+      {% if exports %}
         <div class="table-responsive">
           <table class="table table-dark table-striped align-middle">
             <thead>
@@ -73,7 +73,7 @@
               </tr>
             </thead>
             <tbody>
-              {% for schedule in schedules %}
+              {% for schedule in exports %}
                 <tr>
                   <td>{{ schedule.overview.name }}</td>
                   <td>{{ schedule.get_export_format_display }}</td>

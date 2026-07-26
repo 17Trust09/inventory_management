@@ -43,6 +43,5 @@ def admin_item_delete(request, pk):
 
 @staff_required
 def admin_qr_codes_view(request):
-    from ..models import QRCodeOverviewModel
-    qr_overviews = QRCodeOverviewModel.objects.all()
-    return render(request, 'inventory/admin_qr_overview.html', {"qr_overviews": qr_overviews})
+    items = InventoryItem.objects.filter(is_active=True).order_by("name")
+    return render(request, 'inventory/admin_qr_overview.html', {"items": items})

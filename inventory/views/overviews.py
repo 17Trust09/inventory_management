@@ -3,9 +3,11 @@ Overview-bezogene Views: Request, Export, ScheduledExport, MovementReport.
 """
 from datetime import timedelta
 import csv
+import json
 import os
 from types import SimpleNamespace
 from django.utils import timezone
+from django.utils.text import slugify
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
@@ -42,6 +44,49 @@ from .helpers import _get_overview_and_features, _feature_enabled
 # ---------------------------------------------------------------------------
 class OverviewRequestForm(forms.ModelForm):
     """Formular für Dashboard-Anfrage – alle möglichen Optionen."""
+
+    slug = forms.SlugField(
+        required=False,
+        max_length=80,
+        label="Slug (URL-Kürzel)",
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "z. B. werkstatt"}),
+        help_text="Optional – wird automatisch erzeugt, wenn leer.",
+    )
+
+    def _unique_slug(self, base: str) -> str:
+        base_slug = (slugify(base) or "dashboard")[:80].strip("-") or "dashboard"
+        slug = base_slug
+        suffix = 2
+        qs = Overview.objects.all()
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        while qs.filter(slug=slug).exists():
+            suffix_text = f"-{suffix}"
+            slug = f"{base_slug[:80 - len(suffix_text)]}{suffix_text}"
+            suffix += 1
+        return slug
+
+    def clean_slug(self):
+        slug = self.cleaned_data.get("slug")
+        name = self.cleaned_data.get("name") or ""
+        if not slug:
+            return self._unique_slug(name)
+        slug = slugify(slug)
+        qs = Overview.objects.filter(slug=slug)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("Dieser Slug ist bereits vergeben.")
+        return slug
+
+    def save(self, commit=True):
+        overview = super().save(commit=False)
+        if not overview.slug:
+            overview.slug = self._unique_slug(overview.name)
+        if commit:
+            overview.save()
+            self.save_m2m()
+        return overview
 
     class Meta:
         model = Overview
@@ -150,16 +195,20 @@ class OverviewExportView(LoginRequiredMixin, View):
                 ])
             return response
         elif export_format == "excel":
+            selected_columns = request.GET.getlist("cols") or None
             result = export_overview_to_file(
                 overview,
                 export_format="excel",
-                columns=get_export_columns(request),
+                columns=selected_columns,
             )
             if isinstance(result, dict) and "error" in result:
                 messages.error(request, f"Export fehlgeschlagen: {result['error']}")
                 return redirect("overview-dashboard", slug=slug)
             full_path = os.path.join(settings.MEDIA_ROOT, result)
             filename = result.split("/")[-1]
+            if not os.path.exists(full_path):
+                messages.error(request, "Export-Datei wurde nicht gefunden.")
+                return redirect("overview-dashboard", slug=slug)
             with open(full_path, "rb") as f:
                 response = HttpResponse(
                     f.read(),
@@ -180,11 +229,14 @@ class ScheduledExportView(LoginRequiredMixin, View):
         runs = ExportRun.objects.select_related("scheduled_export").order_by("-created_at")[:20]
         return render(request, self.template_name, {
             "exports": exports, "runs": runs,
+            "export_columns": [(key, label) for key, label, _ in EXPORT_COLUMNS],
             "form": ScheduledExportForm(),
         })
 
     def post(self, request):
-        form = ScheduledExportForm(request.POST)
+        post_data = request.POST.copy()
+        post_data["columns"] = json.dumps(request.POST.getlist("cols"))
+        form = ScheduledExportForm(post_data)
         if form.is_valid():
             form.save()
             messages.success(request, "Geplanter Export wurde angelegt.")
@@ -192,7 +244,9 @@ class ScheduledExportView(LoginRequiredMixin, View):
         exports = ScheduledExport.objects.select_related("overview").order_by("overview__name")
         runs = ExportRun.objects.select_related("scheduled_export").order_by("-created_at")[:20]
         return render(request, self.template_name, {
-            "exports": exports, "runs": runs, "form": form,
+            "exports": exports, "runs": runs,
+            "export_columns": [(key, label) for key, label, _ in EXPORT_COLUMNS],
+            "form": form,
         })
 
 
@@ -205,6 +259,8 @@ class ScheduledExportRunView(LoginRequiredMixin, View):
                 export_format=export.export_format,
                 columns=export.columns,
             )
+            if isinstance(result, dict):
+                raise RuntimeError(result.get("error") or "Export fehlgeschlagen")
             ExportRun.objects.create(
                 scheduled_export=export,
                 status=ExportRun.Status.SUCCESS,

@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="container mt-5">
-  <a href="{% url 'dashboard-consumables' %}" class="btn btn-outline-primary my-3">← Zurück zu Verbrauchsmaterial</a>
+  <a href="{% url 'dashboards' %}" class="btn btn-outline-primary my-3">← Zurück zu Dashboards</a>
   <h2 class="mb-4">
     {% if form.instance.pk %}Verbrauchsmaterial bearbeiten{% else %}Neues Verbrauchsmaterial hinzufügen{% endif %}
   </h2>

@@ -9,7 +9,8 @@ import uuid
 
 from ..models import StorageLocation
 from ..forms import StorageLocationForm
-from .helpers import StaffRequiredMixin
+from .helpers import staff_required, StaffRequiredMixin
+from ..views.helpers import _resolve_nfc_base_url
 
 
 class StorageLocationListView(StaffRequiredMixin, ListView):
@@ -26,6 +27,8 @@ class StorageLocationCreateView(StaffRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['is_create'] = True
+        ctx['parent_tree'] = ctx['form'].parent_tree()
+        ctx['parent_selected'] = bool(ctx['form'].data.get('parent') or ctx['form'].initial.get('parent'))
         return ctx
 
     def get_success_url(self):
@@ -37,6 +40,14 @@ class StorageLocationUpdateView(StaffRequiredMixin, UpdateView):
     model = StorageLocation
     form_class = StorageLocationForm
     template_name = 'inventory/admin_storagelocation_form.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['nfc_url'] = (
+            f"{_resolve_nfc_base_url(self.request, self.object.nfc_base_choice)}"
+            f"{reverse('nfc-location-redirect', kwargs={'token': self.object.nfc_token})}"
+        ) if self.object.nfc_token else ""
+        return ctx
 
     def get_success_url(self):
         messages.success(self.request, "Lagerort gespeichert.")
@@ -52,6 +63,7 @@ class StorageLocationDeleteView(StaffRequiredMixin, DeleteView):
         return reverse('admin_storagelocations')
 
 
+@staff_required
 def admin_storagelocation_regenerate_nfc(request, pk):
     if request.method != "POST":
         return redirect('admin_storagelocations')

@@ -10,6 +10,7 @@ from django.views import View
 from django.http import JsonResponse, HttpResponseForbidden
 from django.utils.timezone import localtime, now
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import IntegrityError, transaction
 
 from .models import Feedback, ItemMark, Category, ApplicationTag, TagType, Overview, StorageLocation
 from .admin_views import _get_tailscale_status, _get_global_settings
@@ -251,6 +252,28 @@ class QuickAddCategoryAPI(LoginRequiredMixin, View):
         if not name:
             return JsonResponse({"success": False, "error": "Name ist erforderlich"}, status=400)
 
+        if request.user.is_superuser:
+            existing = Category.objects.filter(name__iexact=name).first()
+            if existing:
+                return JsonResponse({
+                    "success": True,
+                    "id": existing.id,
+                    "name": existing.name,
+                    "status": "exists",
+                })
+            try:
+                with transaction.atomic():
+                    cat, created = Category.objects.get_or_create(name=name)
+            except IntegrityError:
+                cat = Category.objects.get(name=name)
+                created = False
+            return JsonResponse({
+                "success": True,
+                "id": cat.id,
+                "name": cat.name,
+                "status": "created" if created else "exists",
+            })
+
         existing = Category.objects.filter(name__iexact=name).first()
         if existing:
             return JsonResponse({
@@ -258,15 +281,6 @@ class QuickAddCategoryAPI(LoginRequiredMixin, View):
                 "id": existing.id,
                 "name": existing.name,
                 "status": "exists",
-            })
-
-        if request.user.is_superuser:
-            cat = Category.objects.create(name=name)
-            return JsonResponse({
-                "success": True,
-                "id": cat.id,
-                "name": cat.name,
-                "status": "created",
             })
         else:
             # PendingRequest für normale User
@@ -303,15 +317,6 @@ class QuickAddTagAPI(LoginRequiredMixin, View):
         if not name:
             return JsonResponse({"success": False, "error": "Name ist erforderlich"}, status=400)
 
-        existing = ApplicationTag.objects.filter(name__iexact=name).first()
-        if existing:
-            return JsonResponse({
-                "success": True,
-                "id": existing.id,
-                "name": existing.name,
-                "status": "exists",
-            })
-
         tag_type = None
         if type_name:
             try:
@@ -320,12 +325,37 @@ class QuickAddTagAPI(LoginRequiredMixin, View):
                 pass
 
         if request.user.is_superuser:
-            tag = ApplicationTag.objects.create(name=name, type=tag_type)
+            existing = ApplicationTag.objects.filter(name__iexact=name).first()
+            if existing:
+                return JsonResponse({
+                    "success": True,
+                    "id": existing.id,
+                    "name": existing.name,
+                    "status": "exists",
+                })
+            try:
+                with transaction.atomic():
+                    tag, created = ApplicationTag.objects.get_or_create(
+                        name=name,
+                        defaults={"type": tag_type},
+                    )
+            except IntegrityError:
+                tag = ApplicationTag.objects.get(name=name)
+                created = False
             return JsonResponse({
                 "success": True,
                 "id": tag.id,
                 "name": tag.name,
-                "status": "created",
+                "status": "created" if created else "exists",
+            })
+
+        existing = ApplicationTag.objects.filter(name__iexact=name).first()
+        if existing:
+            return JsonResponse({
+                "success": True,
+                "id": existing.id,
+                "name": existing.name,
+                "status": "exists",
             })
         else:
             # PendingRequest für normale User
@@ -360,19 +390,24 @@ class QuickAddStorageLocationAPI(LoginRequiredMixin, View):
         if not name:
             return JsonResponse({"success": False, "error": "Name ist erforderlich"}, status=400)
 
-        existing = StorageLocation.objects.filter(name__iexact=name, parent__isnull=True).first()
+        existing = StorageLocation.objects.filter(
+            name__iexact=name,
+            parent__isnull=True,
+        ).first()
         if existing:
             return JsonResponse({
                 "success": True,
                 "id": existing.id,
-                "name": existing.get_full_path(),
+                "name": existing.name,
                 "status": "exists",
             })
-
-        location = StorageLocation.objects.create(name=name)
+        location, created = StorageLocation.objects.get_or_create(
+            name=name,
+            parent=None,
+        )
         return JsonResponse({
             "success": True,
             "id": location.id,
             "name": location.get_full_path(),
-            "status": "created",
+            "status": "created" if created else "exists",
         })

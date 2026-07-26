@@ -98,7 +98,8 @@ def admin_userprofile_edit(request, pk):
 def admin_user_toggle_active(request, pk):
     if request.method != "POST":
         return HttpResponseBadRequest("Nur POST erlaubt.")
-    user = get_object_or_404(User, pk=pk)
+    profile = get_object_or_404(UserProfile.objects.select_related("user"), pk=pk)
+    user = profile.user
     if request.user.id == user.id and request.POST.get("active") == "0":
         messages.error(request, "Du kannst dein eigenes Konto nicht deaktivieren.")
         return redirect('admin_userprofile_edit', pk=pk)
@@ -113,7 +114,8 @@ def admin_user_toggle_active(request, pk):
 def admin_userprofile_delete(request, pk):
     if request.method != "POST":
         return HttpResponseBadRequest("Nur POST erlaubt.")
-    user = get_object_or_404(User, pk=pk)
+    profile = get_object_or_404(UserProfile.objects.select_related("user"), pk=pk)
+    user = profile.user
     if request.user.id == user.id:
         messages.error(request, "Du kannst dein eigenes Konto nicht löschen.")
         return redirect('admin_userprofile_edit', pk=pk)

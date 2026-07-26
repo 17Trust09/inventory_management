@@ -12,7 +12,7 @@
       </div>
       <form method="post" class="card-footer d-flex justify-content-end gap-2" style="background:var(--surface-2); border-top:1px solid var(--border);">
         {% csrf_token %}
-        <a href="{% url 'admin_manage_roles' %}" class="btn btn-outline-secondary">
+        <a href="{% url 'admin_userprofiles_list' %}" class="btn btn-outline-secondary">
           <i class="bi bi-arrow-left me-1"></i> Abbrechen
         </a>
         <button type="submit" class="btn btn-danger">
