@@ -1,151 +1,78 @@
 {% extends 'inventory/admin_base.html' %}
 
-{% block admin_title %}Updates{% endblock %}
+{% block admin_title %}Update-Anleitung{% endblock %}
 
 {% block admin_content %}
-  <div class="card shadow-sm" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
-    <div class="card-body">
-      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
-        <div>
-          <h5 class="mb-1">Branch-Updates</h5>
-          <p class="text-muted mb-0">
-            Wähle einen beliebigen Remote-Branch. Vor dem Wechsel wird ein Backup von <code>db.sqlite3</code> und <code>media</code> erstellt, danach wird der Branch hart auf <code>origin/&lt;branch&gt;</code> gesetzt und migriert.
-          </p>
-        </div>
-        <div class="text-muted small">
-          Aktiver Branch:
-          <span class="badge bg-info text-dark">{{ active_git_branch|default:"unbekannt" }}</span>
-        </div>
+<div class="row g-4">
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm h-100" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+      <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+        Unraid (Docker)
       </div>
-
-      <div class="border rounded p-3 mb-4" style="border-color:var(--border);">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="fw-semibold">Remote-Branches</div>
-          <span class="badge bg-secondary">{{ branch_statuses|length }} Branch(es)</span>
+      <div class="card-body">
+        <p class="text-muted mb-3">Inventoryverwaltung als Docker-Container auf Unraid.</p>
+        <h6 class="fw-bold">1. Code aktualisieren</h6>
+        <div class="bg-dark text-light p-3 rounded font-monospace small mb-3">
+          cd /mnt/data/appdata/inventory_management<br>
+          git pull origin fix/ui-bugs-und-ajax
         </div>
-
-        {% if branch_statuses %}
-          <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Branch</th>
-                  <th class="text-end">Behind</th>
-                  <th class="text-end">Ahead</th>
-                  <th>Letzter Commit</th>
-                  <th>Status</th>
-                  <th class="text-end">Aktion</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for status in branch_statuses %}
-                  <tr {% if status.branch == active_git_branch %}class="table-active"{% endif %}>
-                    <td>
-                      <div class="fw-semibold">
-                        {{ status.branch }}
-                        {% if status.branch == active_git_branch %}
-                          <span class="badge bg-info text-dark ms-1">aktiv</span>
-                        {% endif %}
-                      </div>
-                      {% if status.error %}
-                        <div class="text-warning small mt-1">{{ status.error }}</div>
-                      {% endif %}
-                    </td>
-                    <td class="text-end">{{ status.behind_count|default:0 }}</td>
-                    <td class="text-end">{{ status.ahead_count|default:0 }}</td>
-                    <td>
-                      {% if status.last_commit_short %}
-                        <code title="{{ status.last_commit }}">{{ status.last_commit_short }}</code>
-                      {% else %}
-                        <span class="text-muted">–</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if status.error %}
-                        <span class="badge bg-warning text-dark">Status unbekannt</span>
-                      {% elif status.behind_count > 0 %}
-                        <span class="badge bg-primary">{{ status.behind_count }} Update(s)</span>
-                      {% elif status.ahead_count > 0 %}
-                        <span class="badge bg-warning text-dark">lokal voraus</span>
-                      {% else %}
-                        <span class="badge bg-success">Aktuell</span>
-                      {% endif %}
-                    </td>
-                    <td class="text-end">
-                      <form method="post" class="d-inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="switch_branch">
-                        <input type="hidden" name="selected_branch" value="{{ status.branch }}">
-                        <button class="btn btn-outline-light btn-sm" {% if status.error %}disabled{% endif %}>
-                          {% if status.branch == active_git_branch %}Neu anwenden{% else %}Switch{% endif %}
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% else %}
-          <div class="alert alert-warning mb-0">
-            Keine Remote-Branches gefunden. Bitte Repository-Konfiguration (<code>UPDATE_REPO_URL_MAIN</code>) und Netzwerkzugriff prüfen.
-          </div>
-        {% endif %}
-      </div>
-
-      <div class="row g-3">
-        <div class="col-12">
-          <div class="border rounded p-3" style="border-color:var(--border);">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div class="fw-semibold">Rollback aus Backup</div>
-              <span class="badge bg-secondary">db.sqlite3 + media</span>
-            </div>
-            <p class="text-muted small mb-3">
-              Wähle ein Backup, um Datenbank und Medien auf den gesicherten Stand zurückzusetzen.
-            </p>
-            {% if backup_entries %}
-              <form method="post" class="row g-2 align-items-end">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="rollback">
-                <div class="col-12 col-md-6">
-                  <label class="form-label">Backup auswählen</label>
-                  <select class="form-select" name="backup_dir" required>
-                    {% for entry in backup_entries %}
-                      <option value="{{ entry.name }}">
-                        {{ entry.name }}{% if not entry.has_db or not entry.has_media %} (unvollständig){% endif %}
-                      </option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-12 col-md-3">
-                  <button class="btn btn-outline-warning w-100">
-                    Rollback starten
-                  </button>
-                </div>
-              </form>
-            {% else %}
-              <div class="text-muted small">Keine Backups gefunden.</div>
-            {% endif %}
-          </div>
+        <h6 class="fw-bold">2. Container neu bauen &amp; starten</h6>
+        <div class="bg-dark text-light p-3 rounded font-monospace small mb-3">
+          cd /boot/config/plugins/compose.manager/projects/inventory-management<br>
+          docker compose up -d --build
         </div>
-      </div>
-
-      <div class="mt-4">
-        <h6 class="text-uppercase text-muted small mb-2">Letztes Update-Log</h6>
-        {% if update_output or update_error %}
-          {% if update_branch %}
-            <div class="text-muted small mb-2">Branch: {{ update_branch }}</div>
-          {% endif %}
-          {% if update_error %}
-            <pre class="small text-warning mb-2" style="white-space:pre-wrap;">{{ update_error }}</pre>
-          {% endif %}
-          {% if update_output %}
-            <pre class="small text-muted mb-0" style="white-space:pre-wrap;">{{ update_output }}</pre>
-          {% endif %}
-        {% else %}
-          <div class="text-muted small">Noch keine Updates ausgeführt.</div>
-        {% endif %}
+        <p class="text-muted small">Oder im Unraid WebUI: <strong>Docker → Compose → Update Stack</strong></p>
+        <hr style="border-color:var(--border);">
+        <div class="small text-muted">
+          Port: <code>18000</code> | DB: PostgreSQL | Container: <code>inventory_app</code>
+        </div>
       </div>
     </div>
   </div>
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm h-100" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+      <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+        Raspberry Pi (Kumpel)
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">systemd-Service in venv. Nach Update startet der Pi automatisch neu.</p>
+        <h6 class="fw-bold">SSH-Verbindung</h6>
+        <div class="bg-dark text-light p-3 rounded font-monospace small mb-3">
+          ssh pi@100.84.57.80
+        </div>
+        <h6 class="fw-bold mt-3">1. Code aktualisieren</h6>
+        <div class="bg-dark text-light p-3 rounded font-monospace small mb-3">
+          cd /home/pi/inventory_management<br>
+          git pull origin fix/ui-bugs-und-ajax
+        </div>
+        <h6 class="fw-bold">2. Migrationen + Statics</h6>
+        <div class="bg-dark text-light p-3 rounded font-monospace small mb-3">
+          source venv/bin/activate<br>
+          python manage.py migrate<br>
+          python manage.py collectstatic --noinput
+        </div>
+        <h6 class="fw-bold">3. Service neustarten</h6>
+        <div class="bg-dark text-light p-3 rounded font-monospace small mb-3">
+          sudo systemctl restart django_inventory.service
+        </div>
+        <div class="alert alert-warning small mb-0 mt-2">
+          REBOOT_AFTER_UPDATE=true ist gesetzt. Der Pi startet nach dem Update automatisch neu.
+        </div>
+        <hr style="border-color:var(--border);">
+        <div class="small text-muted">
+          Port: <code>8000</code> | DB: PostgreSQL | Tailscale: <code>100.84.57.80</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="card shadow-sm mt-4" style="background:var(--surface); border:1px solid var(--border); border-radius:.75rem;">
+  <div class="card-header fw-semibold" style="background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text);">
+    Aktueller Branch (Info)
+  </div>
+  <div class="card-body">
+    <span class="badge bg-info text-dark fs-6">{{ active_git_branch|default:"unbekannt" }}</span>
+    <span class="text-muted ms-2 small">– dieser Branch ist auf dieser Instanz aktiv.</span>
+  </div>
+</div>
 {% endblock %}

@@ -320,95 +320,18 @@ def _restore_backup(backup_dir: str) -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 @superuser_required
 def admin_updates(request):
-    update_output = None
-    update_error = None
-    update_branch = None
-    settings_obj = _get_global_settings()
-
-    if request.method == "POST":
-        action = request.POST.get("action")
-        if action == "rollback":
-            backup_dir = request.POST.get("backup_dir")
-            if not backup_dir:
-                messages.error(request, "Kein Backup ausgewählt.")
-                return redirect("admin_updates")
-            success, message = _restore_backup(backup_dir)
-            if success:
-                messages.success(request, message)
-            else:
-                messages.error(request, message)
-            return redirect("admin_updates")
-
-        if action == "switch_branch":
-            update_branch = (request.POST.get("selected_branch") or "").strip()
-            remote_branches = fetch_all_branches()
-            if not update_branch or update_branch not in remote_branches:
-                messages.error(request, "Ungültiger oder unbekannter Branch für das Update.")
-                return redirect("admin_updates")
-            auto_maintenance = settings_obj.auto_maintenance_on_update and not settings_obj.maintenance_mode_enabled
-            if auto_maintenance:
-                settings_obj.maintenance_mode_enabled = True
-                if not settings_obj.maintenance_message:
-                    settings_obj.maintenance_message = "Update läuft. Bitte später erneut versuchen."
-                settings_obj.save(update_fields=["maintenance_mode_enabled", "maintenance_message"])
-            backup_ok, backup_message = _create_backup()
-            output_lines = [backup_message]
-            if backup_ok:
-                messages.success(request, backup_message)
-            else:
-                messages.error(request, f"Backup fehlgeschlagen: {backup_message}")
-                if auto_maintenance:
-                    settings_obj.maintenance_mode_enabled = False
-                    settings_obj.save(update_fields=["maintenance_mode_enabled"])
-                update_output = "\n".join(output_lines)
-                return redirect("admin_updates")
-            _prune_backups(settings_obj.backup_retention_count)
-            repo_url = getattr(settings, "UPDATE_REPO_URL_MAIN", "").strip()
-            origin_error = _ensure_git_origin(repo_url) if repo_url else "Update-Repository ist nicht konfiguriert."
-            commands = []
-            if origin_error:
-                update_error = origin_error
-            else:
-                commands = [
-                    ["git", "fetch", "origin", update_branch],
-                    ["git", "fetch", "origin", f"{update_branch}:refs/remotes/origin/{update_branch}"],
-                    ["git", "checkout", "-B", update_branch, f"origin/{update_branch}"],
-                    ["python", "manage.py", "migrate"],
-                ]
-            exit_code = 0
-            for command in commands:
-                output_lines.append(f"$ {' '.join(command)}")
-                result = subprocess.run(command, cwd=settings.BASE_DIR, capture_output=True, text=True)
-                output_lines.append(result.stdout or "")
-                if result.stderr:
-                    output_lines.append(result.stderr)
-                if result.returncode != 0:
-                    exit_code = result.returncode
-                    break
-            if auto_maintenance:
-                if exit_code == 0:
-                    settings_obj.maintenance_mode_enabled = False
-                    settings_obj.save(update_fields=["maintenance_mode_enabled"])
-            update_output = "\n".join(output_lines)
-            return redirect("admin_updates")
-
-    branch_names = fetch_all_branches()
-    status_data = {}
-    for name in branch_names:
-        status_data[name] = _get_git_status_dynamic(name)
-
-    backups = _get_backup_entries()
-    external_paths = _get_external_backup_paths()
-    gs = _get_global_settings()
+    """Zeigt Update-Anleitung fuer Unraid und Raspberry Pi."""
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            capture_output=True, text=True, cwd=settings.BASE_DIR
+        )
+        active_branch = result.stdout.strip() or "unbekannt"
+    except Exception:
+        active_branch = "unbekannt"
 
     return render(request, 'inventory/admin_updates.html', {
-        "branch_names": branch_names,
-        "status_data": status_data,
-        "backups": backups,
-        "external_backup_paths": external_paths,
-        "settings": gs,
-        "update_output": update_output,
-        "update_error": update_error,
-        "update_branch": update_branch,
-        "git_branches": branch_names,
+        "active_git_branch": active_branch,
     })
+
