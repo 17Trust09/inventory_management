@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="icekey_accent">#e94560</color>
+    <color name="icekey_dark">#1a1a2e</color>
+    <color name="icekey_darkest">#10101f</color>
+    <color name="white">#ffffff</color>
+</resources>

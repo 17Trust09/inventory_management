@@ -1,0 +1,25 @@
+plugins {
+    id 'com.android.application'
+}
+
+def versionFile = rootProject.file('../../VERSION')
+def inventoryVersion = versionFile.exists() ? versionFile.text.trim() : '2.1.0'
+
+android {
+    namespace 'de.icekey.inventory'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'de.icekey.inventory'
+        minSdk 24
+        targetSdk 34
+        versionCode 21
+        versionName inventoryVersion
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'com.google.android.material:material:1.12.0'
+}
