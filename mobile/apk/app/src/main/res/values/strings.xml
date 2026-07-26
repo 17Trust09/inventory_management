@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Icekey Inventory</string>
-    <string name="default_server_url">http://192.168.178.69:18000/m/dashboards/</string>
+    <string name="app_title">Icekey Inventory</string>
+    <string name="default_server_url">http://192.168.178.69:18000</string>
+    <string name="server_selection_subtitle">Wähle einen Server oder verbinde dich mit einer neuen Adresse.</string>
+    <string name="server_address_label">Server-Adresse</string>
+    <string name="server_address_placeholder">192.168.178.69:18000</string>
+    <string name="new_server_button">+ Neuer Server</string>
+    <string name="connect_button">Verbinden</string>
+    <string name="saved_servers_title">Gespeicherte Server</string>
+    <string name="last_used_label">Zuletzt benutzt</string>
+    <string name="saved_server_fallback_name">Server</string>
+    <string name="custom_server_name">Neuer Server</string>
+    <string name="server_address_required">Bitte eine Server-Adresse eingeben.</string>
+    <string name="delete_server_title">Server löschen?</string>
+    <string name="delete_server_message">%1$s aus der Liste entfernen?</string>
+    <string name="delete_button">Löschen</string>
+    <string name="delete_server_content_description">%1$s löschen</string>
+    <string name="server_settings_content_description">Serverauswahl öffnen</string>
 </resources>

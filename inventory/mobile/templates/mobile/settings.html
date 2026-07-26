@@ -1,3 +1,64 @@
 {% extends 'mobile/base.html' %}
 {% block title %}Mehr{% endblock %}
-{% block content %}<h1 class="h3 mb-3">Mehr</h1><div class="mobile-card p-3 mb-3"><div class="muted small">Server URL</div><div class="fw-semibold">{{ request.scheme }}://{{ request.get_host }}</div></div><div class="mobile-card p-3 mb-3"><div class="muted small">App Version</div><div class="fw-semibold">{{ APP_VERSION|default:'unbekannt' }}</div></div><a class="mobile-card d-block p-3 mb-3 text-decoration-none" href="#" id="install-pwa-link"><strong>App installieren (PWA)</strong><div class="muted small">Zum Home-Bildschirm hinzufügen</div></a><a class="mobile-card d-block p-3 mb-3 text-decoration-none" href="/static/mobile/icekey-inventory.apk" download><strong>APK herunterladen</strong><div class="muted small">Android-App direkt installieren</div></a><a class="mobile-card d-block p-3 text-decoration-none" href="/m/manage/"><strong>Verwaltung</strong><div class="muted small">Admin-Bereich öffnen</div></a>{% endblock %}
+{% block page_name %}settings{% endblock %}
+{% block content %}
+<section class="mobile-page settings-page">
+  <header class="mobile-page-header">
+    <div>
+      <div class="muted small">App & Server</div>
+      <h1>Mehr</h1>
+    </div>
+  </header>
+
+  <article class="settings-card">
+    <h2>Server-Info</h2>
+    <div class="settings-row">
+      <span>Aktueller Server</span>
+      <strong>{{ request.scheme }}://{{ request.get_host }}</strong>
+    </div>
+    <div class="settings-row">
+      <span>Version</span>
+      <strong>{{ APP_VERSION|default:'unbekannt' }}</strong>
+    </div>
+  </article>
+
+  <article class="settings-card">
+    <h2>Installation</h2>
+    <a class="settings-action" href="#" id="install-pwa-link">
+      <span>📲</span><span><strong>App installieren (PWA)</strong><small>Zum Home-Bildschirm hinzufügen</small></span>
+    </a>
+    <a class="settings-action" href="/static/mobile/icekey-inventory.apk" download>
+      <span>🤖</span><span><strong>APK herunterladen</strong><small>Android-App direkt installieren</small></span>
+    </a>
+    <a class="settings-action" href="/m/server-select/" data-server-switch>
+      <span>🔁</span><span><strong>Server wechseln</strong><small>Für APK-Nutzer: zurück zur Serverauswahl</small></span>
+    </a>
+  </article>
+
+  <article class="settings-card">
+    <h2>Darstellung</h2>
+    <label class="toggle-row">
+      <span><strong>Theme</strong><small>Hell/Dunkel-Umschaltung folgt später</small></span>
+      <input type="checkbox" disabled aria-label="Theme Toggle Platzhalter">
+    </label>
+  </article>
+
+  <a class="settings-action muted-action" href="/m/manage/">
+    <span>⚙</span><span><strong>Verwaltung</strong><small>Admin-Bereich öffnen</small></span>
+  </a>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  const link = document.querySelector('[data-server-switch]');
+  if (!link) return;
+  link.addEventListener('click', function (event) {
+    if (window.Android && typeof window.Android.selectServer === 'function') {
+      event.preventDefault();
+      window.Android.selectServer();
+    }
+  });
+}());
+</script>
+{% endblock %}

@@ -1,10 +1,98 @@
 {% extends 'mobile/base.html' %}
 {% block title %}{{ overview.name }}{% endblock %}
+{% block page_name %}dashboard{% endblock %}
 {% block content %}
-<div class="d-flex align-items-start justify-content-between mb-3"><div><a class="muted small text-decoration-none" href="/m/dashboards/">Zurück</a><h1 class="h3 mb-0">{{ overview.icon_emoji }} {{ overview.name }}</h1></div><a class="btn btn-accent" href="{{ add_url }}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">+</a></div>
-<form method="get" class="mobile-card p-2 mb-3"><div class="input-group"><input class="form-control" name="q" value="{{ q }}" placeholder="Suchen oder filtern"><button class="btn btn-outline-accent" type="submit">Suchen</button></div>{% if categories or tags %}<div class="row g-2 mt-1"><div class="col-6"><select class="form-select" name="category"><option value="">Kategorie</option>{% for c in categories %}<option value="{{ c.id }}" {% if selected_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div><div class="col-6"><select class="form-select" name="tag"><option value="">Tag</option>{% for t in tags %}<option value="{{ t.name }}" {% if selected_tag == t.name %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div></div>{% endif %}</form>
-<div class="muted small mb-2">Swipe rechts = bearbeiten, swipe links = Schnellanpassung. Nutze +/- für direkte Mengenänderungen.</div>
-{% for item in items %}<article class="mobile-card p-3 mb-3 item-card" data-edit="/m/edit-item/{{ item.id }}/?next={{ request.get_full_path|urlencode }}"><div class="d-flex justify-content-between gap-2"><div><h2 class="h5 mb-1">{{ item.name }}</h2>{% if item.category %}<div class="muted small">{{ item.category.name }}</div>{% endif %}</div><div class="text-end"><div class="fs-4 fw-bold {% if features.has_min_stock and item.quantity <= item.low_quantity %}text-warning{% endif %}">{{ item.quantity }}</div>{% if item.unit %}<div class="muted small">{{ item.get_unit_display }}</div>{% endif %}</div></div>{% if item.application_tags.all %}<div class="mt-2">{% for tag in item.application_tags.all %}<span class="badge badge-soft me-1 mb-1">{{ tag.name }}</span>{% endfor %}</div>{% endif %}<div class="muted small mt-2">Lagerort: {% if item.storage_location %}{{ item.storage_location.get_full_path }}{% else %}{{ item.location_letter }} {{ item.location_number }} {{ item.location_shelf }}{% endif %}</div><div class="d-flex gap-2 mt-3"><a class="btn btn-outline-light flex-fill" href="/m/edit-item/{{ item.id }}/?next={{ request.get_full_path|urlencode }}">Bearbeiten</a><form class="flex-fill" method="post" action="/m/item/{{ item.id }}/adjust-quantity/">{% csrf_token %}<input type="hidden" name="delta" value="-1"><button class="btn btn-outline-accent w-100" type="submit">-</button></form><form class="flex-fill" method="post" action="/m/item/{{ item.id }}/adjust-quantity/">{% csrf_token %}<input type="hidden" name="delta" value="1"><button class="btn btn-accent w-100" type="submit">+</button></form></div></article>{% empty %}<div class="mobile-card p-4 text-center muted">Keine Artikel gefunden.</div>{% endfor %}
-{% if page_obj.has_other_pages %}<div class="d-flex justify-content-between align-items-center mt-3"><span class="muted small">Seite {{ page_obj.number }} / {{ paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="btn btn-outline-accent" href="?page={{ page_obj.next_page_number }}&q={{ q }}">Mehr</a>{% endif %}</div>{% endif %}
+<section class="mobile-page dashboard-mobile" data-mobile-pull-refresh>
+  <header class="mobile-page-header">
+    <div>
+      <a class="muted small text-decoration-none" href="{% url 'mobile-dashboards' %}">‹ Zurück</a>
+      <h1>{{ overview.icon_emoji|default:'📦' }} {{ overview.name }}</h1>
+    </div>
+    <a class="btn-accent btn-compact" href="{% if overview.is_consumable_mode %}{% url 'mobile-add-consumable' %}{% else %}{% url 'mobile-add-equipment' %}{% endif %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}" aria-label="Artikel hinzufügen">＋</a>
+  </header>
+
+  <form method="get" class="filter-card" data-filter-form>
+    <label class="mobile-search-wrap" for="item-search">
+      <span aria-hidden="true">⌕</span>
+      <input id="item-search" class="search-bar" type="search" name="q" value="{{ q }}" placeholder="Artikel suchen" autocomplete="off" data-mobile-search>
+    </label>
+    {% if categories or tags or storage_locations %}
+      <div class="filter-grid">
+        {% if categories %}
+          <select class="mobile-select" name="category" aria-label="Kategorie">
+            <option value="">Alle Kategorien</option>
+            {% for c in categories %}<option value="{{ c.id }}" {% if selected_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+          </select>
+        {% endif %}
+        {% if tags %}
+          <select class="mobile-select" name="tag" aria-label="Tag">
+            <option value="">Alle Tags</option>
+            {% for t in tags %}<option value="{{ t.name }}" {% if selected_tag == t.name %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+          </select>
+        {% endif %}
+        {% if storage_locations %}
+          <select class="mobile-select" name="storage_location" aria-label="Lagerort">
+            <option value="">Alle Lagerorte</option>
+            {% for loc in storage_locations %}<option value="{{ loc.id }}" {% if selected_storage_location == loc.id|stringformat:'s' %}selected{% endif %}>{{ loc.get_full_path }}</option>{% endfor %}
+          </select>
+        {% endif %}
+        {% if features.has_min_stock %}
+          <label class="toggle-row compact"><input type="checkbox" name="only_low" value="1" {% if only_low %}checked{% endif %}> Nur niedriger Bestand</label>
+        {% endif %}
+      </div>
+    {% endif %}
+    <div class="filter-actions">
+      <button class="btn-accent" type="submit">Filtern</button>
+      {% if q or selected_category or selected_tag or selected_storage_location or only_low %}<a class="btn-outline" href="{% url 'mobile-overview-dashboard' overview.slug %}">Zurücksetzen</a>{% endif %}
+    </div>
+  </form>
+
+  <div class="muted small mb-2">Zum Aktualisieren nach unten ziehen. Swipe rechts = bearbeiten, swipe links = Schnellanpassung.</div>
+
+  {% if items %}
+    <div class="card-list">
+      {% for item in items %}
+        <article class="item-card card-mobile" data-edit-url="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}">
+          <div class="item-card-head">
+            <div class="item-card-title-wrap">
+              <h2>{{ item.name }}</h2>
+              {% if item.category %}<span class="category-tag">{{ item.category.name }}</span>{% endif %}
+            </div>
+            <span class="quantity-badge{% if features.has_min_stock and item.quantity <= item.low_quantity %} quantity-low{% endif %}">
+              {{ item.quantity }}{% if item.unit %} <small>{{ item.get_unit_display }}</small>{% endif %}
+            </span>
+          </div>
+          {% if item.application_tags.all %}
+            <div class="tag-row">{% for tag in item.application_tags.all %}<span class="badge-soft">{{ tag.name }}</span>{% endfor %}</div>
+          {% endif %}
+          <div class="item-location">📍 {% if item.storage_location %}{{ item.storage_location.get_full_path }}{% else %}{{ item.location_letter }} {{ item.location_number }} {{ item.location_shelf }}{% endif %}</div>
+          <div class="item-actions">
+            <a class="btn-outline" href="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}" data-mobile-action="edit">Bearbeiten</a>
+            <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="-1"><button class="btn-outline" type="submit" data-mobile-action="quick-adjust">−</button></form>
+            <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="1"><button class="btn-accent" type="submit">＋</button></form>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📦</div>
+      <h2>Keine Artikel gefunden</h2>
+      {% if q or selected_category or selected_tag or selected_storage_location or only_low %}
+        <p>Für deine Suche oder Filter gibt es keine Treffer.</p>
+        <a class="btn-outline" href="{% url 'mobile-overview-dashboard' overview.slug %}">Filter zurücksetzen</a>
+      {% else %}
+        <p>In diesem Dashboard sind noch keine Artikel vorhanden.</p>
+        <a class="btn-accent" href="{% if overview.is_consumable_mode %}{% url 'mobile-add-consumable' %}{% else %}{% url 'mobile-add-equipment' %}{% endif %}?o={{ overview.slug }}&next={{ request.get_full_path|urlencode }}">Ersten Artikel anlegen</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if page_obj.has_other_pages %}
+    <nav class="pagination-row" aria-label="Seitennavigation">
+      <span class="muted small">Seite {{ page_obj.number }} / {{ paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a class="btn-outline" href="?page={{ page_obj.next_page_number }}&q={{ q }}&category={{ selected_category }}&tag={{ selected_tag }}&storage_location={{ selected_storage_location }}{% if only_low %}&only_low=1{% endif %}">Mehr laden</a>{% endif %}
+    </nav>
+  {% endif %}
+</section>
 {% endblock %}
-{% block extra_js %}<script>document.querySelectorAll('.item-card').forEach(function(card){let x=0;card.addEventListener('touchstart',e=>x=e.changedTouches[0].screenX,{passive:true});card.addEventListener('touchend',e=>{let d=e.changedTouches[0].screenX-x;if(d>80) location.href=card.dataset.edit;if(d<-80) card.querySelector('form button')?.focus();},{passive:true});});</script>{% endblock %}

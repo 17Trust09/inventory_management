@@ -1,9 +1,105 @@
 {% extends 'mobile/base.html' %}
 {% block title %}Dashboards{% endblock %}
+{% block page_name %}dashboard{% endblock %}
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-3"><div><div class="muted small">Zum Aktualisieren nach unten ziehen</div><h1 class="h3 mb-0">Dashboards</h1></div><a class="btn btn-sm btn-outline-accent" href="/m/overview/add/">Neu</a></div>
-{% if favorite_overviews %}<h2 class="h6 muted mt-3">Favoriten</h2>{% for overview in favorite_overviews %}<a class="mobile-card d-block p-3 mb-3 text-decoration-none" href="/m/dashboards/{{ overview.slug }}/"><div class="d-flex align-items-center gap-3"><div class="fs-1">{{ overview.icon_emoji|default:'*' }}</div><div class="flex-grow-1"><h3 class="h5 mb-1">{{ overview.name }}</h3><div class="muted small">{{ overview.items.count }} Artikel</div></div><span class="accent">›</span></div></a>{% endfor %}{% endif %}
-<h2 class="h6 muted mt-3">Alle Dashboards</h2>
-{% for overview in overviews %}<a class="mobile-card d-block p-3 mb-3 text-decoration-none" href="/m/dashboards/{{ overview.slug }}/"><div class="d-flex align-items-center gap-3"><div class="fs-1">{{ overview.icon_emoji|default:'*' }}</div><div class="flex-grow-1"><h3 class="h5 mb-1">{{ overview.name }}</h3>{% if overview.description %}<div class="muted small">{{ overview.description|truncatechars:80 }}</div>{% endif %}<div class="muted small mt-1">{{ overview.items.count }} Artikel</div></div><span class="accent">›</span></div></a>{% empty %}<div class="mobile-card p-4 text-center muted">Keine Dashboards verfügbar.</div>{% endfor %}
-{% if pending_overviews %}<h2 class="h6 muted mt-4">Angefragt</h2>{% for overview in pending_overviews %}<div class="mobile-card p-3 mb-2"><strong>{{ overview.name }}</strong><div class="muted small">Wartet auf Freigabe</div></div>{% endfor %}{% endif %}
+<section class="mobile-page dashboard-mobile" data-mobile-pull-refresh>
+  <header class="mobile-page-header">
+    <div>
+      <div class="muted small">Zum Aktualisieren nach unten ziehen</div>
+      <h1>Alle Dashboards</h1>
+    </div>
+    <a class="btn-accent btn-compact" href="{% url 'mobile-overview-request-add' %}" aria-label="Dashboard anfragen">＋</a>
+  </header>
+
+  <label class="mobile-search-wrap" for="dashboard-filter">
+    <span aria-hidden="true">⌕</span>
+    <input id="dashboard-filter" class="search-bar" type="search" placeholder="Dashboard suchen" autocomplete="off" data-dashboard-filter>
+  </label>
+
+  <div class="skeleton-list" aria-hidden="true" hidden>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  </div>
+
+  {% if favorite_overviews %}
+    <h2 class="section-title">Favoriten</h2>
+    <div class="card-list" data-dashboard-list>
+      {% for overview in favorite_overviews %}
+        <a class="dashboard-card" href="{% url 'mobile-overview-dashboard' overview.slug %}" data-dashboard-card data-name="{{ overview.name|lower }}">
+          <span class="dashboard-icon" aria-hidden="true">{{ overview.icon_emoji|default:'📦' }}</span>
+          <span class="dashboard-main">
+            <span class="dashboard-title">{{ overview.name }}</span>
+            <span class="dashboard-subtitle">{% if overview.is_consumable_mode %}Verbrauchsmaterial{% else %}Equipment{% endif %}{% if overview.description %} · {{ overview.description|truncatechars:56 }}{% endif %}</span>
+          </span>
+          <span class="badge-count" aria-label="{{ overview.items.count }} Artikel">{{ overview.items.count }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <h2 class="section-title">Alle Dashboards</h2>
+  {% if overviews %}
+    <div class="card-list" data-dashboard-list>
+      {% for overview in overviews %}
+        <a class="dashboard-card" href="{% url 'mobile-overview-dashboard' overview.slug %}" data-dashboard-card data-name="{{ overview.name|lower }}">
+          <span class="dashboard-icon" aria-hidden="true">{{ overview.icon_emoji|default:'📦' }}</span>
+          <span class="dashboard-main">
+            <span class="dashboard-title">{{ overview.name }}</span>
+            <span class="dashboard-subtitle">{% if overview.is_consumable_mode %}Verbrauchsmaterial{% else %}Equipment{% endif %}{% if overview.description %} · {{ overview.description|truncatechars:56 }}{% endif %}</span>
+          </span>
+          <span class="badge-count" aria-label="{{ overview.items.count }} Artikel">{{ overview.items.count }}</span>
+        </a>
+      {% endfor %}
+    </div>
+    <div class="empty-state" data-filter-empty hidden>
+      <div class="empty-icon">🔎</div>
+      <h2>Kein Dashboard gefunden</h2>
+      <p>Ändere den Suchbegriff oder lege ein neues Dashboard an.</p>
+      <a class="btn-accent" href="{% url 'mobile-overview-request-add' %}">Dashboard erstellen</a>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">▦</div>
+      <h2>Keine Dashboards vorhanden</h2>
+      <p>Erstelle oder beantrage dein erstes Dashboard.</p>
+      <a class="btn-accent" href="{% url 'mobile-overview-request-add' %}">Dashboard erstellen</a>
+    </div>
+  {% endif %}
+
+  {% if pending_overviews %}
+    <h2 class="section-title">Angefragt</h2>
+    <div class="card-list">
+      {% for overview in pending_overviews %}
+        <div class="dashboard-card dashboard-card-static">
+          <span class="dashboard-icon" aria-hidden="true">{{ overview.icon_emoji|default:'⏳' }}</span>
+          <span class="dashboard-main">
+            <span class="dashboard-title">{{ overview.name }}</span>
+            <span class="dashboard-subtitle">Wartet auf Freigabe</span>
+          </span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  const input = document.querySelector('[data-dashboard-filter]');
+  const cards = Array.from(document.querySelectorAll('[data-dashboard-card]'));
+  const empty = document.querySelector('[data-filter-empty]');
+  if (!input || !cards.length) return;
+  input.addEventListener('input', function () {
+    const query = input.value.trim().toLowerCase();
+    let visible = 0;
+    cards.forEach(function (card) {
+      const matches = !query || (card.dataset.name || '').includes(query);
+      card.hidden = !matches;
+      if (matches) visible += 1;
+    });
+    if (empty) empty.hidden = visible !== 0;
+  });
+}());
+</script>
 {% endblock %}

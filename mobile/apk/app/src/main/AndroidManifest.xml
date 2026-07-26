@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <application android:allowBackup="true" android:icon="@drawable/ic_launcher" android:label="@string/app_name" android:roundIcon="@drawable/ic_launcher" android:supportsRtl="true" android:theme="@style/Theme.IcekeyInventory" android:usesCleartextTraffic="true">
-        <activity android:name=".SettingsActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".WebViewActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

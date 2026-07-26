@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}Inventarverwaltung{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'mobile/mobile.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'mobile/mobile.css' %}?v=2">
   {% block extra_css %}{% endblock %}
 </head>
 <body class="mobile-body" data-page="{% block page_name %}{% endblock %}">
@@ -14,17 +14,29 @@
   </main>
 
   {% block bottom_nav %}
+  {% with current=request.resolver_match.url_name %}
   <nav class="bottom-nav" aria-label="Hauptnavigation">
-    <a class="nav-item" href="{% url 'index' %}" data-nav="home"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Home</span></a>
-    <a class="nav-item" href="{% url 'dashboards' %}" data-nav="dashboards"><span class="nav-icon" aria-hidden="true">▦</span><span class="nav-label">Boards</span></a>
-    <a class="nav-item" href="{% url 'add-equipment' %}" data-nav="add"><span class="nav-icon" aria-hidden="true">＋</span><span class="nav-label">Neu</span></a>
-    <a class="nav-item" href="{% url 'scan-barcode' %}" data-nav="scan"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">Scan</span></a>
-    <a class="nav-item" href="{% url 'feedback-list' %}" data-nav="feedback"><span class="nav-icon" aria-hidden="true">◌</span><span class="nav-label">Feedback</span></a>
+    <a class="nav-item{% if current == 'mobile-dashboards' or current == 'mobile-overview-dashboard' %} active{% endif %}" href="{% url 'mobile-dashboards' %}" data-nav="dashboards"{% if current == 'mobile-dashboards' or current == 'mobile-overview-dashboard' %} aria-current="page"{% endif %}>
+      <span class="nav-icon" aria-hidden="true">▦</span><span class="nav-label">Dashboards</span>
+    </a>
+    <a class="nav-item{% if current == 'mobile-scan' or current == 'mobile-scan-barcode' %} active{% endif %}" href="{% url 'mobile-scan' %}" data-nav="scan"{% if current == 'mobile-scan' or current == 'mobile-scan-barcode' %} aria-current="page"{% endif %}>
+      <span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">Scannen</span>
+    </a>
+    <a class="nav-item nav-item-primary{% if current == 'mobile-add-equipment' or current == 'mobile-add-consumable' or current == 'mobile-add-consumables' or current == 'mobile-quick-add' %} active{% endif %}" href="{% url 'mobile-add-equipment' %}" data-nav="add"{% if current == 'mobile-add-equipment' or current == 'mobile-add-consumable' or current == 'mobile-add-consumables' or current == 'mobile-quick-add' %} aria-current="page"{% endif %}>
+      <span class="nav-icon" aria-hidden="true">＋</span><span class="nav-label">Neu</span>
+    </a>
+    <a class="nav-item{% if current == 'mobile-search' %} active{% endif %}" href="{% url 'mobile-search' %}" data-nav="search"{% if current == 'mobile-search' %} aria-current="page"{% endif %}>
+      <span class="nav-icon" aria-hidden="true">⌕</span><span class="nav-label">Suchen</span>
+    </a>
+    <a class="nav-item{% if current == 'mobile-settings' %} active{% endif %}" href="{% url 'mobile-settings' %}" data-nav="more"{% if current == 'mobile-settings' %} aria-current="page"{% endif %}>
+      <span class="nav-icon" aria-hidden="true">⋯</span><span class="nav-label">Mehr</span>
+    </a>
   </nav>
+  {% endwith %}
   {% endblock %}
 
   <div class="pull-to-refresh-indicator" aria-hidden="true"></div>
-  <script src="{% static 'mobile/mobile.js' %}?v=1" defer></script>
+  <script src="{% static 'mobile/mobile.js' %}?v=2" defer></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

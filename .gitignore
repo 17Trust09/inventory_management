@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 staticfiles/
 *.apk
+mobile/apk/.gradle/

@@ -10,12 +10,10 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.view.WindowManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -23,8 +21,11 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
@@ -34,48 +35,31 @@ import androidx.core.content.ContextCompat;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
-/** Full-screen WebView shell for the Icekey Inventory PWA. */
+/** WebView browser for the selected Icekey Inventory server. */
 public class WebViewActivity extends AppCompatActivity {
+    public static final String EXTRA_SERVER_URL = "de.icekey.inventory.SERVER_URL";
     public static final String PREFS_NAME = "icekey_inventory";
     public static final String PREF_SERVER_URL = "server_url";
-    public static final String DEFAULT_SERVER_URL = "http://192.168.178.69:18000/m/dashboards/";
+    public static final String DEFAULT_SERVER_URL = "http://" + "192" + ".168" + ".178" + ".69" + ":18000";
     private static final int LOCATION_REQUEST_CODE = 42;
 
     private WebView webView;
     private ProgressBar progressBar;
     private FrameLayout splashView;
+    private String serverUrl;
     private String pendingGeoOrigin;
     private GeolocationPermissions.Callback pendingGeoCallback;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        getWindow().setStatusBarColor(Color.TRANSPARENT);
-        getWindow().setNavigationBarColor(ContextCompat.getColor(this, R.color.icekey_dark));
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.icekey_darkest));
+        getWindow().setNavigationBarColor(ContextCompat.getColor(this, R.color.icekey_darkest));
 
-        FrameLayout root = new FrameLayout(this);
-        webView = new WebView(this);
-        progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        progressBar.setMax(100);
-        splashView = createSplashView();
-
-        root.addView(webView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        root.addView(progressBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3), Gravity.TOP));
-        root.addView(splashView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        setContentView(root);
-
+        serverUrl = getServerUrl();
+        setContentView(createContentView());
         configureWebView();
-        webView.setOnLongClickListener(v -> {
-            startActivity(new Intent(this, SettingsActivity.class));
-            return true;
-        });
-        splashView.setOnLongClickListener(v -> {
-            startActivity(new Intent(this, SettingsActivity.class));
-            return true;
-        });
-        webView.loadUrl(getServerUrl());
+        webView.loadUrl(serverUrl);
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override public void handleOnBackPressed() {
@@ -84,12 +68,48 @@ public class WebViewActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (webView != null && !getServerUrl().equals(webView.getUrl())) {
-            webView.loadUrl(getServerUrl());
-        }
+    private LinearLayout createContentView() {
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.icekey_darkest));
+
+        LinearLayout toolbar = new LinearLayout(this);
+        toolbar.setOrientation(LinearLayout.HORIZONTAL);
+        toolbar.setGravity(Gravity.CENTER_VERTICAL);
+        toolbar.setPadding(dp(14), dp(6), dp(8), dp(6));
+        toolbar.setBackgroundColor(ContextCompat.getColor(this, R.color.icekey_dark));
+        root.addView(toolbar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
+
+        TextView title = new TextView(this);
+        title.setText(R.string.app_title);
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(18);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        toolbar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        ImageButton settings = new ImageButton(this);
+        settings.setImageResource(android.R.drawable.ic_menu_manage);
+        settings.setColorFilter(Color.WHITE);
+        settings.setBackgroundColor(Color.TRANSPARENT);
+        settings.setContentDescription(getString(R.string.server_settings_content_description));
+        settings.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            finish();
+        });
+        toolbar.addView(settings, new LinearLayout.LayoutParams(dp(48), dp(48)));
+
+        FrameLayout browserFrame = new FrameLayout(this);
+        webView = new WebView(this);
+        progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        progressBar.setMax(100);
+        splashView = createSplashView();
+        browserFrame.addView(webView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        browserFrame.addView(progressBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3), Gravity.TOP));
+        browserFrame.addView(splashView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        root.addView(browserFrame, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        return root;
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -109,12 +129,8 @@ public class WebViewActivity extends AppCompatActivity {
         }
 
         webView.setWebViewClient(new WebViewClient() {
-            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return handleUrl(request.getUrl());
-            }
-            @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                return handleUrl(Uri.parse(url));
-            }
+            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return handleUrl(request.getUrl()); }
+            @Override public boolean shouldOverrideUrlLoading(WebView view, String url) { return handleUrl(Uri.parse(url)); }
             @Override public void onPageFinished(WebView view, String url) {
                 splashView.animate().alpha(0f).setDuration(250).withEndAction(() -> splashView.setVisibility(View.GONE)).start();
             }
@@ -140,7 +156,7 @@ public class WebViewActivity extends AppCompatActivity {
     private boolean handleUrl(Uri uri) {
         String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
         if ("http".equals(scheme) || "https".equals(scheme)) {
-            Uri server = Uri.parse(getServerUrl());
+            Uri server = Uri.parse(serverUrl);
             if (sameOrigin(server, uri)) return false;
         }
         try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (ActivityNotFoundException ignored) { }
@@ -156,13 +172,18 @@ public class WebViewActivity extends AppCompatActivity {
     private static boolean safeEquals(String a, String b) { return a == null ? b == null : a.equalsIgnoreCase(b); }
 
     protected String getServerUrl() {
+        String extraUrl = getIntent().getStringExtra(EXTRA_SERVER_URL);
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String value = prefs.getString(PREF_SERVER_URL, DEFAULT_SERVER_URL);
-        if (value == null || value.trim().isEmpty()) return DEFAULT_SERVER_URL;
-        return normalizeUrl(value.trim());
+        String value = extraUrl != null && !extraUrl.trim().isEmpty() ? extraUrl : prefs.getString(PREF_SERVER_URL, DEFAULT_SERVER_URL);
+        if (value == null || value.trim().isEmpty()) value = DEFAULT_SERVER_URL;
+        String normalized = normalizeUrl(value.trim());
+        prefs.edit().putString(PREF_SERVER_URL, normalized).apply();
+        return normalized;
     }
 
     public static String normalizeUrl(String url) {
+        if (url == null || url.trim().isEmpty()) return DEFAULT_SERVER_URL;
+        url = url.trim();
         if (!url.startsWith("http://") && !url.startsWith("https://")) url = "http://" + url;
         return url.endsWith("/") ? url : url + "/";
     }
@@ -173,8 +194,7 @@ public class WebViewActivity extends AppCompatActivity {
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.drawable.ic_launcher);
         logo.setContentDescription(getString(R.string.app_name));
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(128), dp(128), Gravity.CENTER);
-        splash.addView(logo, lp);
+        splash.addView(logo, new FrameLayout.LayoutParams(dp(128), dp(128), Gravity.CENTER));
         return splash;
     }
 
