@@ -24,6 +24,7 @@ from ..models import (
     UserProfile,
     Overview,
 )
+from ..duplicate_check import find_similar_items
 from .helpers import (
     _get_overview_and_features,
     safe_redirect_or,
@@ -60,6 +61,24 @@ class AddEquipmentItem(LoginRequiredMixin, View):
         ov, features, slug = _get_overview_and_features(request, "equipment")
         form = EquipmentItemForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
+            force_save = request.POST.get("force_save") == "1"
+            if not force_save:
+                similar_items = find_similar_items(form.cleaned_data["name"])
+                if similar_items:
+                    return render(
+                        request,
+                        "inventory/item_form.html",
+                        {
+                            "form": form,
+                            "features": features,
+                            "overview": ov,
+                            "item_type": "equipment",
+                            "o": slug,
+                            "tag_type_name": "Equipment",
+                            "similar_items": similar_items,
+                        },
+                    )
+
             item = form.save(commit=False)
             item.user = request.user
             item.item_type = "equipment"
@@ -116,6 +135,24 @@ class AddConsumableItem(LoginRequiredMixin, View):
         ov, features, slug = _get_overview_and_features(request, "consumable")
         form = ConsumableItemForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
+            force_save = request.POST.get("force_save") == "1"
+            if not force_save:
+                similar_items = find_similar_items(form.cleaned_data["name"])
+                if similar_items:
+                    return render(
+                        request,
+                        "inventory/item_form.html",
+                        {
+                            "form": form,
+                            "features": features,
+                            "overview": ov,
+                            "item_type": "consumable",
+                            "o": slug,
+                            "tag_type_name": "Verbrauchsmaterial",
+                            "similar_items": similar_items,
+                        },
+                    )
+
             item = form.save(commit=False)
             item.user = request.user
             item.item_type = "consumable"

@@ -30,32 +30,64 @@
   {% endif %}
 
   {% if similar_items %}
-    <div class="alert alert-warning">
-      <strong>⚠️ Ähnliche Artikel gefunden:</strong>
-      <ul class="mb-0">
-        {% for si in similar_items %}
-          <li><a href="{% url 'edit-item' si.id %}">{{ si.name }}</a> – Bestand: {{ si.quantity }}</li>
-        {% endfor %}
-      </ul>
-      <p class="mt-2">
-        Wenn du trotzdem einen neuen Eintrag anlegen willst,
-        klicke unten auf <strong>Speichern</strong>.
-      </p>
+    <div class="alert alert-warning border border-danger shadow-sm">
+      <div class="d-flex align-items-start gap-2">
+        <div class="fs-4 lh-1">!</div>
+        <div class="w-100">
+          <strong>Mögliche Dubletten gefunden</strong>
+          <p class="mb-3">Bitte prüfe, ob einer dieser Artikel bereits dem gewünschten Eintrag entspricht.</p>
+
+          <div class="list-group mb-3">
+            {% for si in similar_items %}
+              <a class="list-group-item list-group-item-action"
+                 style="background:var(--surface); color:var(--text); border-color:var(--border);"
+                 href="{% url 'edit-item' si.id %}">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                  <div>
+                    <div class="fw-semibold">{{ si.name }}</div>
+                    <div class="small text-muted">
+                      Bestand: {{ si.quantity }}
+                      {% if si.storage_location_path %} · Lagerort: {{ si.storage_location_path }}{% endif %}
+                    </div>
+                  </div>
+                  <span class="badge {% if si.match_type == 'exact' %}text-bg-danger{% elif si.match_type == 'contains' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
+                    {{ si.match_type }}
+                  </span>
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="force-save-checkbox"
+                   onchange="document.getElementById('force-save-field').value = this.checked ? '1' : '0';">
+            <label class="form-check-label" for="force-save-checkbox">
+              Ich möchte diesen Artikel trotzdem neu anlegen
+            </label>
+          </div>
+          <button class="btn btn-danger" type="submit" form="item-form" name="force_save" value="1"
+                  onclick="document.getElementById('force-save-field').value = '1';">
+            Trotzdem anlegen
+          </button>
+        </div>
+      </div>
     </div>
   {% endif %}
 
   <div class="card p-4 shadow"
        style="background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:1rem;">
 
-    <form method="post" enctype="multipart/form-data">
+    <form id="item-form" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ next|default:'' }}">
       <input type="hidden" name="o" value="{{ o|default:'' }}">
+      <input type="hidden" name="force_save" id="force-save-field" value="0">
 
       <div class="row g-3">
         <div class="col-md-6">
           <label class="form-label">Name{% if form.fields.name.required %}*{% endif %}</label>
           {{ form.name }}
+          <div id="similar-items-preview" class="mt-2" style="display:none;" aria-live="polite"></div>
         </div>
 
         {% if features.show_quantity %}
@@ -361,7 +393,13 @@
       {% endif %}
 
       <div class="mt-4">
-        <button class="btn btn-primary">Speichern</button>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="force-save-main-checkbox">
+          <label class="form-check-label" for="force-save-main-checkbox">
+            Ich möchte diesen Artikel trotzdem neu anlegen
+          </label>
+        </div>
+        <button id="item-submit-button" class="btn btn-primary">{% if similar_items %}Prüfen{% else %}Speichern{% endif %}</button>
         <a class="btn btn-outline-secondary ms-2"
            href="{{ next|default:'#' }}"
            onclick="if(this.getAttribute('href')==='#'){ window.location='{% url 'dashboards' %}'; }">
@@ -510,4 +548,100 @@
 </div>
 
 {% include 'inventory/partials/quick_add_modal.html' %}
+<script>
+(() => {
+  const nameInput = document.getElementById("{{ form.name.id_for_label }}");
+  const preview = document.getElementById("similar-items-preview");
+  const forceSaveField = document.getElementById("force-save-field");
+  const forceSaveCheckboxes = document.querySelectorAll("#force-save-checkbox, #force-save-main-checkbox");
+  const submitButton = document.getElementById("item-submit-button");
+  const defaultSubmitText = submitButton?.textContent.trim() || "Speichern";
+  let duplicateCheckTimer = null;
+  let duplicateCheckController = null;
+
+  const escapeHtml = (value) => String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+  const extractItems = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    return payload?.items || payload?.similar_items || payload?.results || [];
+  };
+
+  const itemEditUrl = (item) => item.edit_url || `/edit-item/${encodeURIComponent(item.id)}/`;
+  const itemLocation = (item) => item.location || item.location_name || item.storage_location_path || item.storage_location || item.storage_location_name || "-";
+
+  const hidePreview = () => {
+    if (!preview) return;
+    preview.style.display = "none";
+    preview.innerHTML = "";
+  };
+
+  const renderPreview = (items) => {
+    if (!preview || !items.length) {
+      hidePreview();
+      return;
+    }
+    preview.innerHTML = `
+      <div class="alert alert-warning mb-0">
+        <div class="fw-semibold mb-2">Ähnliche Artikel gefunden</div>
+        <div class="row g-2">
+          ${items.map((item) => `
+            <div class="col-12 col-md-6">
+              <div class="border rounded p-2 h-100" style="border-color:var(--border);">
+                <div class="fw-semibold">${escapeHtml(item.name)}</div>
+                <div class="small text-muted">Bestand: ${escapeHtml(item.quantity ?? "-")}</div>
+                <div class="small text-muted">Lagerort: ${escapeHtml(itemLocation(item))}</div>
+                <a class="small" href="${escapeHtml(itemEditUrl(item))}">Bearbeiten</a>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>`;
+    preview.style.display = "block";
+  };
+
+  const fetchSimilarItems = async () => {
+    const query = (nameInput?.value || "").trim();
+    if (query.length < 2) {
+      hidePreview();
+      return;
+    }
+    duplicateCheckController?.abort();
+    duplicateCheckController = new AbortController();
+    try {
+      const response = await fetch(`/api/items/similar/?q=${encodeURIComponent(query)}`, {
+        headers: {"Accept": "application/json"},
+        signal: duplicateCheckController.signal,
+      });
+      if (!response.ok) {
+        hidePreview();
+        return;
+      }
+      renderPreview(extractItems(await response.json()));
+    } catch (error) {
+      if (error.name !== "AbortError") hidePreview();
+    }
+  };
+
+  if (nameInput) {
+    nameInput.addEventListener("input", () => {
+      window.clearTimeout(duplicateCheckTimer);
+      duplicateCheckTimer = window.setTimeout(fetchSimilarItems, 500);
+    });
+  }
+
+  forceSaveCheckboxes.forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      const checked = checkbox.checked;
+      forceSaveCheckboxes.forEach((other) => { other.checked = checked; });
+      if (forceSaveField) forceSaveField.value = checked ? "1" : "0";
+      if (submitButton) submitButton.textContent = checked ? "Trotzdem anlegen" : defaultSubmitText;
+    });
+  });
+})();
+</script>
 {% endblock %}

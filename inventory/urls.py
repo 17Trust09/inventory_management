@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 from . import views
 from .views import CustomAuthForm
 # API-Views
-from .api import FeedbackSummaryAPI, HAStatusAPI, SystemHealthAPI, MarkedItemsAPI, QuickAddCategoryAPI, QuickAddTagAPI, QuickAddStorageLocationAPI
+from .api import FeedbackSummaryAPI, HAStatusAPI, SystemHealthAPI, MarkedItemsAPI, QuickAddCategoryAPI, QuickAddTagAPI, QuickAddStorageLocationAPI, SimilarItemsAPI
 
 urlpatterns = [
     # 1) Frontend-Views
@@ -93,6 +93,7 @@ urlpatterns = [
     path('api/categories/quick-add/', QuickAddCategoryAPI.as_view(), name='api-quick-add-category'),
     path('api/tags/quick-add/', QuickAddTagAPI.as_view(), name='api-quick-add-tag'),
     path('api/storage-locations/quick-add/', QuickAddStorageLocationAPI.as_view(), name='api-quick-add-storage-location'),
+    path('api/items/similar/', SimilarItemsAPI.as_view(), name='api-similar-items'),
 
     path("item/<int:pk>/move/",views.MoveItemToOverviewView.as_view(),name="move-item-to-overview",),
 

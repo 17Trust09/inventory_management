@@ -13,6 +13,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import IntegrityError, transaction
 
 from .models import Feedback, ItemMark, Category, ApplicationTag, TagType, Overview, StorageLocation
+from .duplicate_check import find_similar_items
 from .admin_views import _get_tailscale_status, _get_global_settings
 from .integrations.homeassistant import check_available, get_status_tuple, get_diagnostics
 
@@ -229,6 +230,15 @@ class MarkedItemsAPI(View):
             "count": len(data),
             "checked_at": now_ts.isoformat(),
         }, json_dumps_params={"ensure_ascii": False})
+
+
+class SimilarItemsAPI(LoginRequiredMixin, View):
+    def get(self, request):
+        q = request.GET.get("q", "").strip()
+        if len(q) < 2:
+            return JsonResponse({"items": []})
+        items = find_similar_items(q)
+        return JsonResponse({"items": items})
 
 
 # ---------------------------------------------------------------------------
