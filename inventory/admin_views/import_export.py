@@ -100,7 +100,15 @@ def admin_import_export(request):
                 messages.error(request, "Keine vorbereitete Importdatei gefunden. Bitte Datei erneut hochladen.")
                 return redirect("admin_import_export")
             full_path = str(Path(settings.MEDIA_ROOT) / saved_path)
-            import_result = execute_import(full_path, request.user, dry_run=False)
+            overview_id = request.POST.get("overview_id")
+            overview = None
+            if overview_id:
+                from ..models import Overview
+                overview = Overview.objects.filter(pk=overview_id, is_active=True).first()
+            if not overview:
+                messages.error(request, "Bitte ein gültiges Dashboard auswählen.")
+                return redirect("admin_import_export")
+            import_result = execute_import(full_path, request.user, dry_run=False, override_overview=overview)
             request.session.pop("admin_import_file", None)
             try:
                 default_storage.delete(saved_path)

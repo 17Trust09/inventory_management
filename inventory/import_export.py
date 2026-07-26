@@ -77,6 +77,33 @@ def generate_import_template(output_path):
     _style_rows(worksheet, zebra=False)
     _add_validations(workbook, worksheet)
     _auto_width(worksheet)
+
+    # Dashboard-Info-Blatt
+    info = workbook.create_sheet("Dashboards")
+    info_headers = ["Dashboard", "Typ", "Mindestbestand", "Verleih", "QR", "Lagerorte", "Kommentare", "Bilder", "Tags"]
+    for col, h in enumerate(info_headers, 1):
+        cell = info.cell(row=1, column=col, value=h)
+        cell.font = HEADER_FONT
+        cell.fill = HEADER_FILL
+        cell.border = THIN_BORDER
+    for r, ov in enumerate(Overview.objects.filter(is_active=True).order_by("name"), 2):
+        vals = [
+            ov.name,
+            "Verbrauchsmaterial" if ov.is_consumable_mode else "Equipment",
+            "✓" if ov.has_min_stock else "–",
+            "✓" if ov.enable_borrow else "–",
+            "✓" if ov.require_qr else "–",
+            "✓" if ov.has_locations else "–",
+            "✓" if ov.enable_comments else "–",
+            "✓" if ov.show_images else "–",
+            "✓" if ov.show_tags else "–",
+        ]
+        for col, v in enumerate(vals, 1):
+            cell = info.cell(row=r, column=col, value=v)
+            cell.border = THIN_BORDER
+    _auto_width(info)
+    workbook.active = 0  # Zurück zum Import-Sheet
+
     _save_workbook(workbook, output_path)
 
 
@@ -126,7 +153,7 @@ def preview_import(file_path):
     return {"rows": preview_rows, "warnings": result["warnings"], "errors": result["errors"], "total_valid": total_valid}
 
 
-def execute_import(file_path, user, dry_run=False):
+def execute_import(file_path, user, dry_run=False, override_overview=None):
     """Actually import items. Returns {imported: N, skipped: N, errors: [...]}"""
     parsed = _parse_workbook(file_path, include_duplicate_warnings=False)
     imported = 0
@@ -151,8 +178,9 @@ def execute_import(file_path, user, dry_run=False):
                     if data["category_name"]:
                         category = data["category"] or Category.objects.create(name=data["category_name"])
 
+                    overview = override_overview if override_overview else data["overview"]
                     item = InventoryItem.objects.create(
-                        name=data["name"], overview=data["overview"], category=category,
+                        name=data["name"], overview=overview, category=category,
                         quantity=data["quantity"], unit=data["unit"], low_quantity=data["low_quantity"],
                         storage_location=data["storage_location"], order_link=data["order_link"] or None,
                         variant=data["variant"], maintenance_date=data["maintenance_date"],
