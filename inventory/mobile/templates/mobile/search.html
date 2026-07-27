@@ -8,7 +8,7 @@
 
 <section class="section">
   <form method="get" action="{% url 'mobile-search' %}">
-    <div class="search-bar"><input class="search-input" type="search" name="q" value="{{ q|default:request.GET.q }}" placeholder="Artikel, Barcode, Ort" autocomplete="off" autofocus data-mobile-search></div>
+    <div class="search-bar"><input class="search-input" type="search" name="q" value="{{ q }}" placeholder="Artikel, Barcode, Ort" autocomplete="off" autofocus data-mobile-search></div>
     <button class="btn btn-primary" type="submit">Suchen</button>
   </form>
 </section>

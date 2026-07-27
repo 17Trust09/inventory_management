@@ -7,21 +7,143 @@
 </header>
 
 <section class="section">
-  <div class="card scanner-landing">
-    <div class="card-icon" aria-hidden="true">[SCAN]</div>
-    <h2 class="card-title">QR / Barcode scannen</h2>
-    <p class="card-subtitle">Kamera-Unterstützung kann hier angebunden werden. Du kannst den Code auch manuell eingeben.</p>
-    <form method="get" action="{% url 'mobile-scan-barcode' %}">
-      <div class="input-group">
-        <label for="manual-code">Code</label>
-        <div class="search-bar"><input id="manual-code" class="search-input" name="code" placeholder="Code manuell eingeben" autocomplete="off" inputmode="text"></div>
-      </div>
-      <button class="btn btn-primary" type="submit">Code suchen</button>
-    </form>
+  <div class="card" style="text-align:center;">
+    <video id="scanner-video" style="width:100%;max-width:300px;border-radius:12px;display:none;" autoplay playsinline muted></video>
+    <div id="scanner-placeholder">
+      <span style="font-size:48px;">📷</span>
+      <p style="margin:8px 0;color:var(--text-secondary);">Barcode oder QR-Code scannen</p>
+    </div>
+    <p id="scanner-status" style="margin:8px 0;color:var(--text-secondary);font-size:14px;"></p>
+    <button class="btn btn-primary" id="start-scanner">Kamera starten</button>
+    <button class="btn btn-secondary" id="stop-scanner" style="display:none;">Kamera stoppen</button>
   </div>
 </section>
 
 <section class="section">
-  <a class="btn btn-secondary" href="{% url 'mobile-barcode-list' %}">Barcode-Liste</a>
+  <div class="card">
+    <label class="input-group">
+      <span>CODE</span>
+      <input type="text" id="manual-code" class="mobile-input" placeholder="Code manuell eingeben" autocomplete="off">
+    </label>
+    <button class="btn btn-primary btn-block" id="search-code">Code suchen</button>
+  </div>
 </section>
+
+<section class="section">
+  <a class="btn btn-secondary btn-block" href="{% url 'mobile-barcode-list' %}">Barcode-Liste</a>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function(){
+  const video = document.getElementById('scanner-video');
+  const startBtn = document.getElementById('start-scanner');
+  const stopBtn = document.getElementById('stop-scanner');
+  const placeholder = document.getElementById('scanner-placeholder');
+  const status = document.getElementById('scanner-status');
+  const manualCode = document.getElementById('manual-code');
+  const searchBtn = document.getElementById('search-code');
+
+  let stream = null;
+  let detector = null;
+  let scanTimer = null;
+  let redirected = false;
+
+  function goToCode(code) {
+    code = (code || '').trim();
+    if (!code || redirected) return;
+    redirected = true;
+    window.location.href = '/m/nfc/' + encodeURIComponent(code) + '/';
+  }
+
+  function stopScanner() {
+    if (scanTimer) {
+      clearInterval(scanTimer);
+      scanTimer = null;
+    }
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    video.pause();
+    video.srcObject = null;
+    video.style.display = 'none';
+    placeholder.style.display = 'block';
+    startBtn.style.display = 'inline-block';
+    stopBtn.style.display = 'none';
+    status.textContent = '';
+  }
+
+  async function scanFrame() {
+    if (!detector || !stream || redirected || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+    try {
+      const barcodes = await detector.detect(video);
+      if (barcodes && barcodes.length) {
+        const value = barcodes[0].rawValue || barcodes[0].displayValue;
+        if (value) {
+          status.textContent = 'Code erkannt – öffne Artikel …';
+          stopScanner();
+          goToCode(value);
+        }
+      }
+    } catch (e) {
+      console.warn('Barcode-Erkennung fehlgeschlagen:', e);
+    }
+  }
+
+  startBtn.addEventListener('click', async () => {
+    redirected = false;
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('getUserMedia wird von diesem Browser nicht unterstützt');
+      }
+
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+
+      video.style.display = 'block';
+      placeholder.style.display = 'none';
+      startBtn.style.display = 'none';
+      stopBtn.style.display = 'inline-block';
+
+      if ('BarcodeDetector' in window) {
+        const wantedFormats = ['qr_code', 'code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e'];
+        const supportedFormats = typeof BarcodeDetector.getSupportedFormats === 'function'
+          ? await BarcodeDetector.getSupportedFormats().catch(() => [])
+          : [];
+        const formats = supportedFormats.length
+          ? wantedFormats.filter(format => supportedFormats.includes(format))
+          : [];
+        detector = formats.length
+          ? new BarcodeDetector({ formats })
+          : new BarcodeDetector();
+        status.textContent = 'Kamera aktiv – Code vor die Kamera halten.';
+        scanTimer = setInterval(scanFrame, 300);
+      } else {
+        detector = null;
+        status.textContent = 'Kamera aktiv. Automatische Barcode-Erkennung wird von diesem Browser nicht unterstützt – bitte Code manuell eingeben.';
+      }
+    } catch(e) {
+      stopScanner();
+      alert('Kamera nicht verfügbar: ' + e.message);
+    }
+  });
+
+  stopBtn.addEventListener('click', stopScanner);
+
+  searchBtn.addEventListener('click', () => {
+    goToCode(manualCode.value);
+  });
+
+  manualCode.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') searchBtn.click();
+  });
+
+  window.addEventListener('pagehide', stopScanner);
+})();
+</script>
 {% endblock %}
