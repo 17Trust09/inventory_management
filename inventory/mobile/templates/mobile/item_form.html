@@ -7,6 +7,13 @@
   <h1>{% if form.instance.pk %}Bearbeiten{% else %}Neuer Artikel{% endif %}</h1>
 </header>
 
+{% if target_overview %}
+<div class="card" style="background:rgba(233,69,96,0.1);border:1px solid rgba(233,69,96,0.3);margin-bottom:12px;">
+  <p style="font-size:13px;color:var(--text-secondary);margin:0;">➕ Wird hinzugefügt zu:</p>
+  <p style="font-size:16px;font-weight:700;color:var(--accent);margin:4px 0 0;"><span style="font-size:20px;">{{ target_overview.icon_emoji|default:'📋' }}</span> {{ target_overview.name }}</p>
+</div>
+{% endif %}
+
 {% if form.errors %}
 <section class="section"><div class="card"><span class="badge">Fehler</span><p>Bitte korrigiere die markierten Felder.</p></div></section>
 {% endif %}

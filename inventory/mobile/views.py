@@ -9,7 +9,7 @@ from django.forms import modelform_factory
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
 
-from inventory.models import ApplicationTag, Category, InventoryItem, StorageLocation
+from inventory.models import ApplicationTag, Category, InventoryItem, Overview, StorageLocation
 from inventory.views.helpers import _allowed_overviews_for_user
 
 
@@ -17,19 +17,6 @@ def _existing_model_fields(model, field_names):
     """Return field names that exist on the currently deployed model."""
     available = {field.name for field in model._meta.get_fields()}
     return [field_name for field_name in field_names if field_name in available]
-
-
-def _is_visible_application_tag(tag):
-    name = getattr(tag, "name", "") or ""
-    return name != "-" and not name.startswith("__ov::")
-
-
-def attach_visible_tags(items):
-    """Attach non-system application tags to item instances for mobile templates."""
-    materialized_items = list(items)
-    for item in materialized_items:
-        item.visible_tags = [tag for tag in item.application_tags.all() if _is_visible_application_tag(tag)]
-    return materialized_items
 
 
 class MobileMasterDataFormMixin:
@@ -199,7 +186,7 @@ class MobileSearchView(LoginRequiredMixin, TemplateView):
         ctx["items"] = []
         if query:
             overviews = _allowed_overviews_for_user(self.request.user)
-            items = (
+            ctx["items"] = (
                 InventoryItem.objects.filter(overview__in=overviews)
                 .filter(
                     Q(name__icontains=query)
@@ -213,13 +200,22 @@ class MobileSearchView(LoginRequiredMixin, TemplateView):
                 .distinct()
                 .order_by("name")[:50]
             )
-            ctx["items"] = attach_visible_tags(items)
         return ctx
 
 
 def mobile_render(request, template_name, context=None, *args, **kwargs):
     if template_name == "inventory/item_form.html":
         template_name = "mobile/item_form.html"
+        context = dict(context or {})
+        if context.get("overview"):
+            context["target_overview"] = context["overview"]
+        elif not context.get("target_overview"):
+            o_slug = request.GET.get("o") or request.POST.get("o") or context.get("o") or ""
+            if o_slug:
+                try:
+                    context["target_overview"] = Overview.objects.get(slug=o_slug)
+                except Overview.DoesNotExist:
+                    pass
     return django_render(request, template_name, context, *args, **kwargs)
 
 

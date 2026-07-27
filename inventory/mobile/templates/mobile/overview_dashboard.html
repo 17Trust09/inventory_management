@@ -4,19 +4,18 @@
 {% block content %}
 <header class="app-header" data-mobile-pull-refresh>
   <a class="btn-icon" href="{% url 'mobile-dashboards' %}" aria-label="Zurück">‹</a>
-  <div>
-    <p class="card-subtitle">Zum Aktualisieren nach unten ziehen</p>
-    <h1>{{ overview.name }}</h1>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-size:32px;line-height:1;">{{ overview.icon_emoji|default:'📋' }}</span>
+    <div>
+      <span style="font-size:12px;color:var(--text-muted);">{% if overview.is_consumable_mode %}Verbrauchsmaterial{% else %}Equipment{% endif %}</span>
+      <h1 style="margin:0;font-size:24px;">{{ overview.name }}</h1>
+    </div>
   </div>
 </header>
 
 <section class="section">
   <form method="get" data-filter-form>
     <div class="search-bar"><input id="item-search" class="search-input" type="search" name="q" value="{{ q }}" placeholder="Artikel suchen" autocomplete="off" data-mobile-search></div>
-    <div class="view-toggle" aria-label="Darstellung wählen">
-      <button class="btn btn-secondary view-btn active" type="button" data-view="list" aria-label="Listenansicht">☰</button>
-      <button class="btn btn-secondary view-btn" type="button" data-view="grid" aria-label="Grid-Ansicht">▦</button>
-    </div>
     {% if categories or tags or storage_locations or features.has_min_stock %}
       <div class="card">
         {% if categories %}
@@ -58,44 +57,25 @@
 
 <section class="section">
   {% if items %}
-    <div class="list-view item-list">
-      {% for item in items %}
-        <article class="item-row" data-edit-url="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}">
-          <div class="item-image">
-            {% if item.image %}
-              <img src="{{ item.image.url }}" alt="{{ item.name }}" loading="lazy">
-            {% else %}
-              <span class="item-icon">{{ item.category.icon_emoji|default:'📦' }}</span>
-            {% endif %}
-          </div>
-
-          <div class="item-main">
-            <a class="item-name" href="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}">{{ item.name }}</a>
-            <div class="item-meta">
-              {% if item.category %}<span class="meta-badge">{{ item.category.name }}</span>{% endif %}
-              {% if item.storage_location %}<span class="meta-location">📍 {{ item.storage_location.name }}</span>{% endif %}
-            </div>
-            {% if item.application_tags.all %}
-              <div class="item-tags">
-                {% for tag in item.application_tags.all %}
-                  {% if tag.name != '-' and tag.name|slice:':6' != '__ov::' %}
-                    <span class="tag-pill">{{ tag.name }}</span>
-                  {% endif %}
-                {% endfor %}
-              </div>
-            {% endif %}
-          </div>
-
-          <div class="item-quantity-col">
-            <span class="quantity-value">{{ item.quantity }}<small>{{ item.get_unit_display|default:'' }}</small></span>
-            <div class="quantity-actions">
-              <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="-1"><button class="qty-btn minus" type="submit" data-mobile-action="quick-adjust" aria-label="{{ item.name }} verringern">−</button></form>
-              <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="1"><button class="qty-btn plus" type="submit" aria-label="{{ item.name }} erhöhen">+</button></form>
-            </div>
-          </div>
-        </article>
-      {% endfor %}
-    </div>
+    {% for item in items %}
+      <article class="list-item" data-edit-url="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}">
+        <span class="list-icon" aria-hidden="true">{% if item.category %}[TAG]{% else %}[BOX]{% endif %}</span>
+        <span class="list-content">
+          <span class="list-title">{{ item.name }}</span>
+          {% if item.category %}<span class="badge">{{ item.category.name }}</span>{% endif %}
+          {% if item.application_tags.all %}
+            <span class="tag-row">{% for tag in item.application_tags.all %}<span class="badge">{{ tag.name }}</span>{% endfor %}</span>
+          {% endif %}
+          <span class="list-sub">Ort: {% if item.storage_location %}{{ item.storage_location.get_full_path }}{% else %}{{ item.location_letter }} {{ item.location_number }} {{ item.location_shelf }}{% endif %}</span>
+        </span>
+        <span class="badge">{{ item.quantity }}{% if item.unit %} {{ item.get_unit_display }}{% endif %}</span>
+        <span class="list-actions">
+          <a class="btn btn-secondary" href="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}" data-mobile-action="edit">Bearbeiten</a>
+          <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="-1"><button class="btn btn-secondary" type="submit" data-mobile-action="quick-adjust">−</button></form>
+          <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="1"><button class="btn btn-primary" type="submit">＋</button></form>
+        </span>
+      </article>
+    {% endfor %}
   {% else %}
     <div class="empty-state">
       <div class="empty-icon">[BOX]</div>
