@@ -1,0 +1,44 @@
+{% extends 'mobile/base.html' %}
+{% block title %}Lagerorte{% endblock %}
+{% block page_name %}settings{% endblock %}
+{% block content %}
+<header class="app-header">
+  <h1>Lagerorte</h1>
+</header>
+
+<section class="section">
+  {% for location in locations %}
+    <div class="card">
+      <a class="card-row" href="{% url 'mobile-location-edit' location.id %}">
+        <span class="card-icon">📍</span>
+        <span class="card-content">
+          <span class="card-title">{{ location.name }}</span>
+          <span class="card-subtitle">{{ location.item_count|default:0 }} Artikel · {{ location.child_count|default:0 }} Unterorte</span>
+        </span>
+        <span class="list-arrow">›</span>
+      </a>
+      {% if location.children.all %}
+        <div class="list-card">
+          {% for child in location.children.all %}
+            <a class="list-item" href="{% url 'mobile-location-edit' child.id %}">
+              <span class="list-icon">↳</span>
+              <span class="list-content">
+                <span class="list-title">{{ child.name }}</span>
+                <span class="list-sub">{{ location.name }} / {{ child.name }}</span>
+              </span>
+              <span class="list-arrow">›</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  {% empty %}
+    <div class="empty-state">
+      <div class="empty-icon">📍</div>
+      <div class="empty-title">Keine Lagerorte</div>
+      <div class="empty-text">Lege deinen ersten Lagerort an.</div>
+    </div>
+  {% endfor %}
+</section>
+<a class="fab" href="{% url 'mobile-location-add' %}" aria-label="Lagerort anlegen">+</a>
+{% endblock %}

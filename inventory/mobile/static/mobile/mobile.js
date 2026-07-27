@@ -111,6 +111,8 @@
   const setupLiveSearch = () => {
     const inputs = document.querySelectorAll('[data-search], .search-bar input, input[type="search"]');
     inputs.forEach((input) => {
+      if (input.matches('[data-mobile-search]')) return;
+
       const targetSelector = input.dataset.searchTarget || input.dataset.target || '[data-filter-item], .search-filter-item, .list-item, .card';
       const scope = input.closest('[data-search-scope]') || document;
       const emptySelector = input.dataset.emptyTarget;
@@ -137,10 +139,107 @@
     });
   };
 
+  const setupViewToggle = () => {
+    const viewBtns = document.querySelectorAll('.view-btn');
+    if (!viewBtns.length) return;
+
+    const savedView = localStorage.getItem('item-view') || 'list';
+    document.body.setAttribute('data-view', savedView);
+
+    viewBtns.forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.view === savedView);
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.view || 'list';
+        document.body.setAttribute('data-view', view);
+        localStorage.setItem('item-view', view);
+        viewBtns.forEach((otherBtn) => otherBtn.classList.toggle('active', otherBtn.dataset.view === view));
+      });
+    });
+  };
+
+  const setupLiveItemFilter = () => {
+    const searchInput = document.querySelector('[data-mobile-search]');
+    if (!searchInput) return;
+
+    const scope = searchInput.closest('main') || document;
+    const items = Array.from(scope.querySelectorAll('.list-view .list-item, .item-grid .item-card'));
+    let debounceTimer;
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => {
+        const query = searchInput.value.trim().toLowerCase();
+        items.forEach((item) => {
+          const text = (item.textContent || '').toLowerCase();
+          const hidden = query ? !text.includes(query) : false;
+          item.hidden = hidden;
+          item.style.display = hidden ? 'none' : '';
+        });
+      }, 300);
+    });
+  };
+
+  const setupSwipeActions = () => {
+    const cards = document.querySelectorAll('.list-view .list-item, .item-card');
+
+    cards.forEach((card) => {
+      let startX = 0;
+      let currentX = 0;
+      let tracking = false;
+      const threshold = 70;
+
+      const findAdjustButton = (delta) => {
+        const forms = Array.from(card.querySelectorAll('form[action*="adjust-quantity"]'));
+        const form = forms.find((candidate) => {
+          const input = candidate.querySelector('input[name="delta"], input[name="change"]');
+          return input && Number(input.value) === delta;
+        });
+
+        return form ? form.querySelector('button[type="submit"], button') : null;
+      };
+
+      card.addEventListener('touchstart', (event) => {
+        if (event.touches.length !== 1) return;
+        startX = event.touches[0].clientX;
+        currentX = 0;
+        tracking = true;
+      }, { passive: true });
+
+      card.addEventListener('touchmove', (event) => {
+        if (!tracking) return;
+        currentX = event.touches[0].clientX - startX;
+        card.style.transform = `translateX(${Math.max(-100, Math.min(100, currentX))}px)`;
+        card.style.transition = 'none';
+      }, { passive: true });
+
+      card.addEventListener('touchend', () => {
+        if (!tracking) return;
+        tracking = false;
+        card.style.transition = 'transform 0.2s ease';
+        card.style.transform = '';
+
+        const delta = currentX > threshold ? 1 : currentX < -threshold ? -1 : 0;
+        if (delta !== 0) {
+          const btn = findAdjustButton(delta);
+          if (btn) btn.click();
+        }
+      }, { passive: true });
+
+      card.addEventListener('touchcancel', () => {
+        tracking = false;
+        card.style.transition = 'transform 0.2s ease';
+        card.style.transform = '';
+      }, { passive: true });
+    });
+  };
+
   ready(() => {
     setActiveNavigation();
     setupPageTransitions();
     setupPullToRefresh();
     setupLiveSearch();
+    setupViewToggle();
+    setupLiveItemFilter();
+    setupSwipeActions();
   });
 })();

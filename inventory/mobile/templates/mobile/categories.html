@@ -1,0 +1,28 @@
+{% extends 'mobile/base.html' %}
+{% block title %}Kategorien{% endblock %}
+{% block page_name %}settings{% endblock %}
+{% block content %}
+<header class="app-header">
+  <h1>Kategorien</h1>
+</header>
+
+<section class="section">
+  {% for cat in categories %}
+    <a class="card card-row" href="{% url 'mobile-category-edit' cat.id %}">
+      <span class="card-icon">{{ cat.icon_emoji|default:'📦' }}</span>
+      <span class="card-content">
+        <span class="card-title">{{ cat.name }}</span>
+        <span class="card-subtitle">{{ cat.item_count|default:0 }} Artikel</span>
+      </span>
+      <span class="list-arrow">›</span>
+    </a>
+  {% empty %}
+    <div class="empty-state">
+      <div class="empty-icon">📦</div>
+      <div class="empty-title">Keine Kategorien</div>
+      <div class="empty-text">Lege deine erste Kategorie an.</div>
+    </div>
+  {% endfor %}
+</section>
+<a class="fab" href="{% url 'mobile-category-add' %}" aria-label="Kategorie anlegen">+</a>
+{% endblock %}

@@ -4,6 +4,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="manifest" href="/static/mobile/manifest.json">
+  <meta name="theme-color" content="#E94560">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Icekey">
+  <link rel="apple-touch-icon" href="/static/mobile/icon-192.png">
   <title>{% block title %}Inventarverwaltung{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'mobile/mobile.css' %}">
   {% block extra_css %}{% endblock %}
@@ -43,5 +49,14 @@
   <div class="pull-indicator" aria-hidden="true"></div>
   <script src="{% static 'mobile/mobile.js' %}" defer></script>
   {% block extra_js %}{% endblock %}
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/static/mobile/service-worker.js', { scope: '/m/' })
+        .then(function(reg) { console.log('SW registered:', reg.scope); })
+        .catch(function(err) { console.log('SW failed:', err); });
+    });
+  }
+  </script>
 </body>
 </html>

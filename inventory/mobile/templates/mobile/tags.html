@@ -1,0 +1,35 @@
+{% extends 'mobile/base.html' %}
+{% block title %}Tags{% endblock %}
+{% block page_name %}settings{% endblock %}
+{% block content %}
+<header class="app-header">
+  <h1>Tags</h1>
+</header>
+
+<section class="section">
+  {% for tag in tags %}
+    <a class="card card-row" href="{% url 'mobile-tag-edit' tag.id %}">
+      <span class="card-icon">🏷️</span>
+      <span class="card-content">
+        <span class="card-title">{{ tag.name }}</span>
+        <span class="card-subtitle">{{ tag.item_count|default:0 }} Artikel</span>
+      </span>
+      {% if tag.tag_type %}
+        <span class="badge">{{ tag.tag_type.name }}</span>
+      {% elif tag.type %}
+        <span class="badge">{{ tag.type.name }}</span>
+      {% else %}
+        <span class="badge">–</span>
+      {% endif %}
+      <span class="list-arrow">›</span>
+    </a>
+  {% empty %}
+    <div class="empty-state">
+      <div class="empty-icon">🏷️</div>
+      <div class="empty-title">Keine Tags</div>
+      <div class="empty-text">Lege deinen ersten Tag an.</div>
+    </div>
+  {% endfor %}
+</section>
+<a class="fab" href="{% url 'mobile-tag-add' %}" aria-label="Tag anlegen">+</a>
+{% endblock %}

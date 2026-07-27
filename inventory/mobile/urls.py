@@ -11,6 +11,18 @@ from inventory.mobile import views as mobile_views
 
 urlpatterns = [
     path("settings/", mobile_views.MobileSettingsView.as_view(), name="mobile-settings"),
+    path("categories/", mobile_views.MobileCategoryListView.as_view(), name="mobile-categories"),
+    path("categories/add/", mobile_views.MobileCategoryCreateView.as_view(), name="mobile-category-add"),
+    path("categories/<int:pk>/edit/", mobile_views.MobileCategoryUpdateView.as_view(), name="mobile-category-edit"),
+    path("categories/<int:pk>/delete/", mobile_views.MobileCategoryDeleteView.as_view(), name="mobile-category-delete"),
+    path("tags/", mobile_views.MobileTagListView.as_view(), name="mobile-tags"),
+    path("tags/add/", mobile_views.MobileTagCreateView.as_view(), name="mobile-tag-add"),
+    path("tags/<int:pk>/edit/", mobile_views.MobileTagUpdateView.as_view(), name="mobile-tag-edit"),
+    path("tags/<int:pk>/delete/", mobile_views.MobileTagDeleteView.as_view(), name="mobile-tag-delete"),
+    path("locations/", mobile_views.MobileLocationListView.as_view(), name="mobile-locations"),
+    path("locations/add/", mobile_views.MobileLocationCreateView.as_view(), name="mobile-location-add"),
+    path("locations/<int:pk>/edit/", mobile_views.MobileLocationUpdateView.as_view(), name="mobile-location-edit"),
+    path("locations/<int:pk>/delete/", mobile_views.MobileLocationDeleteView.as_view(), name="mobile-location-delete"),
     path("search/", mobile_views.MobileSearchView.as_view(), name="mobile-search"),
     path("scan/", mobile_views.MobileScanView.as_view(), name="mobile-scan"),
     path("quick-add/", mobile_views.MobileAddEquipmentItem.as_view(), name="mobile-quick-add"),

@@ -13,6 +13,10 @@
 <section class="section">
   <form method="get" data-filter-form>
     <div class="search-bar"><input id="item-search" class="search-input" type="search" name="q" value="{{ q }}" placeholder="Artikel suchen" autocomplete="off" data-mobile-search></div>
+    <div class="view-toggle" aria-label="Darstellung wählen">
+      <button class="btn btn-secondary view-btn active" type="button" data-view="list" aria-label="Listenansicht">☰</button>
+      <button class="btn btn-secondary view-btn" type="button" data-view="grid" aria-label="Grid-Ansicht">▦</button>
+    </div>
     {% if categories or tags or storage_locations or features.has_min_stock %}
       <div class="card">
         {% if categories %}
@@ -54,25 +58,41 @@
 
 <section class="section">
   {% if items %}
-    {% for item in items %}
-      <article class="list-item" data-edit-url="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}">
-        <span class="list-icon" aria-hidden="true">{% if item.category %}[TAG]{% else %}[BOX]{% endif %}</span>
-        <span class="list-content">
-          <span class="list-title">{{ item.name }}</span>
-          {% if item.category %}<span class="badge">{{ item.category.name }}</span>{% endif %}
-          {% if item.application_tags.all %}
-            <span class="tag-row">{% for tag in item.application_tags.all %}<span class="badge">{{ tag.name }}</span>{% endfor %}</span>
-          {% endif %}
-          <span class="list-sub">Ort: {% if item.storage_location %}{{ item.storage_location.get_full_path }}{% else %}{{ item.location_letter }} {{ item.location_number }} {{ item.location_shelf }}{% endif %}</span>
-        </span>
-        <span class="badge">{{ item.quantity }}{% if item.unit %} {{ item.get_unit_display }}{% endif %}</span>
-        <span class="list-actions">
-          <a class="btn btn-secondary" href="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}" data-mobile-action="edit">Bearbeiten</a>
-          <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="-1"><button class="btn btn-secondary" type="submit" data-mobile-action="quick-adjust">−</button></form>
-          <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="1"><button class="btn btn-primary" type="submit">＋</button></form>
-        </span>
-      </article>
-    {% endfor %}
+    <div class="list-view">
+      {% for item in items %}
+        <article class="list-item" data-edit-url="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}">
+          <span class="list-icon" aria-hidden="true">{% if item.category %}[TAG]{% else %}[BOX]{% endif %}</span>
+          <span class="list-content">
+            <span class="list-title">{{ item.name }}</span>
+            {% if item.category %}<span class="badge">{{ item.category.name }}</span>{% endif %}
+            {% if item.application_tags.all %}
+              <span class="tag-row">{% for tag in item.application_tags.all %}<span class="badge">{{ tag.name }}</span>{% endfor %}</span>
+            {% endif %}
+            <span class="list-sub">Ort: {% if item.storage_location %}{{ item.storage_location.get_full_path }}{% else %}{{ item.location_letter }} {{ item.location_number }} {{ item.location_shelf }}{% endif %}</span>
+          </span>
+          <span class="badge">{{ item.quantity }}{% if item.unit %} {{ item.get_unit_display }}{% endif %}</span>
+          <span class="list-actions">
+            <a class="btn btn-secondary" href="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}" data-mobile-action="edit">Bearbeiten</a>
+            <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="-1"><button class="btn btn-secondary" type="submit" data-mobile-action="quick-adjust">−</button></form>
+            <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="1"><button class="btn btn-primary" type="submit">＋</button></form>
+          </span>
+        </article>
+      {% endfor %}
+    </div>
+
+    <div class="item-grid" style="display:none;">
+      {% for item in items %}
+        <article class="item-card" data-edit-url="{% url 'mobile-edit-item' item.id %}?next={{ request.get_full_path|urlencode }}">
+          <span class="item-quantity">{{ item.quantity }}</span>
+          <span class="item-name">{{ item.name }}</span>
+          <span class="item-meta">{{ item.category.name|default:'' }}</span>
+          <div class="item-actions">
+            <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="-1"><button class="btn btn-secondary btn-sm" type="submit" data-mobile-action="quick-adjust">−</button></form>
+            <form method="post" action="{% url 'mobile-adjust-quantity' item.id %}">{% csrf_token %}<input type="hidden" name="delta" value="1"><button class="btn btn-primary btn-sm" type="submit">+</button></form>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
   {% else %}
     <div class="empty-state">
       <div class="empty-icon">[BOX]</div>

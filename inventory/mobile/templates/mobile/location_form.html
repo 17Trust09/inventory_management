@@ -1,0 +1,41 @@
+{% extends 'mobile/base.html' %}
+{% block title %}{{ page_title|default:'Lagerort' }}{% endblock %}
+{% block page_name %}settings{% endblock %}
+{% block content %}
+<header class="app-header">
+  <a class="btn-icon" href="{{ cancel_url|default:'/m/settings/' }}" aria-label="Zurück">‹</a>
+  <h1>{{ page_title|default:'Lagerort' }}</h1>
+</header>
+
+{% if form.errors %}
+<section class="section">
+  <div class="card"><span class="badge">Fehler</span><p>Bitte korrigiere die markierten Felder.</p></div>
+</section>
+{% endif %}
+
+<section class="section">
+  <form class="card" method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="input-group">
+        <label for="{{ field.id_for_label }}">{% if field.name == 'parent' %}Elternort{% else %}{{ field.label }}{% endif %}{% if field.field.required %}*{% endif %}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="field-help">{{ field.help_text }}</p>{% endif %}
+        {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <button class="btn btn-primary" type="submit">Speichern</button>
+  </form>
+</section>
+
+{% if delete_url %}
+<section class="section">
+  <form class="card" method="post" action="{{ delete_url }}">
+    {% csrf_token %}
+    <span class="card-title">Lagerort löschen</span>
+    <p class="card-subtitle">Unterorte werden ebenfalls gelöscht.</p>
+    <button class="btn btn-secondary" type="submit">Löschen</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}
