@@ -207,15 +207,18 @@ def mobile_render(request, template_name, context=None, *args, **kwargs):
     if template_name == "inventory/item_form.html":
         template_name = "mobile/item_form.html"
         context = dict(context or {})
+        allowed_overviews = _allowed_overviews_for_user(request.user)
+        context["available_overviews"] = allowed_overviews
+        o_slug = request.GET.get("o") or request.POST.get("o") or context.get("o") or ""
+        context["o"] = o_slug
         if context.get("overview"):
             context["target_overview"] = context["overview"]
-        elif not context.get("target_overview"):
-            o_slug = request.GET.get("o") or request.POST.get("o") or context.get("o") or ""
-            if o_slug:
-                try:
-                    context["target_overview"] = Overview.objects.get(slug=o_slug)
-                except Overview.DoesNotExist:
-                    pass
+            context["o"] = context["overview"].slug
+        elif not context.get("target_overview") and o_slug:
+            try:
+                context["target_overview"] = allowed_overviews.get(slug=o_slug)
+            except Overview.DoesNotExist:
+                pass
     return django_render(request, template_name, context, *args, **kwargs)
 
 
@@ -247,3 +250,11 @@ class MobileAddConsumableItem(MobileItemRenderMixin, views.AddConsumableItem):
 
 class MobileEditItem(views.EditItem):
     template_name = "mobile/item_form.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["available_overviews"] = _allowed_overviews_for_user(self.request.user)
+        if self.object.overview:
+            context["target_overview"] = self.object.overview
+            context["o"] = self.object.overview.slug
+        return context

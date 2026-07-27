@@ -25,7 +25,21 @@
   <form class="card" method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ next|default:'' }}">
-    <input type="hidden" name="o" value="{{ o|default:'' }}">
+    {% if target_overview %}
+      <input type="hidden" name="o" value="{{ target_overview.slug }}">
+    {% else %}
+      <div class="card" style="background:rgba(233,69,96,0.08);border:1px solid rgba(233,69,96,0.2);margin-bottom:12px;">
+        <p style="font-size:13px;color:var(--text-secondary);margin:0 0 8px;">⚠️ Kein Dashboard ausgewählt</p>
+        <div class="input-group" style="margin:0;">
+          <select name="o" style="width:100%;" onchange="this.form.submit()">
+            <option value="">-- Dashboard wählen --</option>
+            {% for ov in available_overviews %}
+              <option value="{{ ov.slug }}">{{ ov.icon_emoji|default:'📋' }} {{ ov.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    {% endif %}
     <input type="hidden" name="force_save" value="0">
     {% for field in form %}
       <div class="input-group">
