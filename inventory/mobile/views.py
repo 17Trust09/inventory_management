@@ -19,6 +19,19 @@ def _existing_model_fields(model, field_names):
     return [field_name for field_name in field_names if field_name in available]
 
 
+def _is_visible_application_tag(tag):
+    name = getattr(tag, "name", "") or ""
+    return name != "-" and not name.startswith("__ov::")
+
+
+def attach_visible_tags(items):
+    """Attach non-system application tags to item instances for mobile templates."""
+    materialized_items = list(items)
+    for item in materialized_items:
+        item.visible_tags = [tag for tag in item.application_tags.all() if _is_visible_application_tag(tag)]
+    return materialized_items
+
+
 class MobileMasterDataFormMixin:
     fields = ["name"]
     success_url_name = None
@@ -186,7 +199,7 @@ class MobileSearchView(LoginRequiredMixin, TemplateView):
         ctx["items"] = []
         if query:
             overviews = _allowed_overviews_for_user(self.request.user)
-            ctx["items"] = (
+            items = (
                 InventoryItem.objects.filter(overview__in=overviews)
                 .filter(
                     Q(name__icontains=query)
@@ -200,6 +213,7 @@ class MobileSearchView(LoginRequiredMixin, TemplateView):
                 .distinct()
                 .order_by("name")[:50]
             )
+            ctx["items"] = attach_visible_tags(items)
         return ctx
 
 
