@@ -4,6 +4,9 @@
 *.env
 !.env.example
 
+# Generierte Artefakte (enthalten Projektinhalte, ggf. auch Konfigwerte)
+project_dump.txt
+
 db.sqlite3
 media/
 venv/

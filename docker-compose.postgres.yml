@@ -1,14 +1,16 @@
-version: "3.8"
 services:
   db:
     image: postgres:15
     restart: unless-stopped
     environment:
-      POSTGRES_DB: inventorydb
-      POSTGRES_USER: inventory
-      POSTGRES_PASSWORD: inventory
+      POSTGRES_DB: ${POSTGRES_DB:-inventorydb}
+      POSTGRES_USER: ${POSTGRES_USER:-inventory}
+      # Kein Klartext-Passwort im Repo: kommt aus .env bzw. der Umgebung.
+      # Ohne gesetzten Wert bricht 'docker compose' mit dieser Meldung ab.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD muss gesetzt sein (siehe .env.example)}
     ports:
-      - "5432:5432"
+      # Nur lokal erreichbar. Fuer Zugriff aus dem LAN bewusst und begruendet oeffnen.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 volumes:
