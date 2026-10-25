@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -42,10 +43,23 @@ FEEDBACK_API_KEY = os.getenv('FEEDBACK_API_KEY', '')
 # ──────────────────────────────────────────────────────────────────────────────
 # Django Core
 # ──────────────────────────────────────────────────────────────────────────────
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key')
-DEBUG = os.getenv('DJANGO_DEBUG', 'true').lower() == 'true'
+# Pflicht: kein Default mehr. Ein einkompilierter SECRET_KEY macht alle Sessions,
+# Passwort-Reset-Token und signierten Cookies wertlos.
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY ist nicht gesetzt. Bitte in .env bzw. als Container-Env "
+        "einen zufaelligen Wert hinterlegen (64+ Zeichen), z.B.: "
+        "python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+    )
 
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',')
+# Sicherer Default: DEBUG ist nur aktiv, wenn DJANGO_DEBUG explizit true ist.
+DEBUG = os.getenv('DJANGO_DEBUG', 'false').lower() == 'true'
+
+# Kein '*' mehr: Wildcard hebt den Host-Header-Schutz aus. Ohne gesetzte Hosts
+# bleiben nur die lokalen Adressen erlaubt.
+_allowed_hosts = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') if h.strip()]
+ALLOWED_HOSTS = _allowed_hosts or ['localhost', '127.0.0.1', '[::1]']
 CSRF_TRUSTED_ORIGINS = [o for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o]
 
 # Optional, wenn hinter Proxy/HTTPS:
@@ -142,12 +156,20 @@ elif DB_ENGINE == 'mysql':
     }
 else:
     # Default: PostgreSQL
+    # Pflicht: kein Default-Passwort. Ein geratenes/einkompiliertes Passwort
+    # ist der schnellste Weg in die Datenbank.
+    _pg_password = os.getenv('POSTGRES_PASSWORD')
+    if not _pg_password:
+        raise ImproperlyConfigured(
+            "POSTGRES_PASSWORD ist nicht gesetzt (DB_ENGINE=postgres). Bitte in .env "
+            "bzw. als Container-Env ein starkes, zufaelliges Passwort hinterlegen."
+        )
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('POSTGRES_DB', 'inventorydb'),
             'USER': os.getenv('POSTGRES_USER', 'inventory'),
-            'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'inventory'),
+            'PASSWORD': _pg_password,
             'HOST': os.getenv('POSTGRES_HOST', '127.0.0.1'),
             'PORT': int(os.getenv('POSTGRES_PORT', '5432')),
             'CONN_MAX_AGE': int(os.getenv('POSTGRES_CONN_MAX_AGE', '60')),

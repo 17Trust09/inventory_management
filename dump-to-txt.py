@@ -2,8 +2,9 @@
 """
 Erzeugt eine einzelne project_dump.txt mit:
 - Ordnerbaum
-- Inhalt aller Textdateien (py, html, css, js, json, md, txt, ini, cfg, env*)
+- Inhalt aller Textdateien (py, html, css, js, json, md, txt, ini, cfg)
 - schließt große/binäre Dateien aus (media, venv, __pycache__, .git, node_modules, *.pyc, *.sqlite*)
+- schließt Geheimnis-Dateien aus (.env, *.env, .env.*)
 Nutzung:
     python dump_project_to_txt.py /pfad/zum/projekt
 Die Ausgabe landet neben dem Skript als project_dump.txt
@@ -35,6 +36,9 @@ def is_text_file(path):
 
 def should_skip_file(path):
     name = os.path.basename(path)
+    # Geheimnisse gehoeren nicht in den Dump (.env.example ist nur eine Vorlage).
+    if name == ".env" or name.endswith(".env") or (name.startswith(".env.") and name != ".env.example"):
+        return True
     if any(name.endswith(g) for g in EXCLUDE_GLOBS):
         return True
     if os.path.getsize(path) > MAX_FILE_MB * 1024 * 1024:
