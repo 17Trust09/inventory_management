@@ -1,13 +1,35 @@
-Django>=4.2,<5.1
-python-barcode
-qrcode
-Pillow
-openpyxl
-reportlab
-requests
-django-jazzmin
-django-crispy-forms
-crispy-bootstrap5
-python-dotenv
-djangorestframework
-psycopg2-binary
+# Exakte Pins, erzeugt aus dem laufenden Produktions-Image (Quelle der Wahrheit):
+#   docker exec inventory_app_tim pip freeze
+# Stand: 2026-10-24, Python 3.11.17, Django 5.2.18
+#
+# Die vorherige Liste hatte 169 Namen ohne jede Versionsangabe und war ein
+# pip-freeze-Abdruck einer fremden Entwickler-Maschine (u.a. appnope, asttokens,
+# Jupyter-/TensorFlow-Umfeld). Nur die hier gepinnten Pakete sind im Image
+# tatsaechlich installiert; die alte Liste liegt unveraendert unter
+# docs/requirements-legacy-freeze.txt als Referenz.
+#
+# Regel: Aenderungen hier nur bewusst und mit Test - kein Major-Sprung
+# (Django, DRF) in einem Security-Commit.
+asgiref==3.12.1
+certifi==2026.10.19
+charset-normalizer==3.5.2
+crispy-bootstrap5==2026.9
+django-crispy-forms==2.7
+django-jazzmin==3.0.5
+Django==5.2.18
+djangorestframework==3.18.3
+et_xmlfile==2.0.0
+gunicorn==23.0.0
+idna==3.20
+openpyxl==3.1.5
+packaging==26.3
+pillow==13.0.0
+psycopg2-binary==2.9.13
+python-barcode==0.16.1
+python-dotenv==1.2.4
+qrcode==8.2
+reportlab==5.1.0
+requests==2.34.2
+sqlparse==0.6.0
+urllib3==2.8.0
+whitenoise==6.12.0
